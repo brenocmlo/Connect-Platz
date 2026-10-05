@@ -71,6 +71,13 @@
 
 - ❌ **Sem WhatsApp Integrado:** Manter botões e links diretos para WhatsApp Web / App (`https://wa.me/55...`), sem embutir cliente não oficial de mensagens.
 - ❌ **Sem Inteligência Artificial Externa:** Regras de negócio, cálculos de SLA, roleta e scores devem ser 100% determinísticos.
+- ❌ **Sem Treinamentos e Assinatura:** Não devem existir itens de menu, abas ou telas para "Treinamentos" e "Assinatura" no CRM.
+- 🔒 **Restrição Rígida de Acesso do Corretor (RBAC) & Menu Lateral:**
+  - **Menu Lateral sem "Administração":** O item "Administração" NÃO deve constar no menu lateral (pois seus ajustes estão centralizados no painel de Configurações para gestores).
+  - **Corretor sem Acesso à Gestão/Administração:** Corretores têm acesso estritamente à sua conta/perfil profissional em Configurações ("Minha Conta"). As abas de dados corporativos da imobiliária e parametrização de SLAs, bem como os módulos de Fluxo de Caixa, DRE, Equipes e Integrações, são 100% bloqueados para o cargo `CORRETOR`.
+- 📱 **Responsividade Mobile Obrigatória & PWA (Progressive Web App):**
+  - O sistema DEVE ser 100% responsivo para smartphones e tablets, com grid fluido, Drawer lateral/inferior e navegação adaptada para toque.
+  - O sistema implementará suporte a **PWA** (`manifest.json`, standalone display, meta tags para iOS/Android e Service Worker) permitindo instalação direta na tela inicial como app nativo.
 
 ---
 
@@ -80,4 +87,13 @@
 > 1. **Reutilização e Componentização Obrigatória:** Todo código deve ser altamente modular, desacoplado e componentizado. Telas e views não devem concentrar lógicas monolíticas; componentes de UI, modais, drawers, formulários e cards devem ser divididos em componentes reutilizáveis.
 > 2. **Limite Máximo de Linhas por Arquivo (350 a 400 linhas):** Nenhum arquivo, script, página ou componente deve ultrapassar o limite estrito de **350 a 400 linhas de código**.  
 >    - Qualquer arquivo extenso deve ser refatorado e decomposto em sub-componentes especializados (ex.: em `components/crm/...`), hooks customizados e serviços utilitários para garantir facilidade de manutenção e leitura.
+
+---
+
+### 5. Diretrizes de Testes e Validação
+
+> **REGRA PERMANENTE DE TESTES:**  
+> - ⚠️ **Os testes (testes automatizados, capturas em navegador/screenshots, scripts de teste) são feitos APENAS no final do roadmap ou quando expressamente solicitados pelo usuário.**  
+> - Durante o avanço das fases do roadmap, focar diretamente na implementação, arquitetura, compilação (`npm run build`) e limite de linhas, sem executar rotinas pesadas de testes ou captura de screenshots intermediárias a menos que solicitado.
+
 

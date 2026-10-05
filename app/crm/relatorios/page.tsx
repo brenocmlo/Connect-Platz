@@ -1,18 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import * as XLSX from "xlsx";
 import {
-  BarChart3,
-  Download,
-  Clock,
-  TrendingUp,
   FileSpreadsheet,
-  AlertTriangle,
-  Users,
-  CheckCircle2,
-  PieChart as PieIcon,
+  Download,
   ShieldCheck,
+  TrendingUp,
 } from "lucide-react";
 import {
   BarChart,
@@ -23,9 +17,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useCrm } from "@/components/crm/CrmContext";
+import { PageHeader } from "@/components/crm/PageHeader";
+import { SectionTitle } from "@/components/crm/SectionTitle";
 
 const funnelEfficiencyData = [
-  { etapa: "Novo Lead", tempoHoras: 0.3 }, // 18 min
+  { etapa: "Novo Lead", tempoHoras: 0.3 },
   { etapa: "1º Contato", tempoHoras: 1.5 },
   { etapa: "Visita Agendada", tempoHoras: 28.0 },
   { etapa: "Proposta", tempoHoras: 14.2 },
@@ -68,126 +64,126 @@ export default function RelatoriosBiPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* 1. TOPBAR */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0A0E17] border border-[#1C2537] rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-connect-blue/15 border border-connect-blue/30 text-connect-blue">
-            <BarChart3 className="w-6 h-6" />
-          </div>
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* 1. CABEÇALHO PADRÃO SEÇÃO 5.2 */}
+      <PageHeader
+        title="Relatórios BI & Métricas"
+        subtitle="Eficiência de funil, velocidade de conversão, ROI de canais e governança de dados."
+        showPeriodSelector={true}
+        showExportButton={true}
+        onExportClick={handleExportExcel}
+      >
+        <button
+          onClick={handleExportClosedLeads}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition-colors shadow-xs"
+        >
+          <Download className="w-3.5 h-3.5 text-platz-gold" />
+          <span>Exportar LGPD</span>
+        </button>
+      </PageHeader>
+
+      {/* 2. GRÁFICO: EFICIÊNCIA DE FUNIL */}
+      <div className="space-y-3">
+        <SectionTitle>Eficiência de Funil & Permanência Média</SectionTitle>
+
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
           <div>
-            <h2 className="text-xl font-black text-white">BI & Relatórios Analíticos de Performance</h2>
-            <p className="text-xs text-slate-400">
-              Gargalos de funil, tempo médio por etapa, ROI de campanhas e governança LGPD.
+            <h3 className="text-sm font-bold text-foreground">Tempo Médio em Horas por Estágio</h3>
+            <p className="text-xs text-muted-foreground">
+              Média de horas que um lead permanece em cada etapa até o próximo avanço ou desfecho.
             </p>
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={handleExportExcel}
-            className="bg-[#0F1624] hover:bg-[#151F33] border border-[#1C2537] text-slate-200 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-            Exportar ROI (Excel)
-          </button>
-
-          <button
-            onClick={handleExportClosedLeads}
-            className="bg-[#D9BB4C] hover:bg-[#C5A73D] text-black text-xs font-extrabold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-[#D9BB4C]/15 transition-all hover:scale-105"
-          >
-            <Download className="w-4 h-4" />
-            Exportar Contatos LGPD
-          </button>
-        </div>
-      </div>
-
-      {/* 2. GRÁFICO: TEMPO MÉDIO EM HORAS POR ETAPA DO FUNIL */}
-      <div className="bg-[#0A0E17] border border-[#1C2537] rounded-2xl p-6 shadow-xl space-y-4">
-        <div>
-          <h3 className="text-base font-bold text-white">Eficiência de Funil • Tempo Médio de Permanência</h3>
-          <p className="text-xs text-slate-400">
-            Horas médias que um lead permanece em cada estágio até o avanço comercial.
-          </p>
-        </div>
-
-        <div className="h-64 w-full pt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={funnelEfficiencyData}>
-              <XAxis dataKey="etapa" stroke="#64748B" fontSize={11} />
-              <YAxis stroke="#64748B" fontSize={11} unit="h" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#0D131F",
-                  borderColor: "#1F2937",
-                  borderRadius: "0.75rem",
-                  fontSize: "12px",
-                }}
-              />
-              <Bar dataKey="tempoHoras" name="Tempo Médio (Horas)" fill="#1266C7" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* 3. TABELA DE ROI DE CAMPANHAS E CANAIS */}
-      <div className="bg-[#0A0E17] border border-[#1C2537] rounded-2xl shadow-xl overflow-hidden">
-        <div className="p-5 border-b border-[#1C2537] flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-            ROI de Aquisição de Clientes por Canal
-          </h3>
-          <span className="text-xs text-slate-400">Atribuição por Parâmetros UTM</span>
-        </div>
-
-        <table className="w-full text-left text-xs">
-          <thead className="bg-[#0F1624] text-[10px] text-slate-400 font-bold uppercase tracking-wider border-b border-[#1C2537]">
-            <tr>
-              <th className="py-3 px-4">Canal de Origem</th>
-              <th className="py-3 px-4">Leads Recebidos</th>
-              <th className="py-3 px-4">VGV Comercial Gerado</th>
-              <th className="py-3 px-4 text-right">Retorno Sobre Investimento</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#1C2537]">
-            {campaignRoiData.map((c) => (
-              <tr key={c.canal} className="hover:bg-[#0D131F]">
-                <td className="py-3.5 px-4 font-bold text-white">{c.canal}</td>
-                <td className="py-3.5 px-4 font-mono text-slate-300">{c.leads} contatos</td>
-                <td className="py-3.5 px-4 font-extrabold text-[#D9BB4C]">
-                  {c.vgv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </td>
-                <td className="py-3.5 px-4 text-right">
-                  <span className="text-xs font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
-                    {c.roi}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 4. MÓDULO DE GOVERNANÇA LGPD & CONTATOS ENCERRADOS */}
-      <div className="bg-[#0A0E17] border border-[#1C2537] rounded-2xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 text-connect-blue" />
-          <div>
-            <h3 className="text-sm font-bold text-white">Contatos Encerrados por Caducidade (Governança LGPD)</h3>
-            <p className="text-xs text-slate-400">
-              Leads inativos sem avanço de etapa por mais de 14 dias arquivados com histórico para remarketing.
-            </p>
+          <div className="h-64 w-full pt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={funnelEfficiencyData}>
+                <XAxis dataKey="etapa" stroke="#94A3B8" fontSize={11} />
+                <YAxis stroke="#94A3B8" fontSize={11} unit="h" />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-card border border-border rounded-xl p-3 shadow-lg text-xs">
+                          <span className="font-bold text-muted-foreground block mb-1">{label}</span>
+                          <span className="font-extrabold text-connect-blue dark:text-blue-400">
+                            Tempo Médio: {payload[0].value} horas
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar dataKey="tempoHoras" fill="#1266C7" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {closedLeadsForRemarketing.map((lead) => (
-            <div key={lead.nome} className="bg-[#0F1624] border border-[#1C2537] p-3.5 rounded-xl space-y-1 text-xs">
-              <span className="font-bold text-white block">{lead.nome}</span>
-              <span className="text-[11px] text-slate-400 font-mono block">{lead.telefone}</span>
-              <span className="text-[10px] text-red-400 block font-semibold">{lead.motivo}</span>
-              <span className="text-[10px] text-slate-500 block">Interesse: {lead.interesse}</span>
+      {/* 3. TABELA DE ROI POR CANAL */}
+      <div className="space-y-3">
+        <SectionTitle>ROI de Aquisição por Canal</SectionTitle>
+
+        <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-muted/60 text-[10px] text-muted-foreground font-bold uppercase tracking-wider border-b border-border">
+                <tr>
+                  <th className="py-3 px-4">Canal de Origem</th>
+                  <th className="py-3 px-4">Leads Recebidos</th>
+                  <th className="py-3 px-4">VGV Comercial Gerado</th>
+                  <th className="py-3 px-4 text-right">Retorno Sobre Investimento</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {campaignRoiData.map((c) => (
+                  <tr key={c.canal} className="hover:bg-connect-blue/5 transition-colors">
+                    <td className="py-3.5 px-4 font-bold text-foreground">{c.canal}</td>
+                    <td className="py-3.5 px-4 font-mono text-muted-foreground">{c.leads} contatos</td>
+                    <td className="py-3.5 px-4 font-extrabold text-emerald-600 dark:text-emerald-400">
+                      {c.vgv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <span className="text-xs font-bold text-connect-blue dark:text-blue-300 bg-connect-blue/10 px-2.5 py-0.5 rounded-full border border-connect-blue/20">
+                        {c.roi}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. GOVERNANÇA LGPD */}
+      <div className="space-y-3">
+        <SectionTitle>Governança de Dados & Remarketing LGPD</SectionTitle>
+
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-connect-blue/10 text-connect-blue">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-          ))}
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Contatos Encerrados por Inatividade</h3>
+              <p className="text-xs text-muted-foreground">
+                Leads sem interação há mais de 14 dias arquivados com histórico para listas de remarketing consentido.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {closedLeadsForRemarketing.map((lead) => (
+              <div key={lead.nome} className="bg-muted/50 border border-border/80 p-3.5 rounded-xl space-y-1 text-xs">
+                <span className="font-bold text-foreground block">{lead.nome}</span>
+                <span className="text-[11px] text-muted-foreground font-mono block">{lead.telefone}</span>
+                <span className="text-[10px] text-red-500 font-semibold block">{lead.motivo}</span>
+                <span className="text-[10px] text-muted-foreground block">Interesse: {lead.interesse}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

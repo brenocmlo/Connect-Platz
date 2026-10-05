@@ -62,7 +62,7 @@ export function ExecutiveKpiCards() {
       <div className="bg-[#0C1220] border border-[#1C2537] hover:border-connect-blue/50 rounded-2xl p-5 shadow-lg transition-all group">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Leads & Conversão</span>
-          <div className="p-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
+          <div className="p-2 rounded-xl bg-connect-blue/15 border border-connect-blue/30 text-connect-blue">
             <Users className="w-4 h-4" />
           </div>
         </div>

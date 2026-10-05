@@ -1,43 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
-import { usePathname } from "next/navigation";
 import {
   Bell,
-  Clock,
+  Sun,
+  Moon,
   PlusCircle,
   CheckCircle2,
-  Calendar,
-  AlertTriangle,
-  ChevronRight,
-  Flame,
-  UserCheck,
-  Check,
   X,
+  AlertTriangle,
+  Menu,
 } from "lucide-react";
-import { useCrm, PeriodFilter } from "./CrmContext";
-
-const routeNames: Record<string, string> = {
-  "/crm": "Dashboard Executiva",
-  "/crm/leads": "Gestão de Leads & Funis",
-  "/crm/agenda": "Agenda & Visitas",
-  "/crm/vendas": "Vendas & Split de Comissões",
-  "/crm/fluxo-de-caixa": "Fluxo de Caixa & DRE",
-  "/crm/empreendimentos": "Empreendimentos & Espelho de Vendas",
-  "/crm/temporada": "Aluguel de Temporada (Veraneio)",
-  "/crm/ranking": "Ranking & Gamificação",
-  "/crm/relatorios": "BI & Relatórios de SLA",
-  "/crm/equipes": "Gestão de Equipes",
-  "/crm/configuracoes": "Configurações White-Label",
-};
+import { useCrm } from "./CrmContext";
 
 export function Topbar() {
-  const pathname = usePathname();
   const {
-    user,
     token,
-    selectedPeriod,
-    setSelectedPeriod,
+    theme,
+    toggleTheme,
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
     slaBreachedCount,
     notifications,
     unreadCount,
@@ -48,8 +30,6 @@ export function Topbar() {
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isSimulatingLead, setIsSimulatingLead] = useState(false);
-
-  const currentRouteName = routeNames[pathname] || "Painel CRM";
 
   // Simular ingestão de lead em tempo real do Meta Ads
   const handleSimulateMetaLead = async () => {
@@ -76,7 +56,7 @@ export function Topbar() {
       });
 
       if (res.ok) {
-        setActionMessage("Novo lead recebido em tempo real e atribuído via Roleta Round-Robin!");
+        setActionMessage("Novo lead recebido e distribuído na Roleta Round-Robin!");
         setTimeout(() => setActionMessage(null), 5000);
       }
     } catch (err) {
@@ -87,113 +67,108 @@ export function Topbar() {
   };
 
   return (
-    <header className="sticky top-0 z-20 h-16 bg-[#080C14]/90 backdrop-blur-md border-b border-[#1C2537] px-6 flex items-center justify-between gap-4">
-      {/* 1. BREADCRUMB */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-slate-400">Connect Platz CRM</span>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-        <h1 className="text-sm font-bold text-white tracking-tight">{currentRouteName}</h1>
+    <header className="sticky top-0 z-20 h-14 bg-card/80 backdrop-blur-md border-b border-border px-4 md:px-6 flex items-center justify-between gap-4">
+      {/* 1. LADO ESQUERDO: BOTÃO MOBILE MENU + FEEDBACK DE AÇÃO OU SLA DISCRETO */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="md:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          title={isSidebarCollapsed ? "Abrir menu lateral" : "Fechar menu lateral"}
+          aria-label="Menu lateral"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
 
-        {/* Feedback visual de ações rápidas */}
         {actionMessage && (
-          <div className="ml-4 text-xs bg-emerald-950/90 border border-emerald-700 text-emerald-300 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+          <div className="text-xs bg-emerald-950/80 border border-emerald-700/80 text-emerald-300 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm animate-fade-in">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
             <span>{actionMessage}</span>
           </div>
         )}
-      </div>
 
-      {/* 2. CONTROLES CENTRAIS E DIREITOS */}
-      <div className="flex items-center gap-3">
-        {/* SELETOR DE PERÍODO RÁPIDO NO PADRÃO HABITUS */}
-        <div className="hidden lg:flex items-center bg-[#0F1624] border border-[#1C2537] rounded-xl p-1 text-xs">
-          {(
-            [
-              { key: "hoje", label: "Hoje" },
-              { key: "7d", label: "7 Dias" },
-              { key: "mes", label: "Este Mês" },
-              { key: "30d", label: "30 Dias" },
-              { key: "ano", label: "Ano" },
-            ] as const
-          ).map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setSelectedPeriod(item.key as PeriodFilter)}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
-                selectedPeriod === item.key
-                  ? "bg-connect-blue text-white shadow-sm font-semibold"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* ALERTA DE SLA CRÍTICO COM PULSO */}
-        {slaBreachedCount > 0 && (
+        {slaBreachedCount > 0 && !actionMessage && (
           <a
             href="/crm/leads"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-950/70 border border-red-800 text-red-300 text-xs font-semibold hover:bg-red-900/60 transition-colors animate-pulse"
-            title="Leads com tempo de SLA estourado"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-950/70 border border-red-800 text-red-300 text-[11px] font-semibold hover:bg-red-900/60 transition-colors animate-pulse"
+            title="Leads com SLA estourado"
           >
             <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-            <span>{slaBreachedCount} SLA em Risco</span>
+            <span>{slaBreachedCount} SLA Crítico</span>
           </a>
         )}
+      </div>
 
-        {/* BOTÃO DE DEMONSTRAÇÃO / WEBHOOK META ADS */}
+      {/* 2. LADO DIREITO (5.2): TOGGLE TEMA ☀/☾ + SINO 99+ + DEMO META */}
+      <div className="flex items-center gap-2.5 ml-auto">
+        {/* Simulação rápida Meta Ads */}
         <button
           onClick={handleSimulateMetaLead}
           disabled={isSimulatingLead}
-          className="bg-connect-blue/15 hover:bg-connect-blue/25 border border-connect-blue/40 text-blue-400 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-all"
+          title="Simular ingestão de lead Meta Ads"
         >
-          <PlusCircle className={`w-3.5 h-3.5 text-connect-blue ${isSimulatingLead ? "animate-spin" : ""}`} />
-          <span className="hidden sm:inline">Simular Webhook Meta</span>
+          <PlusCircle className={`w-3.5 h-3.5 ${isSimulatingLead ? "animate-spin" : ""}`} />
+          <span>+ Lead Demo</span>
         </button>
 
-        {/* NOTIFICAÇÕES COM BADGE */}
+        {/* Toggle de Tema Light / Dark (5.2) */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted border border-border transition-colors"
+          title={theme === "dark" ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
+          aria-label="Alternar tema"
+        >
+          {theme === "dark" ? (
+            <Sun className="w-4 h-4 text-[#F8DA56]" />
+          ) : (
+            <Moon className="w-4 h-4 text-connect-blue" />
+          )}
+        </button>
+
+        {/* Sino de Notificações com badge vermelho 99+ (5.2) */}
         <div className="relative">
           <button
             onClick={() => {
               setIsNotifOpen(!isNotifOpen);
               if (!isNotifOpen) markNotificationsAsRead();
             }}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#131B2A] border border-[#1C2537] relative transition-colors"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted border border-border relative transition-colors"
             title="Notificações do Sistema"
+            aria-label="Notificações"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-extrabold flex items-center justify-center animate-bounce">
-                {unreadCount}
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[9px] font-extrabold flex items-center justify-center shadow-sm">
+                {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
           </button>
 
-          {/* POPOVER DE NOTIFICAÇÕES */}
+          {/* Popover de Notificações */}
           {isNotifOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-[#0F1624] border border-[#1C2537] rounded-2xl shadow-2xl p-4 z-50">
-              <div className="flex items-center justify-between pb-3 border-b border-[#1C2537] mb-3">
-                <span className="text-xs font-bold text-white">Notificações Recentes</span>
+            <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-2xl p-3 z-50 animate-fade-in-up">
+              <div className="flex items-center justify-between pb-2.5 border-b border-border mb-2.5">
+                <span className="text-xs font-bold text-foreground">Notificações Recentes</span>
                 <button
                   onClick={() => setIsNotifOpen(false)}
-                  className="text-slate-400 hover:text-white"
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground"
+                  aria-label="Fechar"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {notifications.map((n) => (
                   <div
                     key={n.id}
-                    className="p-2.5 rounded-xl bg-[#090D15] border border-[#1C2537] hover:border-connect-blue/40 transition-colors"
+                    className="p-2.5 rounded-lg bg-muted/50 border border-border/60 hover:border-primary/40 transition-colors"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-bold text-white">{n.title}</span>
-                      <span className="text-[9px] text-slate-500">{n.createdAt}</span>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[11px] font-bold text-foreground">{n.title}</span>
+                      <span className="text-[9px] text-muted-foreground">{n.createdAt}</span>
                     </div>
-                    <p className="text-[10px] text-slate-400">{n.message}</p>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">{n.message}</p>
                   </div>
                 ))}
               </div>
@@ -204,3 +179,4 @@ export function Topbar() {
     </header>
   );
 }
+

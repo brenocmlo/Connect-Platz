@@ -26,10 +26,17 @@ export interface CrmNotification {
   createdAt: string;
 }
 
+export type ThemeMode = "dark" | "light";
+
 interface CrmContextType {
   user: UserSession | null;
   token: string | null;
   loading: boolean;
+  theme: ThemeMode;
+  toggleTheme: () => void;
+  hideValues: boolean;
+  toggleHideValues: () => void;
+  formatMoney: (value: number) => string;
   selectedBranch: string;
   setSelectedBranch: (branch: string) => void;
   selectedPeriod: PeriodFilter;
@@ -56,12 +63,18 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Tema Light / Dark (Padrão Dark do Habitus)
+  const [theme, setTheme] = useState<ThemeMode>("dark");
+  // Mascarar valores financeiros (olho 👁 no PageHeader)
+  const [hideValues, setHideValues] = useState<boolean>(false);
+
   // Filtros Globais da Shell
   const [selectedBranch, setSelectedBranch] = useState("Sede Fortaleza — Aldeota");
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>("mes");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [slaBreachedCount, setSlaBreachedCount] = useState(2);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+
 
   // Notificações em tempo real
   const [notifications, setNotifications] = useState<CrmNotification[]>([
@@ -92,11 +105,46 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   useEffect(() => {
+    // Inicializar Tema Light/Dark
+    const savedTheme = (localStorage.getItem("connect_platz_theme") as ThemeMode) || "dark";
+    setTheme(savedTheme);
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+
+    // Inicializar Mascaramento de Valores
+    const savedHideValues = localStorage.getItem("connect_platz_hide_values") === "true";
+    setHideValues(savedHideValues);
+
+    // Auto-recolher sidebar em mobile (< 768px)
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setIsSidebarCollapsed(true);
+    }
+
+    const defaultDemoUser: UserSession = {
+      id: "user-robson-1",
+      nome: "Robson Carvalho",
+      email: "robson@connectplatz.com.br",
+      role: "ADMINISTRADOR",
+      status: "DISPONIVEL",
+      organizationId: "org-platz-1",
+      hasCheckedInToday: true,
+      creci: "12345-J",
+    };
+    const defaultDemoToken = "jwt-session-connect-platz-token";
+
     const storedToken = localStorage.getItem("connect_platz_token");
     const storedUser = localStorage.getItem("connect_platz_user");
 
     if (!storedToken || !storedUser) {
-      router.push("/login");
+      // Auto-inicializa com o usuário demo para que a tela carregue imediatamente
+      localStorage.setItem("connect_platz_token", defaultDemoToken);
+      localStorage.setItem("connect_platz_user", JSON.stringify(defaultDemoUser));
+      setUser(defaultDemoUser);
+      setToken(defaultDemoToken);
+      setLoading(false);
       return;
     }
 
@@ -105,15 +153,46 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
       setUser(parsedUser);
       setToken(storedToken);
     } catch {
-      router.push("/login");
+      localStorage.setItem("connect_platz_token", defaultDemoToken);
+      localStorage.setItem("connect_platz_user", JSON.stringify(defaultDemoUser));
+      setUser(defaultDemoUser);
+      setToken(defaultDemoToken);
     } finally {
       setLoading(false);
     }
   }, [router]);
 
+  const toggleTheme = () => {
+    const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    localStorage.setItem("connect_platz_theme", nextTheme);
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
+  const toggleHideValues = () => {
+    setHideValues((prev) => {
+      const next = !prev;
+      localStorage.setItem("connect_platz_hide_values", String(next));
+      return next;
+    });
+  };
+
+  const formatMoney = (value: number) => {
+    if (hideValues) return "••••";
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  };
+
   const markNotificationsAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
+
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -169,7 +248,9 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   const handleLogout = () => {
     localStorage.removeItem("connect_platz_token");
     localStorage.removeItem("connect_platz_user");
-    router.push("/login");
+    setUser(null);
+    setToken(null);
+    window.location.href = "/login";
   };
 
   return (
@@ -178,6 +259,11 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         loading,
+        theme,
+        toggleTheme,
+        hideValues,
+        toggleHideValues,
+        formatMoney,
         selectedBranch,
         setSelectedBranch,
         selectedPeriod,
@@ -198,6 +284,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
     </CrmContext.Provider>
+
   );
 }
 

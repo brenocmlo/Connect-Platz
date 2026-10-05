@@ -5,17 +5,21 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  Plus,
   FileText,
   BarChart3,
   Layers,
+  Wallet,
 } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
+import { PageHeader } from "@/components/crm/PageHeader";
+import { SectionTitle } from "@/components/crm/SectionTitle";
 import { CountUpNumber } from "@/components/crm/CountUpNumber";
+import { TrendBadge } from "@/components/crm/primitives/TrendBadge";
 import { DreTable } from "@/components/crm/financeiro/DreTable";
 import { CashFlowTable, CashFlowItem } from "@/components/crm/financeiro/CashFlowTable";
 import { CashFlowProjection } from "@/components/crm/financeiro/CashFlowProjection";
 import { NewCashFlowModal } from "@/components/crm/financeiro/NewCashFlowModal";
+import { AccessDeniedCard } from "@/components/crm/AccessDeniedCard";
 
 const initialCashFlows: CashFlowItem[] = [
   { id: "cf-1", tipo: "RECEITA", categoria: "Comissão Venda", descricao: "Comissão Venda Apt 403 • Villa Platz Beach", valor: 52500, dataVencimento: "28/09/2026", status: "PAGO", meioPagamento: "TED" },
@@ -27,8 +31,13 @@ const initialCashFlows: CashFlowItem[] = [
 ];
 
 export default function FluxoCaixaDREPage() {
-  const { setActionMessage } = useCrm();
-  const [activeTab, setActiveTab] = useState<"contas" | "dre" | "projecao">("dre");
+  const { user, setActionMessage, hideValues } = useCrm();
+
+  if (user && user.role === "CORRETOR") {
+    return <AccessDeniedCard moduleName="o Fluxo de Caixa e DRE corporativo" />;
+  }
+
+  const [activeTab, setActiveTab] = useState<"contas" | "dre" | "projecao">("contas");
   const [cashFlows, setCashFlows] = useState<CashFlowItem[]>(initialCashFlows);
   const [filterTipo, setFilterTipo] = useState<"TODOS" | "RECEITA" | "DESPESA">("TODOS");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,101 +63,167 @@ export default function FluxoCaixaDREPage() {
 
   const handleAddEntry = (entry: CashFlowItem) => {
     setCashFlows([entry, ...cashFlows]);
-    setActionMessage("Lançamento financeiro adicionado com sucesso!");
+    setActionMessage(
+      entry.status === "PAGO"
+        ? "Lançamento liquidado e registrado no caixa com sucesso!"
+        : "Lançamento agendado adicionado com sucesso!"
+    );
+    setTimeout(() => setActionMessage(null), 4000);
+  };
+
+  const handleConfirmMovement = (
+    item: CashFlowItem,
+    dataEfetiva: string,
+    meio: string,
+    observacao?: string
+  ) => {
+    setCashFlows((prev) =>
+      prev.map((c) =>
+        c.id === item.id
+          ? {
+              ...c,
+              status: "PAGO",
+              dataLiquidacao: dataEfetiva,
+              foiAntecipado: true,
+              meioPagamento: meio,
+              observacaoLiquidacao: observacao,
+            }
+          : c
+      )
+    );
+    const tipoLabel = item.tipo === "RECEITA" ? "Entrada" : "Saída";
+    setActionMessage(
+      `${tipoLabel} de ${item.valor.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      })} confirmada com sucesso em ${dataEfetiva}! Saldo de caixa recalculado.`
+    );
+    setTimeout(() => setActionMessage(null), 5000);
+  };
+
+  const handleRevertMovement = (id: string) => {
+    setCashFlows((prev) =>
+      prev.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              status: "PENDENTE",
+              dataLiquidacao: undefined,
+              foiAntecipado: false,
+            }
+          : c
+      )
+    );
+    setActionMessage("Lançamento revertido para pendente.");
     setTimeout(() => setActionMessage(null), 4000);
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* 1. TOPBAR */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0A0E17] border border-[#1C2537] rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-white">Módulo ERP • Fluxo de Caixa & DRE</h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
-                Diretoria (RLS Ativo)
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* 1. CABEÇALHO PADRÃO SEÇÃO 5.2 */}
+      <PageHeader
+        title="Fluxo de Caixa & DRE"
+        subtitle="Conciliação de faturamento de vendas, estadias de temporada e custos operacionais."
+        actionLabel="Novo Lançamento"
+        onActionClick={() => setIsModalOpen(true)}
+        showPeriodSelector={true}
+        showExportButton={true}
+      />
+
+      {/* 2. RESUMO DE CAIXA & RENTABILIDADE */}
+      <div className="space-y-4">
+        <SectionTitle>Resumo de Caixa & Rentabilidade</SectionTitle>
+
+        {/* 3 STATCARDS COM COUNT-UP */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+                <ArrowUpRight className="w-4 h-4" />
+              </div>
+              <TrendBadge value="+18.4%" isPositive={true} />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Receitas Liquidadas (Mês)
+              </span>
+              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
+                {hideValues ? "••••••" : <CountUpNumber value={totalReceitas} prefix="R$ " decimals={2} />}
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Conciliação automática de faturamento de vendas de imóveis, aluguéis de temporada e custos de tráfego.
-            </p>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 rounded-xl bg-red-500/10 text-red-500">
+                <ArrowDownRight className="w-4 h-4" />
+              </div>
+              <TrendBadge value="+4.2%" isPositive={false} />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Despesas & Splits Pagos
+              </span>
+              <span className="text-2xl font-black text-red-600 dark:text-red-400 mt-1 block">
+                {hideValues ? "••••••" : <CountUpNumber value={totalDespesas} prefix="R$ " decimals={2} />}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 rounded-xl bg-platz-gold/15 text-platz-gold">
+                <Wallet className="w-4 h-4" />
+              </div>
+              <TrendBadge value="+12.8%" isPositive={true} />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Saldo Operacional em Caixa
+              </span>
+              <span className="text-2xl font-black text-slate-900 dark:text-[#F8DA56] mt-1 block">
+                {hideValues ? "••••••" : <CountUpNumber value={saldoLiquido} prefix="R$ " decimals={2} />}
+              </span>
+            </div>
           </div>
         </div>
-
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-950 transition-all hover:scale-105"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Lançamento Financeiro
-        </button>
       </div>
 
-      {/* 2. STATCARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#0A0E17] border border-[#1C2537] rounded-2xl p-5 shadow-lg">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            Receitas Liquidadas (Mês)
-          </span>
-          <span className="text-2xl font-black text-emerald-400 flex items-center gap-1">
-            <ArrowUpRight className="w-5 h-5 text-emerald-400" />
-            <CountUpNumber value={totalReceitas} prefix="R$ " decimals={2} />
-          </span>
-        </div>
-
-        <div className="bg-[#0A0E17] border border-[#1C2537] rounded-2xl p-5 shadow-lg">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            Despesas & Splits Pagos
-          </span>
-          <span className="text-2xl font-black text-red-400 flex items-center gap-1">
-            <ArrowDownRight className="w-5 h-5 text-red-400" />
-            <CountUpNumber value={totalDespesas} prefix="R$ " decimals={2} />
-          </span>
-        </div>
-
-        <div className="bg-[#0A0E17] border border-[#1C2537] rounded-2xl p-5 shadow-lg">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            Saldo Operacional em Caixa
-          </span>
-          <span className="text-2xl font-black text-[#D9BB4C]">
-            <CountUpNumber value={saldoLiquido} prefix="R$ " decimals={2} />
-          </span>
-        </div>
-      </div>
-
-      {/* 3. ABAS */}
-      <div className="flex border-b border-[#1C2537] bg-[#0A0E17] rounded-2xl p-2 gap-2 text-xs font-bold">
+      {/* 3. TABS SHADCN STYLE */}
+      <div className="flex bg-muted p-1 rounded-xl gap-1 text-xs font-semibold overflow-x-auto">
         <button
           onClick={() => setActiveTab("dre")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-            activeTab === "dre" ? "bg-connect-blue text-white shadow-sm" : "text-slate-400 hover:text-white"
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+            activeTab === "dre"
+              ? "bg-card text-foreground shadow-xs font-bold"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <FileText className="w-4 h-4" />
+          <FileText className="w-4 h-4 text-connect-blue" />
           DRE Gerencial em Tempo Real
         </button>
 
         <button
           onClick={() => setActiveTab("contas")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-            activeTab === "contas" ? "bg-connect-blue text-white shadow-sm" : "text-slate-400 hover:text-white"
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+            activeTab === "contas"
+              ? "bg-card text-foreground shadow-xs font-bold"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Layers className="w-4 h-4" />
+          <Layers className="w-4 h-4 text-connect-blue" />
           Contas a Pagar & Receber
         </button>
 
         <button
           onClick={() => setActiveTab("projecao")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-            activeTab === "projecao" ? "bg-connect-blue text-white shadow-sm" : "text-slate-400 hover:text-white"
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+            activeTab === "projecao"
+              ? "bg-card text-foreground shadow-xs font-bold"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          <BarChart3 className="w-4 h-4" />
+          <BarChart3 className="w-4 h-4 text-connect-blue" />
           Projeção de Saldo (90 Dias)
         </button>
       </div>
@@ -171,6 +246,8 @@ export default function FluxoCaixaDREPage() {
           cashFlows={cashFlows}
           filterTipo={filterTipo}
           onSetFilterTipo={setFilterTipo}
+          onConfirmMovement={handleConfirmMovement}
+          onRevertMovement={handleRevertMovement}
         />
       )}
 
