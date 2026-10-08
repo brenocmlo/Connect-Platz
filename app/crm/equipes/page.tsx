@@ -7,7 +7,6 @@ import {
   Mail,
   CheckCircle2,
   Crown,
-  X,
   UserCheck,
   Clock,
   Zap,
@@ -18,6 +17,8 @@ import { SectionTitle } from "@/components/crm/SectionTitle";
 import { CountUpNumber } from "@/components/crm/CountUpNumber";
 import { AccessDeniedCard } from "@/components/crm/AccessDeniedCard";
 import { RoletaDistributionPanel } from "@/components/crm/equipes/RoletaDistributionPanel";
+import { InviteCollaboratorModal, InviteCollaboratorData } from "@/components/crm/equipes/InviteCollaboratorModal";
+import { logAuditEvent } from "@/lib/services/auditLogger";
 
 interface TeamMember {
   id: string;
@@ -47,9 +48,6 @@ export default function EquipesPage() {
 
   const [team, setTeam] = useState<TeamMember[]>(mockTeam);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteName, setInviteName] = useState("");
-  const [inviteRole, setInviteRole] = useState<"CORRETOR" | "GERENTE">("CORRETOR");
   const [activeTab, setActiveTab] = useState<"membros" | "roleta">("membros");
 
   const totalAtivos = team.filter((m) => m.status === "DISPONIVEL").length;
@@ -79,23 +77,38 @@ export default function EquipesPage() {
     setTimeout(() => setActionMessage(null), 4000);
   };
 
-  const handleSendInvite = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendInvite = (data: InviteCollaboratorData) => {
     const newMember: TeamMember = {
       id: `m-${Date.now()}`,
-      nome: inviteName,
-      email: inviteEmail,
-      telefone: "85988880000",
-      role: inviteRole,
+      nome: data.nome,
+      email: data.email,
+      telefone: data.telefone || "85988880000",
+      role: data.role,
       equipe: "Equipe Litoral & Alto Padrão",
       leadsAtivos: 0,
       status: "DISPONIVEL",
     };
     setTeam([...team, newMember]);
     setIsInviteModalOpen(false);
-    setInviteName("");
-    setInviteEmail("");
-    setActionMessage(`Convite enviado com sucesso para ${inviteEmail}!`);
+    setActionMessage(`Convite enviado para ${data.email} com senha temporária configurada!`);
+
+    logAuditEvent({
+      usuario: {
+        id: user?.id || "u-1",
+        nome: user?.nome || "Administrador",
+        email: user?.email || "admin@connectplatz.com.br",
+        role: user?.role || "ADMINISTRADOR",
+      },
+      acao: "Convite de Colaborador",
+      tipoAcao: "INVITE",
+      modulo: "EQUIPES",
+      detalhes: `Convite enviado para ${data.nome} (${data.email}) com perfil ${data.role}. Senha temporária configurada (troca no primeiro login: ${data.exigirTrocaPrimeiroAcesso ? "Sim" : "Não"}).`,
+      entidadeAfetada: {
+        tipo: "Colaborador",
+        nome: data.nome,
+      },
+    });
+
     setTimeout(() => setActionMessage(null), 4000);
   };
 
@@ -277,80 +290,11 @@ export default function EquipesPage() {
       )}
 
       {/* 4. MODAL DE CONVITE */}
-      {isInviteModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-connect-blue/10 text-connect-blue">
-                  <UserPlus className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-bold text-foreground">Convidar Novo Profissional</h3>
-              </div>
-              <button
-                onClick={() => setIsInviteModalOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSendInvite} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-muted-foreground font-semibold mb-1">Nome Completo</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Carlos Albuquerque"
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
-                  className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-semibold mb-1">E-mail Corporativo</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="carlos.corretor@connectplatz.com.br"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-semibold mb-1">Nível de Acesso</label>
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as any)}
-                  className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                >
-                  <option value="CORRETOR">Corretor (Visualiza Próprios Leads)</option>
-                  <option value="GERENTE">Gerente de Equipe (Visualiza Time)</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setIsInviteModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-muted-foreground hover:bg-muted font-semibold transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-extrabold shadow-sm transition-all"
-                >
-                  Disparar Convite
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <InviteCollaboratorModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        onInvite={handleSendInvite}
+      />
     </div>
   );
 }

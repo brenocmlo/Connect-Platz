@@ -39,9 +39,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`dark ${dmSans.variable}`}>
+    <html lang="pt-BR" className={`dark ${dmSans.variable}`} suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        {/* Aplica tema e tamanho de fonte de acessibilidade salvos antes da primeira pintura */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{
+              if(localStorage.getItem('connect_platz_theme')==='light')document.documentElement.classList.remove('dark');
+              var f=localStorage.getItem('connect_platz_font_size');
+              if(f)document.documentElement.setAttribute('data-font-size',f);
+            }catch(e){}`,
+          }}
+        />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-connect-blue selection:text-white">

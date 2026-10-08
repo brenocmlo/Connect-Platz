@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Upload } from "lucide-react";
-import { SaleItem, SplitItem } from "./types";
+import { X, Building2, CheckCircle2 } from "lucide-react";
+import { SaleItem } from "./types";
 import { SaleCalculationsTab } from "./SaleCalculationsTab";
 import { SaleParticipantsSection } from "./SaleParticipantsSection";
+import { SaleAttachmentsTab, SaleAttachment } from "./SaleAttachmentsTab";
+import { initialSampleProperties } from "@/components/crm/properties/sampleProperties";
+import { calculateSaleValues, buildSaleSplits } from "./saleSplitHelper";
 
 interface NewSaleModalProps {
   isOpen: boolean;
@@ -15,13 +18,19 @@ interface NewSaleModalProps {
 export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
   const [activeTab, setActiveTab] = useState<"dados" | "resumo" | "anexos">("dados");
 
-  // Dados e Financeiro
-  const [imovel, setImovel] = useState("Villa Platz Beach Residence");
-  const [construtora, setConstrutora] = useState("Platz Empreendimentos");
-  const [unidade, setUnidade] = useState("403");
+  // Dados do Empreendimento e Construtora
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("prop-1");
+  const [imovel, setImovel] = useState("Villa Platz Beach");
+  const [construtora, setConstrutora] = useState("Platz Urbanismo");
+  const [isCustomProperty, setIsCustomProperty] = useState(false);
+
+  const [unidade, setUnidade] = useState("403 (Torre Coral)");
   const [cliente, setCliente] = useState("");
-  const [vgvValue, setVgvValue] = useState<number>(1050000);
+  const [vgvValue, setVgvValue] = useState<number>(1250000);
   const [percentualComissao, setPercentualComissao] = useState<number>(5);
+
+  // Anexos
+  const [attachments, setAttachments] = useState<SaleAttachment[]>([]);
 
   // Participantes
   const [corretor1, setCorretor1] = useState("Lucas Santos");
@@ -42,79 +51,67 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
 
   if (!isOpen) return null;
 
-  // Cálculos determinísticos
-  const comissaoTotalBruta = (vgvValue * percentualComissao) / 100;
-  const impostoEstimado = comissaoTotalBruta * 0.06;
-  const baseLiquida = comissaoTotalBruta - impostoEstimado;
+  const handlePropertySelect = (propertyId: string) => {
+    setSelectedPropertyId(propertyId);
+    if (propertyId === "custom") {
+      setIsCustomProperty(true);
+      setImovel("");
+      setConstrutora("");
+    } else {
+      setIsCustomProperty(false);
+      const found = initialSampleProperties.find((p) => p.id === propertyId);
+      if (found) {
+        setImovel(found.nome);
+        setConstrutora(found.construtora || "Platz Urbanismo");
+        if (found.valorVenda) setVgvValue(found.valorVenda);
+      }
+    }
+  };
 
-  const valorCorretor1 = (baseLiquida * (corretor1Pct / 100)) - descontoCorretor + bonusCorretor;
-  const valorCorretor2 = hasCorretor2 ? (baseLiquida * (corretor2Pct / 100)) : 0;
-  const valorGerente = baseLiquida * (gerentePct / 100);
-  const valorGestor = baseLiquida * (gestorPct / 100);
-  const valorCaptador = baseLiquida * (captadorPct / 100);
+  const handleAddAttachments = (fileList: FileList) => {
+    const newItems: SaleAttachment[] = Array.from(fileList).map((f) => ({
+      id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      name: f.name,
+      size: `${(f.size / (1024 * 1024)).toFixed(2)} MB`,
+      uploadedAt: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+    }));
+    setAttachments((prev) => [...prev, ...newItems]);
+  };
 
-  const somaParticipantes =
-    valorCorretor1 + valorCorretor2 + valorGerente + valorGestor + valorCaptador;
-  const receitaImobiliaria = Math.max(0, comissaoTotalBruta - impostoEstimado - somaParticipantes);
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const splitParams = {
+    vgvValue,
+    percentualComissao,
+    corretor1,
+    corretor1Pct,
+    hasCorretor2,
+    corretor2,
+    corretor2Pct,
+    gerente,
+    gerentePct,
+    gestor,
+    gestorPct,
+    captador,
+    captadorPct,
+    descontoCorretor,
+    bonusCorretor,
+  };
+
+  const calculated = calculateSaleValues(splitParams);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const splits: SplitItem[] = [
-      {
-        id: `sp-imob-${Date.now()}`,
-        beneficiario: "Connect Platz Imobiliária",
-        categoria: "Imobiliária",
-        percentual: Math.round((receitaImobiliaria / comissaoTotalBruta) * 100),
-        valor: receitaImobiliaria,
-        status: "PAGO",
-      },
-      {
-        id: `sp-c1-${Date.now()}`,
-        beneficiario: corretor1,
-        categoria: "Corretor 1",
-        percentual: corretor1Pct,
-        valor: valorCorretor1,
-        status: "PENDENTE",
-        pix: "lucas.corretor@pix.com",
-      },
-      ...(hasCorretor2
-        ? [
-            {
-              id: `sp-c2-${Date.now()}`,
-              beneficiario: corretor2,
-              categoria: "Corretor 2",
-              percentual: corretor2Pct,
-              valor: valorCorretor2,
-              status: "PENDENTE" as const,
-              pix: "segundo.corretor@pix.com",
-            },
-          ]
-        : []),
-      {
-        id: `sp-ger-${Date.now()}`,
-        beneficiario: gerente,
-        categoria: "Gerente",
-        percentual: gerentePct,
-        valor: valorGerente,
-        status: "PENDENTE",
-      },
-      {
-        id: `sp-cap-${Date.now()}`,
-        beneficiario: captador,
-        categoria: "Captador",
-        percentual: captadorPct,
-        valor: valorCaptador,
-        status: "PENDENTE",
-      },
-    ];
+    const splits = buildSaleSplits(splitParams, calculated);
 
     const newSaleItem: SaleItem = {
       id: `sale-${Date.now()}`,
       codigoVenda: `CP-2026-${Math.floor(100 + Math.random() * 900)}`,
       imovelNome: imovel,
-      construtora,
-      unidadeNumero: unidade,
+      construtora: construtora || "Platz Urbanismo",
+      unidadeNumero: unidade || "Unid. 101",
       compradorNome: cliente || "Comprador Cadastrado",
       corretorTitular: corretor1,
       segundoCorretor: hasCorretor2 ? corretor2 : undefined,
@@ -123,10 +120,11 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
       captador,
       dataVenda: new Date().toLocaleDateString("pt-BR"),
       vgv: vgvValue,
-      comissaoTotal: comissaoTotalBruta,
-      impostoValor: impostoEstimado,
+      valorAvaliacao: vgvValue,
+      comissaoTotal: calculated.comissaoTotalBruta,
+      impostoValor: calculated.impostoEstimado,
       impostoPercentual: 6,
-      proximoPagamento: "10/10/2026",
+      proximoPagamento: new Date(Date.now() + 15 * 86400000).toLocaleDateString("pt-BR"),
       meioPagamento: "TED",
       status: "APROVADA",
       splits,
@@ -146,7 +144,7 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
               Nova Venda & Split de Comissões
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Cálculo automatizado conforme Seção 5.8
+              Cálculo automatizado e divisão determinística de fechamento
             </p>
           </div>
           <button
@@ -173,38 +171,63 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
                 ? "Dados e Financeiro"
                 : tab === "resumo"
                 ? "Resumo e Cálculos"
-                : "Anexos"}
+                : `Anexos ${attachments.length > 0 ? `(${attachments.length})` : ""}`}
             </button>
           ))}
         </div>
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
-          {/* ABA 1: DADOS E FINANCEIRO */}
           {activeTab === "dados" && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Empreendimento *
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-connect-blue" />
+                    Empreendimento Cadastrado *
                   </label>
-                  <input
-                    type="text"
-                    value={imovel}
-                    onChange={(e) => setImovel(e.target.value)}
+                  <select
+                    value={selectedPropertyId}
+                    onChange={(e) => handlePropertySelect(e.target.value)}
                     required
-                    className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white"
-                  />
+                    className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-connect-blue"
+                  >
+                    {initialSampleProperties.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome} — ({p.construtora || "Platz Urbanismo"})
+                      </option>
+                    ))}
+                    <option value="custom">Outro / Digitar Personalizado...</option>
+                  </select>
+
+                  {isCustomProperty && (
+                    <input
+                      type="text"
+                      placeholder="Nome do Empreendimento"
+                      value={imovel}
+                      onChange={(e) => setImovel(e.target.value)}
+                      required
+                      className="w-full mt-2 bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white"
+                    />
+                  )}
                 </div>
+
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Construtora
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                    <span>Construtora / Incorporadora</span>
+                    {!isCustomProperty && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5">
+                        <CheckCircle2 className="w-3 h-3" /> Auto-preenchido
+                      </span>
+                    )}
                   </label>
                   <input
                     type="text"
                     value={construtora}
                     onChange={(e) => setConstrutora(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white"
+                    required
+                    placeholder="Nome da Construtora"
+                    className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white font-semibold"
                   />
                 </div>
               </div>
@@ -218,6 +241,7 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
                     type="text"
                     value={unidade}
                     onChange={(e) => setUnidade(e.target.value)}
+                    placeholder="Ex: 403, 1201"
                     className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white"
                   />
                 </div>
@@ -227,16 +251,16 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
                   </label>
                   <input
                     type="text"
-                    placeholder="Ex: Dr. Roberto Guimarães"
                     value={cliente}
                     onChange={(e) => setCliente(e.target.value)}
                     required
+                    placeholder="Ex: Dr. Roberto Guimarães"
                     className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     VGV da Venda (R$) *
@@ -246,7 +270,8 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
                     value={vgvValue}
                     onChange={(e) => setVgvValue(Number(e.target.value))}
                     required
-                    className="w-full bg-white dark:bg-[#0E1624] border border-slate-300 dark:border-[#242C3D] rounded-xl p-2.5 text-slate-900 dark:text-white font-mono font-bold"
+                    min={1000}
+                    className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white font-mono font-bold"
                   />
                 </div>
                 <div>
@@ -255,16 +280,16 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
                   </label>
                   <input
                     type="number"
-                    step="0.5"
                     value={percentualComissao}
                     onChange={(e) => setPercentualComissao(Number(e.target.value))}
                     required
-                    className="w-full bg-white dark:bg-[#0E1624] border border-slate-300 dark:border-[#242C3D] rounded-xl p-2.5 text-slate-900 dark:text-white font-mono font-bold"
+                    min={1}
+                    max={15}
+                    className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white font-mono font-bold"
                   />
                 </div>
               </div>
 
-              {/* Bloco de Participantes Extraído */}
               <SaleParticipantsSection
                 corretor1={corretor1}
                 setCorretor1={setCorretor1}
@@ -286,33 +311,25 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
             </div>
           )}
 
-          {/* ABA 2: RESUMO E CÁLCULOS DETERMINÍSTICOS */}
           {activeTab === "resumo" && (
             <SaleCalculationsTab
-              comissaoTotalBruta={comissaoTotalBruta}
-              impostoEstimado={impostoEstimado}
-              valorCorretor1={valorCorretor1}
+              comissaoTotalBruta={calculated.comissaoTotalBruta}
+              impostoEstimado={calculated.impostoEstimado}
+              valorCorretor1={calculated.valorCorretor1}
               corretor1={corretor1}
               hasCorretor2={hasCorretor2}
-              valorCorretor2={valorCorretor2}
+              valorCorretor2={calculated.valorCorretor2}
               corretor2={corretor2}
-              receitaImobiliaria={receitaImobiliaria}
+              receitaImobiliaria={calculated.receitaImobiliaria}
             />
           )}
 
-          {/* ABA 3: ANEXOS */}
           {activeTab === "anexos" && (
-            <div className="space-y-3">
-              <div className="border-2 border-dashed border-slate-300 dark:border-[#242C3D] rounded-2xl p-6 text-center space-y-2">
-                <Upload className="w-8 h-8 mx-auto text-slate-400" />
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
-                  Arraste arquivos ou clique para anexar
-                </span>
-                <p className="text-[10px] text-slate-400">
-                  Contrato de compra e venda assinado, espelho da proposta, comprovante de TED/PIX (máx 10 MB cada).
-                </p>
-              </div>
-            </div>
+            <SaleAttachmentsTab
+              attachments={attachments}
+              onAddAttachments={handleAddAttachments}
+              onRemoveAttachment={handleRemoveAttachment}
+            />
           )}
 
           {/* Rodapé Fixo */}

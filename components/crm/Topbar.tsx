@@ -108,7 +108,7 @@ export function Topbar() {
           title="Simular ingestão de lead Meta Ads"
         >
           <PlusCircle className={`w-3.5 h-3.5 ${isSimulatingLead ? "animate-spin" : ""}`} />
-          <span>+ Lead Demo</span>
+          <span>Simular Lead</span>
         </button>
 
         {/* Toggle de Tema Light / Dark (5.2) */}

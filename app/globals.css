@@ -30,6 +30,17 @@
     --connect-deep-blue: #0D478F;
     --platz-gold: #D9BB4C;
     --platz-gold-light: #F8DA56;
+
+    /* Portal público (RGB para suportar opacidade no Tailwind) */
+    --portal-navy: 7 26 59; /* #071A3B */
+    --portal-navy-deep: 4 18 43; /* #04122B */
+    --portal-ink: 14 42 80; /* #0E2A50 */
+    --portal-slate: 74 93 120; /* #4A5D78 */
+    --portal-sand: 237 240 244; /* #EDF0F4 */
+    --portal-mist: 246 248 251; /* #F6F8FB */
+    --portal-surface: 255 255 255; /* #FFFFFF */
+    --portal-line: 226 232 240; /* #E2E8F0 */
+    --portal-field: 203 213 225; /* #CBD5E1 */
   }
 
   .dark {
@@ -52,6 +63,17 @@
     --border: 217 33% 18%; /* #1E293B */
     --input: 217 33% 18%;
     --ring: 212 83% 43%;
+
+    /* Portal público - dark */
+    --portal-navy: 6 11 24; /* #060B18 */
+    --portal-navy-deep: 3 6 14; /* #03060E */
+    --portal-ink: 241 245 249; /* #F1F5F9 */
+    --portal-slate: 148 163 184; /* #94A3B8 */
+    --portal-sand: 13 20 36; /* #0D1424 */
+    --portal-mist: 8 12 20; /* #080C14 */
+    --portal-surface: 17 24 39; /* #111827 */
+    --portal-line: 31 41 55; /* #1F2937 */
+    --portal-field: 42 52 70; /* #2A3446 */
   }
 
   * {
@@ -64,6 +86,41 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     overflow-x: hidden;
   }
+
+  /* Acessibilidade: Escala Global de Tipografia (Tamanho das Fontes) */
+  html {
+    font-size: 100%;
+    transition: font-size 0.2s ease-in-out;
+  }
+
+  html[data-font-size="small"] {
+    font-size: 87.5%;
+  }
+
+  html[data-font-size="normal"] {
+    font-size: 100%;
+  }
+
+  html[data-font-size="large"] {
+    font-size: 112.5%;
+  }
+
+  html[data-font-size="extra-large"] {
+    font-size: 125%;
+  }
+
+  /* Ajustes proporcionais para classes arbitrárias de micro-texto */
+  html[data-font-size="small"] .text-\[9px\] { font-size: 8px; }
+  html[data-font-size="small"] .text-\[10px\] { font-size: 9px; }
+  html[data-font-size="small"] .text-\[11px\] { font-size: 10px; }
+
+  html[data-font-size="large"] .text-\[9px\] { font-size: 10px; }
+  html[data-font-size="large"] .text-\[10px\] { font-size: 11.5px; }
+  html[data-font-size="large"] .text-\[11px\] { font-size: 12.5px; }
+
+  html[data-font-size="extra-large"] .text-\[9px\] { font-size: 11px; }
+  html[data-font-size="extra-large"] .text-\[10px\] { font-size: 13px; }
+  html[data-font-size="extra-large"] .text-\[11px\] { font-size: 14px; }
 }
 
 
@@ -142,3 +199,11 @@
   background: #1266C7;
 }
 
+
+/* Carrosséis do portal público (scroll-snap sem barra visível) */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

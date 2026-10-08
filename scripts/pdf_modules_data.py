@@ -36,10 +36,11 @@ MODULES_DATA = [
             "Mobile com seletor direto de avanço de etapa, eliminando atrito de arraste em telas touch.",
             "Card completo com avatar de corretor, oportunidade estimada, contatos rápidos e tags.",
             "Gaveta Lateral com Abordagem Multicanal (WhatsApp, Ligação, Visita, Email, Anotação).",
-            "Links diretos de WhatsApp via 'wa.me' sem embutir clientes de mensagens não oficiais.",
-            "Busca instantânea e filtros avançados em Sheet lateral deslizante."
+            "Gestor de Anexos Completo com upload multi-arquivos, preview, download e slots de documentos.",
+            "Filtro Dinâmico de Período (Hoje, 7D, Mês Atual, 30D, Ano, Todos) sincronizado no cabeçalho.",
+            "Links diretos de WhatsApp via 'wa.me' sem embutir clientes de mensagens não oficiais."
         ],
-        "verdict": "APROVADO — Drag & Drop e avanço mobile validados; integridade total de estados e SLAs."
+        "verdict": "APROVADO — Drag & Drop, avanço mobile, anexos interativos e filtros temporais validados."
     },
     {
         "num": "03",
@@ -71,11 +72,13 @@ MODULES_DATA = [
         ),
         "highlights": [
             "Cálculos determinísticos sem margem de erro ou dependência de regras probabilísticas.",
+            "Novo Fechamento: seleção de Empreendimentos cadastrados com auto-preenchimento da Construtora e VGV.",
+            "Aba de Anexos de Venda para upload de minutas contratuais, escrituras e comprovantes de rateio.",
+            "Filtro Interativo de Período (Hoje, 7D, Mês, 30D, Ano, Todos) com atualização reativa de StatCards.",
             "Divisão transparente de comissão: Corretor 1, Corretor 2, Gerência, Captação e Imobiliária.",
-            "StatCards com VGV acumulado, comissões recebidas, pendentes e pagas no período.",
             "Tabela com busca, paginação e filtros em Sheet lateral."
         ],
-        "verdict": "APROVADO — Splits matematicamente exatos e conciliação financeira consistente."
+        "verdict": "APROVADO — Auto-preenchimento de construtora, anexos contratuais e splits 100% validados."
     },
     {
         "num": "05",
@@ -202,11 +205,12 @@ MODULES_DATA = [
         ),
         "highlights": [
             "Barreira de segurança RBAC verificada no front-end e nas rotas de API do backend.",
+            "Interface de Configurações limpa: botões de olho, exportação e filtro de datas removidos do topo.",
             "Configuração de SLAs em minutos com alertas visuais e pulso na tela de Leads.",
             "Configurações gerais da empresa (CNPJ, CRECI PJ, endereço, cores do site vitrine).",
             "Eliminação definitiva do link 'Administração' no menu lateral global."
         ],
-        "verdict": "APROVADO — Isolamento por papéis (RBAC) 100% blindado e menu lateral higienizado."
+        "verdict": "APROVADO — Cabeçalho limpo, isolamento por papéis (RBAC) 100% blindado e navegação higienizada."
     },
     {
         "num": "12",

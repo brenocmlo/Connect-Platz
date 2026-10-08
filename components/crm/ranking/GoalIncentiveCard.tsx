@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { Gift, Calendar, Sparkles, Award, Settings2 } from "lucide-react";
+import { Gift, Calendar, Sparkles, Award, Settings2, Plus, Target } from "lucide-react";
 import confetti from "canvas-confetti";
 import { GoalIncentive } from "./types";
 import { AdminGoalModal } from "./AdminGoalModal";
 
 interface GoalIncentiveCardProps {
-  incentive: GoalIncentive;
+  incentive: GoalIncentive | null;
   isAdmin?: boolean;
-  onUpdateIncentive?: (updated: GoalIncentive) => void;
+  onUpdateIncentive?: (updated: GoalIncentive | null) => void;
 }
 
 export function GoalIncentiveCard({
@@ -18,10 +18,10 @@ export function GoalIncentiveCard({
   onUpdateIncentive,
 }: GoalIncentiveCardProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const percentage = Math.min(
-    100,
-    Math.round((incentive.progressoAtual / incentive.objetivoMeta) * 100)
-  );
+
+  const percentage = incentive
+    ? Math.min(100, Math.round((incentive.progressoAtual / incentive.objetivoMeta) * 100))
+    : 0;
 
   const handleCelebrate = () => {
     confetti({
@@ -32,11 +32,50 @@ export function GoalIncentiveCard({
     });
   };
 
-  const handleSaveGoal = (updated: GoalIncentive) => {
+  const handleSaveGoal = (updated: GoalIncentive | null) => {
     if (onUpdateIncentive) {
       onUpdateIncentive(updated);
     }
   };
+
+  // Se não houver meta cadastrada:
+  if (!incentive) {
+    // Para corretores regulares, não exibe nada
+    if (!isAdmin) return null;
+
+    // Para administradores, exibe card para cadastro de nova meta
+    return (
+      <>
+        <div className="bg-white/60 dark:bg-[#0A0E17]/60 border-2 border-dashed border-slate-300 dark:border-[#1F2937] rounded-2xl p-6 text-center space-y-3 transition-colors hover:border-connect-blue/50">
+          <div className="w-12 h-12 rounded-2xl bg-platz-gold/15 text-platz-gold border border-platz-gold/30 flex items-center justify-center mx-auto shadow-xs">
+            <Target className="w-6 h-6" />
+          </div>
+          <div className="max-w-md mx-auto space-y-1">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              Nenhuma Meta de Incentivo Ativa no Momento
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Campanhas de incentivo só aparecem para a equipe quando cadastradas pelo Administrador.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white text-xs font-bold shadow-md shadow-connect-blue/20 transition-all hover:scale-[1.02]"
+          >
+            <Plus className="w-4 h-4 text-platz-gold" />
+            Cadastrar Nova Meta (ADM)
+          </button>
+        </div>
+
+        <AdminGoalModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          currentGoal={null}
+          onSave={handleSaveGoal}
+        />
+      </>
+    );
+  }
 
   return (
     <>

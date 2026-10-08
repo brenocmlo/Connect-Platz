@@ -12,6 +12,7 @@ interface PageHeaderProps {
   actionHref?: string;
   showPeriodSelector?: boolean;
   showExportButton?: boolean;
+  showHideValuesButton?: boolean;
   onExportClick?: () => void;
   children?: React.ReactNode;
 }
@@ -22,6 +23,7 @@ const periodLabels: Record<PeriodFilter, string> = {
   mes: "Mês atual",
   "30d": "Últimos 30 dias",
   ano: "Ano",
+  todos: "Todo o período",
 };
 
 export function PageHeader({
@@ -32,6 +34,7 @@ export function PageHeader({
   actionHref,
   showPeriodSelector = true,
   showExportButton = true,
+  showHideValuesButton = true,
   onExportClick,
   children,
 }: PageHeaderProps) {
@@ -48,14 +51,16 @@ export function PageHeader({
       {/* 2. AÇÕES À DIREITA (5.2) */}
       <div className="flex items-center flex-wrap gap-2">
         {/* Botão-ícone Olho: Ocultar/Exibir Valores */}
-        <button
-          onClick={toggleHideValues}
-          className="p-2 rounded-lg border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-sm"
-          title={hideValues ? "Mostrar valores monetários" : "Ocultar valores monetários"}
-          aria-label={hideValues ? "Mostrar valores monetários" : "Ocultar valores monetários"}
-        >
-          {hideValues ? <EyeOff className="w-4 h-4 text-amber-500" /> : <Eye className="w-4 h-4" />}
-        </button>
+        {showHideValuesButton && (
+          <button
+            onClick={toggleHideValues}
+            className="p-2 rounded-lg border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-sm"
+            title={hideValues ? "Mostrar valores monetários" : "Ocultar valores monetários"}
+            aria-label={hideValues ? "Mostrar valores monetários" : "Ocultar valores monetários"}
+          >
+            {hideValues ? <EyeOff className="w-4 h-4 text-amber-500" /> : <Eye className="w-4 h-4" />}
+          </button>
+        )}
 
         {/* Seletor de Período (Outline Button) */}
         {showPeriodSelector && (
@@ -71,6 +76,7 @@ export function PageHeader({
               <option value="mes">📅 Mês atual</option>
               <option value="30d">📅 30 dias</option>
               <option value="ano">📅 Ano</option>
+              <option value="todos">📅 Todo o período</option>
             </select>
             <Calendar className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -92,14 +98,15 @@ export function PageHeader({
         {children}
 
         {/* CTA Primário Sólido "+ Novo …" */}
-        {actionLabel && (
-          actionHref ? (
+        {actionLabel && (() => {
+          const cleanLabel = actionLabel.replace(/^\+\s*/, "");
+          return actionHref ? (
             <a
               href={actionHref}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white text-xs font-bold transition-all shadow-md shadow-connect-blue/20 hover:scale-[1.02]"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{actionLabel}</span>
+              <span>{cleanLabel}</span>
             </a>
           ) : (
             <button
@@ -107,10 +114,10 @@ export function PageHeader({
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white text-xs font-bold transition-all shadow-md shadow-connect-blue/20 hover:scale-[1.02]"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{actionLabel}</span>
+              <span>{cleanLabel}</span>
             </button>
-          )
-        )}
+          );
+        })()}
       </div>
     </div>
   );

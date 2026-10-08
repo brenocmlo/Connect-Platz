@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { FunnelColumn } from "@/components/crm/leads/KanbanBoard";
+import { PeriodFilter } from "@/components/crm/CrmContext";
 
 interface UseLeadsFilterProps {
   leads: LeadDetail[];
@@ -11,6 +12,7 @@ interface UseLeadsFilterProps {
   slaFilter: string;
   selectedMember: string;
   viewMode: "kanban" | "table" | "bolsao";
+  selectedPeriod?: PeriodFilter;
 }
 
 export function useLeadsFilter({
@@ -22,6 +24,7 @@ export function useLeadsFilter({
   slaFilter,
   selectedMember,
   viewMode,
+  selectedPeriod = "mes",
 }: UseLeadsFilterProps) {
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
@@ -49,13 +52,32 @@ export function useLeadsFilter({
 
       const matchesBolsao = viewMode === "bolsao" ? lead.isBolsao : !lead.isBolsao;
 
+      let matchesPeriod = true;
+      if (selectedPeriod && selectedPeriod !== "todos") {
+        const leadDate = lead.createdAt ? new Date(lead.createdAt) : new Date();
+        const now = new Date();
+        const diffMs = now.getTime() - leadDate.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+        if (selectedPeriod === "hoje") {
+          matchesPeriod = diffDays <= 1 || leadDate.toDateString() === now.toDateString();
+        } else if (selectedPeriod === "7d") {
+          matchesPeriod = diffDays <= 7;
+        } else if (selectedPeriod === "mes" || selectedPeriod === "30d") {
+          matchesPeriod = diffDays <= 31;
+        } else if (selectedPeriod === "ano") {
+          matchesPeriod = diffDays <= 365;
+        }
+      }
+
       return (
         matchesSearch &&
         matchesTemp &&
         matchesOrigin &&
         matchesSla &&
         matchesMember &&
-        matchesBolsao
+        matchesBolsao &&
+        matchesPeriod
       );
     });
   }, [
@@ -66,6 +88,7 @@ export function useLeadsFilter({
     slaFilter,
     selectedMember,
     viewMode,
+    selectedPeriod,
   ]);
 
   const metrics = useMemo(() => {

@@ -11,11 +11,13 @@ import {
   Clock,
   Paperclip,
   CheckCircle2,
+  Plus,
 } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { ScoreBadge, LeadTag } from "@/components/crm/primitives";
 import { useCrm } from "@/components/crm/CrmContext";
 import { LeadAbordagemSection } from "./LeadAbordagemSection";
+import { LeadAttachmentsSection } from "./LeadAttachmentsSection";
 
 interface LeadDetailsSectionsProps {
   lead: LeadDetail;
@@ -156,9 +158,10 @@ export function LeadDetailsSections({
           {onScheduleAppointment && (
             <button
               onClick={onScheduleAppointment}
-              className="text-[11px] font-bold text-connect-blue hover:underline"
+              className="text-[11px] font-bold text-connect-blue hover:underline flex items-center gap-1"
             >
-              + Agendar
+              <Plus className="w-3 h-3" />
+              Agendar
             </button>
           )}
         </div>
@@ -200,21 +203,8 @@ export function LeadDetailsSections({
         </div>
       </div>
 
-      {/* 6. ANEXOS */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-foreground font-semibold">
-          <Paperclip className="w-4 h-4 text-connect-blue" />
-          <span>Anexos & Documentos</span>
-        </div>
-
-        <div className="bg-card border border-dashed border-border rounded-xl p-6 text-center shadow-xs">
-          <FileText className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-          <p className="text-xs font-semibold text-foreground">Nenhum anexo enviado</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            Documentos de RG, CPF e holerites serão exibidos aqui (máx. 10 MB)
-          </p>
-        </div>
-      </div>
+      {/* 6. ANEXOS FUNCIONAIS & DOCUMENTOS */}
+      <LeadAttachmentsSection lead={lead} />
 
       {/* 7. DATAS IMPORTANTES */}
       <div className="bg-muted/40 border border-border/80 rounded-xl p-3.5 space-y-1.5 text-[11px]">

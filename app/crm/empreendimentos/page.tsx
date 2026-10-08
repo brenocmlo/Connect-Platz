@@ -105,7 +105,7 @@ export default function EmpreendimentosPage() {
       <PageHeader
         title="Empreendimentos & Catálogo"
         subtitle="Gerencie condomínios, matrizes de andares, espelhos de vendas e presença na Landing Page."
-        actionLabel="+ Novo Empreendimento"
+        actionLabel="Novo Empreendimento"
         onActionClick={() => setIsNewEmpModalOpen(true)}
       >
         {/* Botão tint 🌐 Ver meu Site (Seção 5.6) */}

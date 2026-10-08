@@ -15,12 +15,15 @@ import {
   Sparkles,
 } from "lucide-react";
 import { IntegrationItem, IntegrationStatus } from "./types";
+import { IntegrationInstructionsTab } from "./IntegrationInstructionsTab";
 
 interface IntegrationCardProps {
   item: IntegrationItem;
   onToggleActive: (id: string, active: boolean) => void;
   onSyncNow: (id: string) => void;
   onDisconnect: (id: string) => void;
+  onSaveConfig?: (id: string, rule: string, active: boolean) => void;
+  onReconnect?: (id: string) => void;
 }
 
 export function IntegrationCard({
@@ -28,6 +31,8 @@ export function IntegrationCard({
   onToggleActive,
   onSyncNow,
   onDisconnect,
+  onSaveConfig,
+  onReconnect,
 }: IntegrationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [subTab, setSubTab] = useState<"integracao" | "leads" | "instrucoes">("integracao");
@@ -35,7 +40,15 @@ export function IntegrationCard({
     item.regras?.distribuicao || "roleta"
   );
   const [autoReceive, setAutoReceive] = useState<boolean>(item.ativo);
-  const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const getWebhookUrl = () => {
+    const origin = typeof window !== "undefined" && window.location.hostname !== "localhost"
+      ? window.location.origin
+      : "https://connectplatz.com.br";
+    const endpoint = item.id === "meta-ads" ? "meta" : item.id;
+    return `${origin}/api/webhooks/${endpoint}`;
+  };
+
+  const verifyToken = "connect_platz_meta_webhook_token";
 
   const getStatusBadge = (status: IntegrationStatus) => {
     switch (status) {
@@ -48,12 +61,6 @@ export function IntegrationCard({
       default:
         return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700";
     }
-  };
-
-  const handleCopyWebhook = () => {
-    navigator.clipboard.writeText(`https://crm.connectplatz.com.br/api/webhooks/${item.id}`);
-    setCopiedWebhook(true);
-    setTimeout(() => setCopiedWebhook(false), 3000);
   };
 
   return (
@@ -222,7 +229,13 @@ export function IntegrationCard({
               {/* Botão Primário Full-Width */}
               <button
                 type="button"
-                onClick={() => onSyncNow(item.id)}
+                onClick={() => {
+                  if (onSaveConfig) {
+                    onSaveConfig(item.id, ruleDistribuicao, autoReceive);
+                  } else {
+                    onSyncNow(item.id);
+                  }
+                }}
                 className="w-full bg-connect-blue hover:bg-connect-deep-blue text-white font-bold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
@@ -242,6 +255,9 @@ export function IntegrationCard({
                   </button>
                   <button
                     type="button"
+                    onClick={() => {
+                      if (onReconnect) onReconnect(item.id);
+                    }}
                     className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#1F2937] hover:bg-slate-100 dark:hover:bg-[#161F30] text-slate-700 dark:text-slate-300 font-semibold"
                   >
                     Reconectar
@@ -294,30 +310,11 @@ export function IntegrationCard({
 
           {/* Sub-tab 3: Instruções */}
           {subTab === "instrucoes" && (
-            <div className="space-y-3">
-              <div className="space-y-2 text-slate-600 dark:text-slate-300">
-                <p>1. Acesse o painel de desenvolvedores ou configurações de webhook da plataforma parceira.</p>
-                <p>2. Cole a URL de Webhook segura abaixo no campo correspondente de disparo de leads:</p>
-                <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-100 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937]">
-                  <code className="text-xs font-mono text-connect-blue flex-1 truncate">
-                    https://crm.connectplatz.com.br/api/webhooks/{item.id}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={handleCopyWebhook}
-                    className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-[#161F30] text-slate-500 hover:text-slate-800 dark:hover:text-white"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </div>
-                {copiedWebhook && (
-                  <span className="text-[11px] text-emerald-600 font-semibold block">
-                    ✓ Link copiado para a área de transferência!
-                  </span>
-                )}
-                <p>3. Selecione o evento <code>lead.created</code> ou <code>new_lead</code> para entrega instantânea.</p>
-              </div>
-            </div>
+            <IntegrationInstructionsTab
+              itemId={item.id}
+              webhookUrl={getWebhookUrl()}
+              verifyToken={verifyToken}
+            />
           )}
         </div>
       )}

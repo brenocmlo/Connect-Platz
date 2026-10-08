@@ -9,6 +9,7 @@ import {
   Upload,
   Calendar,
 } from "lucide-react";
+import { useCrm, PeriodFilter } from "@/components/crm/CrmContext";
 
 interface LeadsHeaderProps {
   viewMode: "kanban" | "table" | "bolsao";
@@ -25,6 +26,8 @@ export function LeadsHeader({
   onImport,
   onExport,
 }: LeadsHeaderProps) {
+  const { selectedPeriod, setSelectedPeriod } = useCrm();
+
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-card border border-border rounded-2xl p-4 shadow-sm">
       <div>
@@ -61,11 +64,23 @@ export function LeadsHeader({
           </button>
         </div>
 
-        {/* Filtro de período */}
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted/80 text-foreground text-xs font-semibold shadow-xs">
-          <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>Mês atual</span>
-        </button>
+        {/* Filtro de período Interativo */}
+        <div className="relative">
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value as PeriodFilter)}
+            className="appearance-none bg-background hover:bg-muted/80 border border-border text-foreground text-xs font-semibold rounded-lg pl-8 pr-7 py-2 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-connect-blue shadow-xs"
+            aria-label="Filtrar período dos leads"
+          >
+            <option value="hoje">📅 Hoje</option>
+            <option value="7d">📅 7 dias</option>
+            <option value="mes">📅 Mês atual</option>
+            <option value="30d">📅 30 dias</option>
+            <option value="ano">📅 Ano</option>
+            <option value="todos">📅 Todo o período</option>
+          </select>
+          <Calendar className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
 
         {/* Importar e Exportar */}
         <button

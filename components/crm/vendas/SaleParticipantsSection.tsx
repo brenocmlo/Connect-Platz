@@ -84,7 +84,7 @@ export function SaleParticipantsSection({
           className="text-xs font-semibold text-connect-blue hover:underline flex items-center gap-1"
         >
           <Plus className="w-3.5 h-3.5" />
-          + Adicionar Segundo Corretor (Divisão)
+          Adicionar Segundo Corretor (Divisão)
         </button>
       ) : (
         <div className="grid grid-cols-3 gap-2 items-center p-2.5 rounded-xl bg-connect-blue/5 border border-connect-blue/20">

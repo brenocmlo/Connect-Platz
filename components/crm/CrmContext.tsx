@@ -15,7 +15,7 @@ export interface UserSession {
   photoUrl?: string;
 }
 
-export type PeriodFilter = "hoje" | "7d" | "mes" | "30d" | "ano";
+export type PeriodFilter = "hoje" | "7d" | "mes" | "30d" | "ano" | "todos";
 
 export interface CrmNotification {
   id: string;
@@ -27,6 +27,7 @@ export interface CrmNotification {
 }
 
 export type ThemeMode = "dark" | "light";
+export type FontSizePreference = "small" | "normal" | "large" | "extra-large";
 
 interface CrmContextType {
   user: UserSession | null;
@@ -34,6 +35,11 @@ interface CrmContextType {
   loading: boolean;
   theme: ThemeMode;
   toggleTheme: () => void;
+  fontSize: FontSizePreference;
+  setFontSize: (size: FontSizePreference) => void;
+  increaseFontSize: () => void;
+  decreaseFontSize: () => void;
+  resetFontSize: () => void;
   hideValues: boolean;
   toggleHideValues: () => void;
   formatMoney: (value: number) => string;
@@ -65,6 +71,8 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
 
   // Tema Light / Dark (Padrão Dark do Habitus)
   const [theme, setTheme] = useState<ThemeMode>("dark");
+  // Acessibilidade: Escala de Tamanho de Fonte (Padrão: normal / 100%)
+  const [fontSize, setFontSizeState] = useState<FontSizePreference>("normal");
   // Mascarar valores financeiros (olho 👁 no PageHeader)
   const [hideValues, setHideValues] = useState<boolean>(false);
 
@@ -113,6 +121,11 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     } else {
       document.documentElement.classList.remove("dark");
     }
+
+    // Inicializar Tamanho de Fonte de Acessibilidade
+    const savedFontSize = (localStorage.getItem("connect_platz_font_size") as FontSizePreference) || "normal";
+    setFontSizeState(savedFontSize);
+    document.documentElement.setAttribute("data-font-size", savedFontSize);
 
     // Inicializar Mascaramento de Valores
     const savedHideValues = localStorage.getItem("connect_platz_hide_values") === "true";
@@ -171,6 +184,32 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     } else {
       document.documentElement.classList.remove("dark");
     }
+  };
+
+  const applyFontSize = (size: FontSizePreference) => {
+    setFontSizeState(size);
+    localStorage.setItem("connect_platz_font_size", size);
+    document.documentElement.setAttribute("data-font-size", size);
+  };
+
+  const fontSizesList: FontSizePreference[] = ["small", "normal", "large", "extra-large"];
+
+  const increaseFontSize = () => {
+    const currentIndex = fontSizesList.indexOf(fontSize);
+    if (currentIndex < fontSizesList.length - 1) {
+      applyFontSize(fontSizesList[currentIndex + 1]);
+    }
+  };
+
+  const decreaseFontSize = () => {
+    const currentIndex = fontSizesList.indexOf(fontSize);
+    if (currentIndex > 0) {
+      applyFontSize(fontSizesList[currentIndex - 1]);
+    }
+  };
+
+  const resetFontSize = () => {
+    applyFontSize("normal");
   };
 
   const toggleHideValues = () => {
@@ -261,6 +300,11 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         loading,
         theme,
         toggleTheme,
+        fontSize,
+        setFontSize: applyFontSize,
+        increaseFontSize,
+        decreaseFontSize,
+        resetFontSize,
         hideValues,
         toggleHideValues,
         formatMoney,

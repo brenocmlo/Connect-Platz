@@ -1,15 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, Award, Gift, Target, Calendar, Users, CheckCircle2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Award, Gift, Target, Calendar, Users, CheckCircle2, Trash2, Plus } from "lucide-react";
 import { GoalIncentive } from "./types";
 
 interface AdminGoalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentGoal: GoalIncentive;
-  onSave: (updatedGoal: GoalIncentive) => void;
+  currentGoal: GoalIncentive | null;
+  onSave: (updatedGoal: GoalIncentive | null) => void;
 }
+
+const defaultNewGoal: GoalIncentive = {
+  titulo: "",
+  premio: "",
+  descricao: "",
+  objetivoMeta: 2,
+  progressoAtual: 0,
+  unidade: "Vendas",
+  periodoValidade: "31/10/2026",
+  tipoMeta: "vendas",
+  publicoAlvo: "Toda a Equipe Comercial",
+};
 
 export function AdminGoalModal({
   isOpen,
@@ -17,33 +29,63 @@ export function AdminGoalModal({
   currentGoal,
   onSave,
 }: AdminGoalModalProps) {
-  const [titulo, setTitulo] = useState(currentGoal.titulo);
-  const [premio, setPremio] = useState(currentGoal.premio);
-  const [descricao, setDescricao] = useState(currentGoal.descricao);
-  const [objetivoMeta, setObjetivoMeta] = useState(currentGoal.objetivoMeta);
-  const [unidade, setUnidade] = useState(currentGoal.unidade);
-  const [periodoValidade, setPeriodoValidade] = useState(currentGoal.periodoValidade);
-  const [tipoMeta, setTipoMeta] = useState(currentGoal.tipoMeta || "vendas");
-  const [publicoAlvo, setPublicoAlvo] = useState(currentGoal.publicoAlvo || "Toda a Equipe Comercial");
-  const [progressoAtual, setProgressoAtual] = useState(currentGoal.progressoAtual);
+  const [titulo, setTitulo] = useState("");
+  const [premio, setPremio] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [objetivoMeta, setObjetivoMeta] = useState(2);
+  const [unidade, setUnidade] = useState("Vendas");
+  const [periodoValidade, setPeriodoValidade] = useState("31/10/2026");
+  const [tipoMeta, setTipoMeta] = useState<"vendas" | "vgv" | "captacoes" | "visitas">("vendas");
+  const [publicoAlvo, setPublicoAlvo] = useState("Toda a Equipe Comercial");
+  const [progressoAtual, setProgressoAtual] = useState(0);
+
+  useEffect(() => {
+    if (currentGoal) {
+      setTitulo(currentGoal.titulo);
+      setPremio(currentGoal.premio);
+      setDescricao(currentGoal.descricao);
+      setObjetivoMeta(currentGoal.objetivoMeta);
+      setUnidade(currentGoal.unidade);
+      setPeriodoValidade(currentGoal.periodoValidade);
+      setTipoMeta(currentGoal.tipoMeta || "vendas");
+      setPublicoAlvo(currentGoal.publicoAlvo || "Toda a Equipe Comercial");
+      setProgressoAtual(currentGoal.progressoAtual);
+    } else {
+      setTitulo(defaultNewGoal.titulo);
+      setPremio(defaultNewGoal.premio);
+      setDescricao(defaultNewGoal.descricao);
+      setObjetivoMeta(defaultNewGoal.objetivoMeta);
+      setUnidade(defaultNewGoal.unidade);
+      setPeriodoValidade(defaultNewGoal.periodoValidade);
+      setTipoMeta(defaultNewGoal.tipoMeta || "vendas");
+      setPublicoAlvo(defaultNewGoal.publicoAlvo || "Toda a Equipe Comercial");
+      setProgressoAtual(defaultNewGoal.progressoAtual);
+    }
+  }, [currentGoal, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
-      ...currentGoal,
-      titulo,
-      premio,
-      descricao,
+      titulo: titulo.trim(),
+      premio: premio.trim(),
+      descricao: descricao.trim(),
       objetivoMeta: Number(objetivoMeta) || 1,
-      unidade,
-      periodoValidade,
-      tipoMeta: tipoMeta as any,
+      unidade: unidade.trim() || "Vendas",
+      periodoValidade: periodoValidade.trim() || "31/10/2026",
+      tipoMeta,
       publicoAlvo,
       progressoAtual: Number(progressoAtual) || 0,
     });
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (confirm("Tem certeza que deseja remover esta meta? Ela deixará de aparecer para a equipe.")) {
+      onSave(null);
+      onClose();
+    }
   };
 
   return (
@@ -57,10 +99,12 @@ export function AdminGoalModal({
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Gestão de Metas & Incentivos
+                {currentGoal ? "Gestão de Meta Ativa" : "Cadastrar Nova Meta de Incentivo"}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Ajuste e cadastro de campanhas direto pelo Administrador
+                {currentGoal
+                  ? "Ajuste ou encerre a campanha vigente para a equipe comercial"
+                  : "Crie uma nova meta e premiação com visibilidade para os corretores"}
               </p>
             </div>
           </div>
@@ -77,7 +121,7 @@ export function AdminGoalModal({
           {/* Título da Campanha */}
           <div>
             <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
-              Nome da Campanha de Incentivo
+              Nome da Campanha de Incentivo *
             </label>
             <input
               type="text"
@@ -98,11 +142,12 @@ export function AdminGoalModal({
               <select
                 value={tipoMeta}
                 onChange={(e) => {
-                  setTipoMeta(e.target.value as any);
-                  if (e.target.value === "vendas") setUnidade("Vendas");
-                  if (e.target.value === "vgv") setUnidade("R$ VGV");
-                  if (e.target.value === "captacoes") setUnidade("Imóveis");
-                  if (e.target.value === "visitas") setUnidade("Visitas");
+                  const val = e.target.value as any;
+                  setTipoMeta(val);
+                  if (val === "vendas") setUnidade("Vendas");
+                  if (val === "vgv") setUnidade("R$ VGV");
+                  if (val === "captacoes") setUnidade("Imóveis");
+                  if (val === "visitas") setUnidade("Visitas");
                 }}
                 className="w-full bg-slate-50 dark:bg-[#0E1726] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-connect-blue"
               >
@@ -146,14 +191,14 @@ export function AdminGoalModal({
           <div>
             <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1 flex items-center gap-1.5">
               <Gift className="w-3.5 h-3.5 text-platz-gold" />
-              Premiação em Destaque
+              Premiação em Destaque *
             </label>
             <input
               type="text"
               required
               value={premio}
               onChange={(e) => setPremio(e.target.value)}
-              placeholder="Ex: Viagem para Resort + iPhone 16 Pro"
+              placeholder="Ex: Viagem com Acompanhante para Resort + iPhone 16 Pro"
               className="w-full bg-slate-50 dark:bg-[#0E1726] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-connect-blue"
             />
           </div>
@@ -167,7 +212,7 @@ export function AdminGoalModal({
               rows={2}
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Ex: Premiação exclusiva para fechamentos com contrato assinado no período."
+              placeholder="Ex: Premiação exclusiva para corretores que atingirem o marco mínimo de 2 fechamentos."
               className="w-full bg-slate-50 dark:bg-[#0E1726] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-connect-blue"
             />
           </div>
@@ -222,21 +267,46 @@ export function AdminGoalModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-[#1C2537]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#161F30] font-semibold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2.5 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-bold flex items-center gap-2 shadow-md shadow-connect-blue/20 hover:scale-[1.01] transition-all"
-            >
-              <CheckCircle2 className="w-4 h-4 text-platz-gold" />
-              Salvar e Ativar Meta
-            </button>
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-[#1C2537]">
+            {currentGoal ? (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-3 py-2 rounded-xl text-rose-500 hover:bg-rose-500/10 font-bold flex items-center gap-1.5 transition-colors"
+                title="Desativar e remover esta meta"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Excluir Meta</span>
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#161F30] font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-bold flex items-center gap-2 shadow-md shadow-connect-blue/20 hover:scale-[1.01] transition-all"
+              >
+                {currentGoal ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-platz-gold" />
+                    Salvar Alterações
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 text-platz-gold" />
+                    Ativar Nova Meta
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>

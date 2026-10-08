@@ -8,6 +8,7 @@ import { GoalIncentiveCard } from "@/components/crm/ranking/GoalIncentiveCard";
 import { BrokerOfTheMonthCard } from "@/components/crm/ranking/BrokerOfTheMonthCard";
 import { HighlightsGrid } from "@/components/crm/ranking/HighlightsGrid";
 import { RankingTable } from "@/components/crm/ranking/RankingTable";
+import { logAuditEvent } from "@/lib/services/auditLogger";
 
 const mockBrokers: BrokerRankItem[] = [
   {
@@ -143,20 +144,10 @@ const mockHighlights: HighlightItem[] = [
   },
 ];
 
-const mockGoalIncentive: GoalIncentive = {
-  titulo: "Campanha Acelera Platz — Q4",
-  premio: "Viagem com Acompanhante para Resort em Porto das Dunas + iPhone 16 Pro",
-  descricao: "Premiação exclusiva para corretores que atingirem o marco mínimo de 2 fechamentos de alto padrão.",
-  objetivoMeta: 2,
-  progressoAtual: 1,
-  unidade: "Vendas",
-  periodoValidade: "31/10/2026",
-};
-
 export default function RankingGamificacaoPage() {
   const { user, setActionMessage } = useCrm();
   const [selectedBrokerId, setSelectedBrokerId] = useState<string>("b-1");
-  const [activeGoal, setActiveGoal] = useState<GoalIncentive>(mockGoalIncentive);
+  const [activeGoal, setActiveGoal] = useState<GoalIncentive | null>(null);
 
   const isAdmin = user ? user.role === "ADMINISTRADOR" || user.role === "DIRETOR" || user.role === "GERENTE" : true;
 
@@ -165,20 +156,51 @@ export default function RankingGamificacaoPage() {
       const saved = localStorage.getItem("connect_platz_active_goal");
       if (saved) {
         setActiveGoal(JSON.parse(saved));
+      } else {
+        setActiveGoal(null);
       }
     } catch (e) {
-      // fallback silencioso
+      setActiveGoal(null);
     }
   }, []);
 
-  const handleUpdateGoal = (updated: GoalIncentive) => {
+  const handleUpdateGoal = (updated: GoalIncentive | null) => {
     setActiveGoal(updated);
     try {
-      localStorage.setItem("connect_platz_active_goal", JSON.stringify(updated));
+      if (updated) {
+        localStorage.setItem("connect_platz_active_goal", JSON.stringify(updated));
+        setActionMessage(`Meta "${updated.titulo}" cadastrada e ativada pelo Administrador!`);
+        logAuditEvent({
+          usuario: {
+            id: user?.id || "u-1",
+            nome: user?.nome || "Administrador",
+            email: user?.email || "admin@connectplatz.com.br",
+            role: user?.role || "ADMINISTRADOR",
+          },
+          acao: "Cadastro de Meta de Incentivo",
+          tipoAcao: "CREATE",
+          modulo: "METAS",
+          detalhes: `Campanha "${updated.titulo}" ativada com premiação "${updated.premio}".`,
+        });
+      } else {
+        localStorage.removeItem("connect_platz_active_goal");
+        setActionMessage("Meta de incentivo desativada com sucesso!");
+        logAuditEvent({
+          usuario: {
+            id: user?.id || "u-1",
+            nome: user?.nome || "Administrador",
+            email: user?.email || "admin@connectplatz.com.br",
+            role: user?.role || "ADMINISTRADOR",
+          },
+          acao: "Exclusão de Meta de Incentivo",
+          tipoAcao: "DELETE",
+          modulo: "METAS",
+          detalhes: "Campanha de incentivo desativada pelo Administrador.",
+        });
+      }
     } catch (e) {
       // fallback
     }
-    setActionMessage(`Meta "${updated.titulo}" atualizada e ativada pelo Administrador!`);
     setTimeout(() => setActionMessage(null), 4000);
   };
 

@@ -1,116 +1,92 @@
 "use client";
 
-import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState } from "react";
+import type { DirectoryCity } from "./types";
+import { CarouselArrow, PortalSectionTitle, Reveal } from "./PortalUI";
+import { useScrollCarousel } from "./useScrollCarousel";
 
-export interface DirectoryCity {
-  cidade: string;
-  estado: string;
-  comprar: string[];
-  alugar: string[];
-}
+export type { DirectoryCity } from "./types";
+
+type DirectoryTab = "COMPRAR" | "TEMPORADA";
 
 interface PortalDirectoryProps {
   directoryCities: DirectoryCity[];
-  directoryTab: "COMPRAR" | "ALUGAR";
-  setDirectoryTab: (tab: "COMPRAR" | "ALUGAR") => void;
-  directoryPage: number;
-  setDirectoryPage: React.Dispatch<React.SetStateAction<number>>;
-  onFilterClick: (cidade: string, modalidade: "VENDA" | "VERANEIO") => void;
+  onFilterClick: (cidade: string, modalidade: "VENDA" | "VERANEIO", item: string) => void;
 }
 
-export function PortalDirectory({
-  directoryCities,
-  directoryTab,
-  setDirectoryTab,
-  directoryPage,
-  setDirectoryPage,
-  onFilterClick,
-}: PortalDirectoryProps) {
+const TABS: { id: DirectoryTab; label: string }[] = [
+  { id: "COMPRAR", label: "Comprar" },
+  { id: "TEMPORADA", label: "Temporada" },
+];
+
+export function PortalDirectory({ directoryCities, onFilterClick }: PortalDirectoryProps) {
+  const [tab, setTab] = useState<DirectoryTab>("COMPRAR");
+  const carousel = useScrollCarousel();
+
+  if (directoryCities.length === 0) return null;
+
   return (
-    <section id="diretorio" className="bg-[#0D1424] border-y border-[#1F2937] py-16 px-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header da Seção Idêntico ao Estilo RE/MAX */}
-        <div className="mb-6">
-          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">
-            IMÓVEIS À VENDA E PARA ALUGAR
-          </h2>
-          <div className="w-14 h-1.5 bg-[#DC2626] rounded-full mt-2 mb-3" />
-          <p className="text-xs sm:text-sm text-slate-400">
-            Encontre o imóvel ideal nas principais cidades e regiões atendidas pela Connect Platz
-          </p>
+    <section id="diretorio" className="scroll-mt-[72px] bg-portal-sand py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <Reveal>
+          <PortalSectionTitle
+            title="IMÓVEIS À VENDA E PARA TEMPORADA"
+            subtitle="Encontre o imóvel ideal nas principais cidades e praias atendidas pela Connect Platz."
+          />
+        </Reveal>
+
+        <div role="tablist" aria-label="Tipo de negócio" className="mt-8 inline-flex rounded-full bg-portal-surface p-1 shadow-md shadow-portal-navy/10">
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(t.id)}
+                className={`rounded-full px-6 py-2.5 text-sm font-bold uppercase tracking-wider transition-all duration-200 ${
+                  active ? "bg-connect-blue text-white shadow-md shadow-connect-blue/30" : "text-portal-ink hover:text-connect-blue"
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Botões de Alternância (COMPRAR e ALUGAR) */}
-        <div className="flex items-center gap-2 mb-10">
-          <button
-            onClick={() => setDirectoryTab("COMPRAR")}
-            className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
-              directoryTab === "COMPRAR"
-                ? "bg-[#DC2626] text-white shadow-lg shadow-[#DC2626]/30"
-                : "bg-white text-slate-800 hover:bg-slate-200"
-            }`}
-          >
-            COMPRAR
-          </button>
-          <button
-            onClick={() => setDirectoryTab("ALUGAR")}
-            className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
-              directoryTab === "ALUGAR"
-                ? "bg-[#DC2626] text-white shadow-lg shadow-[#DC2626]/30"
-                : "bg-white text-slate-800 hover:bg-slate-200"
-            }`}
-          >
-            ALUGAR (VERANEIO)
-          </button>
-        </div>
-
-        {/* Colunas por Cidade */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
-          {directoryCities.map((cityGroup, idx) => (
-            <div key={idx} className="space-y-3">
-              <h3 className="text-sm font-bold text-white tracking-tight">
-                {cityGroup.cidade}
-              </h3>
-              <ul className="space-y-2 text-xs text-slate-400">
-                {(directoryTab === "COMPRAR" ? cityGroup.comprar : cityGroup.alugar).map(
-                  (item, itemIdx) => (
-                    <li key={itemIdx}>
+        <div
+          ref={carousel.ref}
+          className="no-scrollbar -mx-4 mt-10 flex snap-x snap-mandatory gap-8 overflow-x-auto scroll-px-4 px-4 sm:mx-0 sm:scroll-px-0 sm:px-0"
+        >
+          {directoryCities.map((city) => {
+            const items = tab === "COMPRAR" ? city.comprar : city.alugar;
+            return (
+              <div key={city.cidade} className="w-[230px] shrink-0 snap-start">
+                <h3 className="text-base font-bold text-portal-ink">{city.cidade}</h3>
+                <ul className="mt-4 space-y-3">
+                  {items.map((item) => (
+                    <li key={item}>
                       <button
+                        type="button"
                         onClick={() =>
-                          onFilterClick(
-                            cityGroup.cidade.split(" ")[0],
-                            directoryTab === "COMPRAR" ? "VENDA" : "VERANEIO"
-                          )
+                          onFilterClick(city.cidade, tab === "COMPRAR" ? "VENDA" : "VERANEIO", item)
                         }
-                        className="hover:text-white hover:underline text-left transition-colors leading-relaxed"
+                        className="text-left text-sm leading-relaxed text-portal-slate transition-colors hover:text-connect-blue hover:underline"
                       >
-                        {item}
+                        {tab === "TEMPORADA" ? item.replace(/para alugar/i, "para temporada") : item}
                       </button>
                     </li>
-                  )
-                )}
-              </ul>
-            </div>
-          ))}
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Setas de Navegação / Paginação */}
-        <div className="flex justify-end items-center gap-2 mt-10">
-          <button
-            onClick={() => setDirectoryPage((p) => Math.max(0, p - 1))}
-            className="w-10 h-10 rounded-full border border-slate-600 bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors"
-            title="Anterior"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setDirectoryPage((p) => p + 1)}
-            className="w-10 h-10 rounded-full border border-slate-600 bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors"
-            title="Próximo"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+        <div className="mt-10 flex justify-center gap-3 sm:justify-end">
+          <CarouselArrow direction="prev" onClick={carousel.prev} disabled={!carousel.canPrev} />
+          <CarouselArrow direction="next" onClick={carousel.next} disabled={!carousel.canNext} />
         </div>
       </div>
     </section>

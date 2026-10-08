@@ -16,6 +16,7 @@ import {
   UserCircle,
   Settings,
   Layers,
+  ShieldCheck,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
   { label: "Relatórios BI", href: "/crm/relatorios", icon: BarChart3 },
   { label: "Equipe", href: "/crm/equipes", icon: Users2, adminOnly: true },
   { label: "Integrações", href: "/crm/integracoes", icon: Layers, adminOnly: true },
+  { label: "Log e Auditoria", href: "/crm/auditoria", icon: ShieldCheck, adminOnly: true },
   { label: "Configurações", href: "/crm/configuracoes", icon: Settings },
 ];
 

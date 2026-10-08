@@ -63,6 +63,9 @@ export default function ConfiguracoesPage() {
             ? "Gerencie seu perfil de corretor, dados corporativos e regras de SLA da equipe."
             : "Gerencie suas informações profissionais, CRECI individual e preferências de notificação."
         }
+        showHideValuesButton={false}
+        showPeriodSelector={false}
+        showExportButton={false}
       />
 
       {/* 2. BARRA DE ABAS SHADCN / RADIX STYLE (Apenas exibida se houver abas de gestão) */}

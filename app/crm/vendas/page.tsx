@@ -83,7 +83,7 @@ const initialFilters: VendasFilterState = {
 };
 
 export default function VendasComissoesPage() {
-  const { setActionMessage } = useCrm();
+  const { setActionMessage, selectedPeriod, setSelectedPeriod } = useCrm();
   const [sales, setSales] = useState<SaleItem[]>(initialSales);
   const [activeTab, setActiveTab] = useState<
     "vendas_mensais" | "comissoes" | "agenda_vencimentos" | "pendencias" | "estatisticas"
@@ -94,33 +94,7 @@ export default function VendasComissoesPage() {
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
   const [selectedSaleDetail, setSelectedSaleDetail] = useState<SaleItem | null>(null);
 
-  // Totais para os StatCards
-  const vgvTotal = useMemo(() => sales.reduce((acc, s) => acc + s.vgv, 0), [sales]);
-  const totalVendas = sales.length;
-  const comissaoRecebida = useMemo(
-    () => sales.reduce((acc, s) => acc + s.comissaoTotal, 0),
-    [sales]
-  );
-  const comissoesPagas = useMemo(
-    () =>
-      sales.reduce(
-        (acc, s) =>
-          acc + s.splits.filter((sp) => sp.status === "PAGO").reduce((a, b) => a + b.valor, 0),
-        0
-      ),
-    [sales]
-  );
-  const comissoesPendentes = useMemo(
-    () =>
-      sales.reduce(
-        (acc, s) =>
-          acc + s.splits.filter((sp) => sp.status === "PENDENTE").reduce((a, b) => a + b.valor, 0),
-        0
-      ),
-    [sales]
-  );
-
-  // Filtragem
+  // Filtragem (incluindo período)
   const filteredSales = useMemo(() => {
     return sales.filter((s) => {
       if (filters.status !== "ALL" && s.status !== filters.status) return false;
@@ -140,9 +114,58 @@ export default function VendasComissoesPage() {
         return false;
       if (filters.vgvMin && s.vgv < Number(filters.vgvMin)) return false;
       if (filters.vgvMax && s.vgv > Number(filters.vgvMax)) return false;
+
+      // Filtro de período determinístico
+      if (selectedPeriod && selectedPeriod !== "todos") {
+        const parts = s.dataVenda.split("/");
+        let saleDate = new Date();
+        if (parts.length === 3) {
+          saleDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+        }
+        const now = new Date();
+        const diffMs = Math.abs(now.getTime() - saleDate.getTime());
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+        if (selectedPeriod === "hoje") {
+          if (diffDays > 1 && saleDate.toDateString() !== now.toDateString()) return false;
+        } else if (selectedPeriod === "7d") {
+          if (diffDays > 7) return false;
+        } else if (selectedPeriod === "mes" || selectedPeriod === "30d") {
+          if (diffDays > 31) return false;
+        } else if (selectedPeriod === "ano") {
+          if (diffDays > 365) return false;
+        }
+      }
+
       return true;
     });
-  }, [sales, filters]);
+  }, [sales, filters, selectedPeriod]);
+
+  // Totais reativos para os StatCards baseados nas vendas filtradas
+  const vgvTotal = useMemo(() => filteredSales.reduce((acc, s) => acc + s.vgv, 0), [filteredSales]);
+  const totalVendas = filteredSales.length;
+  const comissaoRecebida = useMemo(
+    () => filteredSales.reduce((acc, s) => acc + s.comissaoTotal, 0),
+    [filteredSales]
+  );
+  const comissoesPagas = useMemo(
+    () =>
+      filteredSales.reduce(
+        (acc, s) =>
+          acc + s.splits.filter((sp) => sp.status === "PAGO").reduce((a, b) => a + b.valor, 0),
+        0
+      ),
+    [filteredSales]
+  );
+  const comissoesPendentes = useMemo(
+    () =>
+      filteredSales.reduce(
+        (acc, s) =>
+          acc + s.splits.filter((sp) => sp.status === "PENDENTE").reduce((a, b) => a + b.valor, 0),
+        0
+      ),
+    [filteredSales]
+  );
 
   const handleBaixaComissao = (saleId: string, splitId: string) => {
     setSales((prev) =>
@@ -203,6 +226,24 @@ export default function VendasComissoesPage() {
             {hideValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
 
+          {/* Seletor de Período Interativo */}
+          <div className="relative">
+            <select
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value as any)}
+              className="appearance-none pl-8 pr-7 py-2 rounded-xl border border-slate-200 dark:border-[#1F2937] bg-white dark:bg-[#0A0E17] text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-[#161F30] cursor-pointer transition-colors shadow-xs"
+              aria-label="Filtrar por período"
+            >
+              <option value="hoje">Hoje</option>
+              <option value="7d">Últimos 7 dias</option>
+              <option value="mes">Mês atual</option>
+              <option value="30d">Últimos 30 dias</option>
+              <option value="ano">Ano atual</option>
+              <option value="todos">Todo o período</option>
+            </select>
+            <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
           {/* Botão Filtros (Abre Sheet) */}
           <button
             onClick={() => setIsFilterSheetOpen(true)}
@@ -212,13 +253,13 @@ export default function VendasComissoesPage() {
             Filtros
           </button>
 
-          {/* CTA + Nova Venda */}
+          {/* CTA Nova Venda */}
           <button
             onClick={() => setIsNewModalOpen(true)}
             className="bg-connect-blue hover:bg-connect-deep-blue text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-connect-blue/20 transition-all hover:scale-[1.02]"
           >
             <Plus className="w-4 h-4" />
-            + Nova Venda
+            Nova Venda
           </button>
         </div>
       </div>

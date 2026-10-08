@@ -58,6 +58,18 @@ const config: Config = {
           "gold-light": "#F8DA56",
           DEFAULT: "#D9BB4C",
         },
+        // Tokens do portal público: valores claro/escuro em app/globals.css (--portal-*).
+        portal: {
+          navy: "rgb(var(--portal-navy) / <alpha-value>)",
+          "navy-deep": "rgb(var(--portal-navy-deep) / <alpha-value>)",
+          ink: "rgb(var(--portal-ink) / <alpha-value>)",
+          slate: "rgb(var(--portal-slate) / <alpha-value>)",
+          sand: "rgb(var(--portal-sand) / <alpha-value>)",
+          mist: "rgb(var(--portal-mist) / <alpha-value>)",
+          surface: "rgb(var(--portal-surface) / <alpha-value>)",
+          line: "rgb(var(--portal-line) / <alpha-value>)",
+          field: "rgb(var(--portal-field) / <alpha-value>)",
+        },
         midnight: {
           black: "#080C14",
           surface: "#111827",

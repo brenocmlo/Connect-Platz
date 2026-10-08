@@ -1,146 +1,133 @@
 "use client";
 
-import React from "react";
-import { MapPin, Maximize, Bed, Bath, Car, MessageSquare } from "lucide-react";
+import React, { useState } from "react";
+import { Bath, BedDouble, Car, ChevronLeft, ChevronRight, MapPin, MessageCircle, Ruler } from "lucide-react";
+import type { PropertyItem } from "./types";
+import { FALLBACK_PHOTO, formatPrice, isTemporada, waLink } from "./portalUtils";
 
-export interface PropertyItem {
-  id: string;
-  nome: string;
-  slug: string;
-  modalidade: "VENDA" | "VERANEIO_TEMPORADA" | "AMBOS";
-  faixaPreco?: string;
-  valorVenda?: number | null;
-  valorDiaria?: number | null;
-  cidade: string;
-  estado: string;
-  bairro: string;
-  endereco?: string | null;
-  descricao?: string | null;
-  caracteristicas?: {
-    area_m2?: number;
-    quartos?: number;
-    suites?: number;
-    vagas?: number;
-    [key: string]: any;
-  };
-  diferenciais?: string[];
-  fotos?: string[];
-}
+export type { PropertyItem } from "./types";
 
 interface PortalPropertyCardProps {
   property: PropertyItem;
   onSelect: (prop: PropertyItem) => void;
-  formatPrice: (prop: PropertyItem) => string;
+  className?: string;
 }
 
-export function PortalPropertyCard({
-  property,
-  onSelect,
-  formatPrice,
-}: PortalPropertyCardProps) {
-  const isTemporada = property.modalidade === "VERANEIO_TEMPORADA";
+function PhotoSlider({ property, onSelect }: { property: PropertyItem; onSelect: () => void }) {
+  const fotos = property.fotos?.length ? property.fotos : [FALLBACK_PHOTO];
+  const [index, setIndex] = useState(0);
+  const step = (dir: 1 | -1) => setIndex((i) => (i + dir + fotos.length) % fotos.length);
+  const temporada = isTemporada(property);
 
   return (
-    <div className="bg-[#111827] border border-[#1F2937] hover:border-connect-blue/50 rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col group">
-      {/* Imagem do Imóvel com Tags */}
-      <div className="relative h-56 overflow-hidden">
+    <div className="relative aspect-[3/2] overflow-hidden bg-portal-sand">
+      <button type="button" onClick={onSelect} className="block h-full w-full" aria-label={`Ver detalhes de ${property.nome}`}>
         <img
-          src={
-            property.fotos?.[0] ||
-            "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"
-          }
+          src={fotos[index]}
           alt={property.nome}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+      </button>
 
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          <span
-            className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-md shadow ${
-              isTemporada
-                ? "bg-[#D9BB4C] text-black font-extrabold"
-                : "bg-[#1266C7] text-white"
-            }`}
-          >
-            {isTemporada ? "Temporada / Diária" : "Venda"}
-          </span>
-        </div>
+      <span
+        className={`absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-semibold shadow-sm ${
+          temporada ? "bg-platz-gold text-portal-navy" : "bg-connect-blue/90 text-white"
+        }`}
+      >
+        {temporada ? "Temporada" : "Venda"}
+      </span>
 
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
-          <div className="flex items-center gap-1 text-xs font-semibold drop-shadow">
-            <MapPin className="w-3.5 h-3.5 text-[#D9BB4C]" />
-            {property.bairro}, {property.cidade}
-          </div>
-        </div>
-      </div>
-
-      {/* Informações Principais */}
-      <div className="p-5 flex-1 flex flex-col justify-between">
-        <div>
-          <h3 className="text-base font-extrabold text-white mt-1 group-hover:text-connect-blue transition-colors">
-            {property.nome}
-          </h3>
-
-          {/* Preço */}
-          <p className="text-xl font-black text-[#D9BB4C] mt-2">
-            {formatPrice(property)}
-          </p>
-
-          {/* Metadados Técnicos */}
-          <div className="grid grid-cols-4 gap-2 border-y border-[#1F2937] py-3 mt-4 text-slate-300 text-xs">
-            <div className="flex flex-col items-center">
-              <Maximize className="w-3.5 h-3.5 text-slate-400 mb-1" />
-              <span>{property.caracteristicas?.area_m2 || 120} m²</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <Bed className="w-3.5 h-3.5 text-slate-400 mb-1" />
-              <span>{property.caracteristicas?.quartos || 3} Qts</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <Bath className="w-3.5 h-3.5 text-slate-400 mb-1" />
-              <span>{property.caracteristicas?.suites || 2} Suítes</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <Car className="w-3.5 h-3.5 text-slate-400 mb-1" />
-              <span>{property.caracteristicas?.vagas || 2} Vagas</span>
-            </div>
-          </div>
-
-          {/* Diferenciais */}
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {(property.diferenciais || []).slice(0, 3).map((tag, idx) => (
-              <span
-                key={idx}
-                className="text-[10px] bg-[#080C14] text-slate-400 px-2 py-0.5 rounded border border-[#1F2937]"
-              >
-                {tag}
-              </span>
+      {fotos.length > 1 && (
+        <>
+          {([-1, 1] as const).map((dir) => (
+            <button
+              key={dir}
+              type="button"
+              onClick={() => step(dir)}
+              aria-label={dir === -1 ? "Foto anterior" : "Próxima foto"}
+              className={`absolute bottom-3 flex h-9 w-9 items-center justify-center rounded-full bg-portal-navy/60 text-white backdrop-blur-sm transition-opacity hover:bg-portal-navy/80 md:opacity-0 md:group-hover:opacity-100 ${
+                dir === -1 ? "left-3" : "right-3"
+              }`}
+            >
+              {dir === -1 ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          ))}
+          <span className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5">
+            {fotos.slice(0, 5).map((_, i) => (
+              <span key={i} className={`h-1.5 rounded-full bg-white transition-all ${i === index ? "w-4" : "w-1.5 opacity-60"}`} />
             ))}
-          </div>
-        </div>
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
 
-        {/* Botões de Ação Direta */}
-        <div className="mt-5 pt-3 border-t border-[#1F2937] flex items-center gap-2">
+export function PortalPropertyCard({ property, onSelect, className = "" }: PortalPropertyCardProps) {
+  const c = property.caracteristicas || {};
+  const specs = [
+    { icon: BedDouble, value: c.quartos, label: "quartos" },
+    { icon: Bath, value: c.suites, label: "suítes" },
+    { icon: Car, value: c.vagas, label: "vagas" },
+    { icon: Ruler, value: c.area_m2 ? `${c.area_m2} m²` : undefined, label: "área" },
+  ].filter((s) => s.value);
+  const price = formatPrice(property);
+
+  return (
+    <article
+      className={`group flex flex-col overflow-hidden rounded-xl border border-portal-line bg-portal-surface shadow-md shadow-portal-navy/5 transition-all duration-300 hover:-translate-y-1 hover:border-connect-blue/40 hover:shadow-xl hover:shadow-portal-navy/10 ${className}`}
+    >
+      <PhotoSlider property={property} onSelect={() => onSelect(property)} />
+
+      <div className="flex flex-1 flex-col p-4">
+        <p className="text-lg font-bold text-portal-ink">{price}</p>
+
+        {specs.length > 0 && (
+          <ul className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-portal-slate">
+            {specs.map(({ icon: Icon, value, label }) => (
+              <li key={label} className="flex items-center gap-1.5" title={label}>
+                <Icon className="h-4 w-4 text-connect-blue" />
+                {value}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <button
+          type="button"
+          onClick={() => onSelect(property)}
+          className="mt-3 text-left text-sm font-semibold text-portal-ink transition-colors hover:text-connect-blue"
+        >
+          {property.nome}
+        </button>
+        <p className="mt-1 flex items-start gap-1 text-sm text-portal-slate">
+          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span className="line-clamp-2">
+            {[property.bairro, property.cidade].filter(Boolean).join(", ")}
+            {property.estado ? ` - ${property.estado}` : ""}
+          </span>
+        </p>
+
+        <div className="mt-auto flex items-center gap-2 pt-4">
           <button
+            type="button"
             onClick={() => onSelect(property)}
-            className="flex-1 bg-[#111827] hover:bg-[#1F2937] border border-[#1F2937] text-white text-xs font-bold py-2.5 rounded-xl transition-colors text-center"
+            className="h-10 flex-1 rounded-lg border border-connect-blue/30 text-sm font-semibold text-connect-blue transition-colors hover:bg-connect-blue hover:text-white active:scale-[0.98]"
           >
-            Ver Detalhes
+            Ver detalhes
           </button>
-
           <a
-            href={`https://wa.me/5585999990001?text=Ol%C3%A1!%20Gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20o%20im%C3%B3vel%20"${encodeURIComponent(
-              property.nome
-            )}" (${formatPrice(property)})`}
+            href={waLink(`Olá! Gostaria de informações sobre o imóvel "${property.nome}" (${price}).`)}
             target="_blank"
             rel="noreferrer"
-            className="bg-[#16A34A] hover:bg-[#15803D] text-white p-2.5 rounded-xl transition-colors shadow-md"
-            title="Chamar no WhatsApp Web"
+            aria-label="Conversar no WhatsApp sobre este imóvel"
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#16A34A] text-white transition-colors hover:bg-[#15803D] active:scale-95"
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageCircle className="h-4 w-4" />
           </a>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

@@ -20,7 +20,7 @@ import { findLeadStageIndex, defaultStages } from "@/components/crm/leads/leadCa
 import { ToastFeedback } from "@/components/crm/primitives";
 
 export default function LeadsPage() {
-  const { token } = useCrm();
+  const { token, selectedPeriod } = useCrm();
   const [viewMode, setViewMode] = useState<"kanban" | "table" | "bolsao">("kanban");
   const [selectedFunnel, setSelectedFunnel] = useState("Lançamentos de Médio & Alto Padrão");
   const [selectedMember, setSelectedMember] = useState("TODOS");
@@ -219,6 +219,7 @@ export default function LeadsPage() {
     slaFilter,
     selectedMember,
     viewMode,
+    selectedPeriod,
   });
 
   return (
@@ -352,17 +353,9 @@ export default function LeadsPage() {
         onClose={() => setAppointmentLead(null)}
         onSubmit={(app) => {
           if (appointmentLead) {
-            setLeads((prev) =>
-              prev.map((l) =>
-                l.id === appointmentLead.id
-                  ? { ...l, compromissosCount: (l.compromissosCount || 0) + 1 }
-                  : l
-              )
-            );
+            setLeads((prev) => prev.map((l) => l.id === appointmentLead.id ? { ...l, compromissosCount: (l.compromissosCount || 0) + 1 } : l));
             if (selectedLead?.id === appointmentLead.id) {
-              setSelectedLead((prev) =>
-                prev ? { ...prev, compromissosCount: (prev.compromissosCount || 0) + 1 } : null
-              );
+              setSelectedLead((prev) => (prev ? { ...prev, compromissosCount: (prev.compromissosCount || 0) + 1 } : null));
             }
           }
           setToastMessage(`Compromisso agendado para ${app.lead?.nome || "cliente"}!`);
@@ -381,10 +374,7 @@ export default function LeadsPage() {
         slaFilter={slaFilter}
         setSlaFilter={setSlaFilter}
         onResetFilters={() => {
-          setTemperatureFilter("TODAS");
-          setOriginFilter("TODAS");
-          setSlaFilter("TODOS");
-          setSelectedMember("TODOS");
+          setTemperatureFilter("TODAS"); setOriginFilter("TODAS"); setSlaFilter("TODOS"); setSelectedMember("TODOS");
         }}
       />
 

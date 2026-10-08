@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Upload, CheckCircle2, FileText } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Upload, CheckCircle2, FileText, Trash2 } from "lucide-react";
 
 interface DocumentSlot {
   id: string;
@@ -21,20 +21,48 @@ const initialDocs: DocumentSlot[] = [
 
 export function LeadDocumentUploadSlots() {
   const [docs, setDocs] = useState<DocumentSlot[]>(initialDocs);
+  const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadMock = (docId: string) => {
+  const handleTriggerUpload = (slotId: string) => {
+    setActiveSlotId(slotId);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0 && activeSlotId) {
+      const file = e.target.files[0];
+      setDocs((prev) =>
+        prev.map((d) =>
+          d.id === activeSlotId ? { ...d, uploaded: true, fileName: file.name } : d
+        )
+      );
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveDoc = (slotId: string) => {
     setDocs((prev) =>
-      prev.map((d) =>
-        d.id === docId ? { ...d, uploaded: true, fileName: `${d.id}_documento.pdf` } : d
-      )
+      prev.map((d) => (d.id === slotId ? { ...d, uploaded: false, fileName: undefined } : d))
     );
   };
 
   return (
     <div className="space-y-3">
+      {/* Input oculto para upload de arquivo real */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelected}
+        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+        className="hidden"
+      />
+
       <div className="text-[11px] text-muted-foreground flex items-center justify-between">
-        <span>Formatos suportados: PDF, PNG, JPG</span>
-        <span className="font-semibold text-foreground">Limite: Máximo 10 MB por arquivo</span>
+        <span>Formatos suportados: PDF, PNG, JPG (até 10 MB)</span>
+        <span className="font-semibold text-foreground">
+          {docs.filter((d) => d.uploaded).length} de {docs.length} enviados
+        </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -65,18 +93,30 @@ export function LeadDocumentUploadSlots() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => handleUploadMock(doc.id)}
-              className={`p-1.5 rounded-lg text-xs font-semibold transition-colors flex-shrink-0 ${
-                doc.uploaded
-                  ? "text-emerald-500 hover:bg-emerald-500/10"
-                  : "bg-connect-blue/10 text-connect-blue hover:bg-connect-blue/20"
-              }`}
-              title={doc.uploaded ? "Substituir documento" : "Fazer upload (Máx. 10 MB)"}
-            >
-              <Upload className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              {doc.uploaded && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveDoc(doc.id)}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                  title="Remover documento"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleTriggerUpload(doc.id)}
+                className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  doc.uploaded
+                    ? "text-emerald-600 hover:bg-emerald-500/10"
+                    : "bg-connect-blue/10 text-connect-blue hover:bg-connect-blue/20"
+                }`}
+                title={doc.uploaded ? "Substituir documento" : "Fazer upload de arquivo"}
+              >
+                <Upload className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         ))}
       </div>

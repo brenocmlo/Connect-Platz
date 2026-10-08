@@ -96,7 +96,7 @@ export function PropertyListSection({
             className="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-muted hover:bg-muted/80 text-foreground border border-border transition-all flex items-center gap-1.5"
           >
             <Home className="w-4 h-4 text-platz-gold" />
-            <span>+ Imóvel Avulso</span>
+            <span>Imóvel Avulso</span>
           </button>
 
           <button
@@ -105,7 +105,7 @@ export function PropertyListSection({
             className="px-4 py-2.5 rounded-xl text-xs font-bold bg-connect-blue hover:bg-[#0D478F] text-white shadow-md shadow-connect-blue/20 transition-all hover:scale-105 flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Novo Empreendimento</span>
+            <span>Novo Empreendimento</span>
           </button>
         </div>
       </div>

@@ -1,154 +1,214 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Layers, CheckCircle2, RefreshCw } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { IntegrationItem } from "./types";
 import { IntegrationCard } from "./IntegrationCard";
+import { logAuditEvent } from "@/lib/services/auditLogger";
+import { initialIntegrations } from "./initialIntegrations";
 
-const initialIntegrations: IntegrationItem[] = [
-  {
-    id: "meta-ads",
-    nome: "Meta Ads (Facebook & Instagram)",
-    descricao: "Captação automática de leads em tempo real dos formulários de cadastro do Facebook e Instagram.",
-    categoria: "Mídia Paga",
-    status: "Conectado",
-    logo: "meta",
-    ativo: true,
-    contaConectada: "Connect Platz Imóveis (ID: 104928349284)",
-    ultimaSincronizacao: "Hoje às 18:55",
-    leadsRecebidos: 248,
-    acaoPendente: "1 formulário novo detectado no Gerenciador de Anúncios precisa de validação de campos.",
-    regras: {
-      distribuicao: "roleta",
-      etapaInicial: "Novo Lead",
-    },
-  },
-  {
-    id: "google-ads",
-    nome: "Google Ads (Lead Extension)",
-    descricao: "Sincronização de leads captados através de extensões de formulário da rede de pesquisa e campanhas Discovery.",
-    categoria: "Mídia Paga",
-    status: "Conectado",
-    logo: "google",
-    ativo: true,
-    contaConectada: "MCC Platz Imobiliária (089-234-1122)",
-    ultimaSincronizacao: "Hoje às 17:30",
-    leadsRecebidos: 112,
-    regras: {
-      distribuicao: "roleta",
-      etapaInicial: "Novo Lead",
-    },
-  },
-  {
-    id: "grupo-olx",
-    nome: "Grupo OLX (Zap Imóveis & Viva Real)",
-    descricao: "Integração via Carga XML e Webhook oficial para receber contatos dos maiores portais imobiliários do Brasil.",
-    categoria: "Portais Imobiliários",
-    status: "Plugin Oficial",
-    logo: "olx",
-    ativo: true,
-    contaConectada: "Credencial Portal ID #884920",
-    ultimaSincronizacao: "Hoje às 18:20",
-    leadsRecebidos: 184,
-    regras: {
-      distribuicao: "roleta",
-      etapaInicial: "Novo Lead",
-    },
-  },
-  {
-    id: "dream-casa",
-    nome: "Dream Casa",
-    descricao: "Recebimento direto de propostas e solicitações de visitas do portal Dream Casa.",
-    categoria: "Portais Imobiliários",
-    status: "Conectado",
-    logo: "dreamcasa",
-    ativo: true,
-    contaConectada: "Chave API Ativa",
-    ultimaSincronizacao: "Ontem às 21:00",
-    leadsRecebidos: 45,
-    regras: {
-      distribuicao: "fila_geral",
-      etapaInicial: "Novo Lead",
-    },
-  },
-  {
-    id: "chaves-na-mao",
-    nome: "Chaves na Mão",
-    descricao: "Portal especializado em imóveis na planta e lançamentos com disparo direto para o funil.",
-    categoria: "Portais Imobiliários",
-    status: "Disponível",
-    logo: "chavesnamao",
-    ativo: false,
-    regras: {
-      distribuicao: "roleta",
-      etapaInicial: "Novo Lead",
-    },
-  },
-  {
-    id: "landing-page",
-    nome: "Landing Page Oficial (WordPress & Elementor)",
-    descricao: "Captura de leads das landing pages de lançamentos, formulários customizados e catálogos.",
-    categoria: "Site e Landing Pages",
-    status: "Plugin Oficial",
-    logo: "wordpress",
-    ativo: true,
-    contaConectada: "https://connectplatz.com.br",
-    ultimaSincronizacao: "Hoje às 19:04",
-    leadsRecebidos: 320,
-    regras: {
-      distribuicao: "roleta",
-      etapaInicial: "Novo Lead",
-    },
-  },
-  {
-    id: "api-webhooks",
-    nome: "API & Webhooks Customizados",
-    descricao: "Endpoint RESTful para conexão com ferramentas externas, n8n, Make e sistemas legados de construtoras.",
-    categoria: "Desenvolvimento",
-    status: "Avançado",
-    logo: "webhook",
-    ativo: true,
-    contaConectada: "Token JWT emitido para Produção",
-    ultimaSincronizacao: "Hoje às 19:10",
-    leadsRecebidos: 89,
-    regras: {
-      distribuicao: "roleta",
-      etapaInicial: "Novo Lead",
-    },
-  },
-];
+const STORAGE_KEY = "connect_platz_integrations_config";
 
 export function IntegrationsSection() {
-  const { setActionMessage } = useCrm();
+  const { user, setActionMessage } = useCrm();
   const [integrations, setIntegrations] = useState<IntegrationItem[]>(initialIntegrations);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setIntegrations(parsed);
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }, []);
+
+  const saveToStorage = (updated: IntegrationItem[]) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // fallback
+    }
+  };
+
   const handleToggleActive = (id: string, active: boolean) => {
-    setIntegrations((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ativo: active } : item))
-    );
+    setIntegrations((prev) => {
+      const updated = prev.map((item) =>
+        item.id === id ? { ...item, ativo: active } : item
+      );
+      saveToStorage(updated);
+      return updated;
+    });
+
     setActionMessage(
       active
-        ? "Integração ativada: recebendo leads automaticamente."
-        : "Integração pausada temporariamente."
+        ? "Canal ativado: recebendo leads automaticamente."
+        : "Canal pausado temporariamente."
     );
+    setTimeout(() => setActionMessage(null), 3500);
+  };
+
+  const handleSaveConfig = (
+    id: string,
+    rule: "roleta" | "fila_geral" | "gestor" | string,
+    active: boolean
+  ) => {
+    let channelName = id;
+    const typedRule: "roleta" | "fila_geral" | "gestor" =
+      rule === "fila_geral" || rule === "gestor" ? rule : "roleta";
+
+    setIntegrations((prev) => {
+      const updated = prev.map((item) => {
+        if (item.id === id) {
+          channelName = item.nome;
+          return {
+            ...item,
+            ativo: active,
+            regras: {
+              ...item.regras,
+              distribuicao: typedRule,
+              etapaInicial: item.regras?.etapaInicial || "Novo Lead",
+            },
+          };
+        }
+        return item;
+      });
+      saveToStorage(updated);
+      return updated;
+    });
+
+    logAuditEvent({
+      usuario: {
+        id: user?.id || "u-1",
+        nome: user?.nome || "Administrador",
+        email: user?.email || "admin@connectplatz.com.br",
+        role: user?.role || "ADMINISTRADOR",
+      },
+      acao: "Configuração de Canal de Integração",
+      tipoAcao: "UPDATE",
+      modulo: "CONFIGURACOES",
+      detalhes: `Configurações do canal '${channelName}' atualizadas. Regra de distribuição: ${rule}. Recebimento automático: ${active ? "Ativo" : "Pausado"}.`,
+    });
+
+    setActionMessage(`Configurações de '${channelName}' salvas com sucesso!`);
     setTimeout(() => setActionMessage(null), 3500);
   };
 
   const handleSyncNow = (id: string) => {
-    setActionMessage("Sincronização executada com sucesso! Todos os leads estão atualizados.");
+    const now = new Date();
+    const timeStr = `Hoje às ${String(now.getHours()).padStart(2, "0")}:${String(
+      now.getMinutes()
+    ).padStart(2, "0")}`;
+
+    let channelName = id;
+    setIntegrations((prev) => {
+      const updated = prev.map((item) => {
+        if (item.id === id) {
+          channelName = item.nome;
+          return {
+            ...item,
+            ultimaSincronizacao: timeStr,
+          };
+        }
+        return item;
+      });
+      saveToStorage(updated);
+      return updated;
+    });
+
+    logAuditEvent({
+      usuario: {
+        id: user?.id || "u-1",
+        nome: user?.nome || "Administrador",
+        email: user?.email || "admin@connectplatz.com.br",
+        role: user?.role || "ADMINISTRADOR",
+      },
+      acao: "Sincronização Manual de Integração",
+      tipoAcao: "UPDATE",
+      modulo: "LEADS",
+      detalhes: `Sincronização manual executada no canal '${channelName}'. Trilha de eventos validada.`,
+    });
+
+    setActionMessage(`Canal '${channelName}' sincronizado com sucesso!`);
+    setTimeout(() => setActionMessage(null), 3500);
+  };
+
+  const handleReconnect = (id: string) => {
+    const now = new Date();
+    const timeStr = `Hoje às ${String(now.getHours()).padStart(2, "0")}:${String(
+      now.getMinutes()
+    ).padStart(2, "0")}`;
+
+    let channelName = id;
+    setIntegrations((prev) => {
+      const updated = prev.map((item) => {
+        if (item.id === id) {
+          channelName = item.nome;
+          return {
+            ...item,
+            status: "Conectado" as const,
+            ativo: true,
+            ultimaSincronizacao: timeStr,
+          };
+        }
+        return item;
+      });
+      saveToStorage(updated);
+      return updated;
+    });
+
+    logAuditEvent({
+      usuario: {
+        id: user?.id || "u-1",
+        nome: user?.nome || "Administrador",
+        email: user?.email || "admin@connectplatz.com.br",
+        role: user?.role || "ADMINISTRADOR",
+      },
+      acao: "Reconexão de Canal",
+      tipoAcao: "UPDATE",
+      modulo: "CONFIGURACOES",
+      detalhes: `Canal '${channelName}' reconectado e ativado pelo Administrador.`,
+    });
+
+    setActionMessage(`Canal '${channelName}' reconectado com sucesso!`);
     setTimeout(() => setActionMessage(null), 3500);
   };
 
   const handleDisconnect = (id: string) => {
-    setIntegrations((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: "Disponível", ativo: false } : item
-      )
-    );
-    setActionMessage("Integração desconectada com segurança.");
+    let channelName = id;
+    setIntegrations((prev) => {
+      const updated = prev.map((item) => {
+        if (item.id === id) {
+          channelName = item.nome;
+          return { ...item, status: "Disponível" as const, ativo: false };
+        }
+        return item;
+      });
+      saveToStorage(updated);
+      return updated;
+    });
+
+    logAuditEvent({
+      usuario: {
+        id: user?.id || "u-1",
+        nome: user?.nome || "Administrador",
+        email: user?.email || "admin@connectplatz.com.br",
+        role: user?.role || "ADMINISTRADOR",
+      },
+      acao: "Desconexão de Canal",
+      tipoAcao: "UPDATE",
+      modulo: "CONFIGURACOES",
+      detalhes: `Canal '${channelName}' desconectado pelo Administrador.`,
+    });
+
+    setActionMessage(`Canal '${channelName}' desconectado com segurança.`);
     setTimeout(() => setActionMessage(null), 3500);
   };
 
@@ -237,6 +297,8 @@ export function IntegrationsSection() {
             onToggleActive={handleToggleActive}
             onSyncNow={handleSyncNow}
             onDisconnect={handleDisconnect}
+            onSaveConfig={handleSaveConfig}
+            onReconnect={handleReconnect}
           />
         ))}
       </div>
