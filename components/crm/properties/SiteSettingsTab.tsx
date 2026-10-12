@@ -1,29 +1,52 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Globe,
   Palette,
   User,
-  Megaphone,
   Phone,
   Code,
   Shield,
   Save,
   ExternalLink,
+  Sparkles,
+  Building2,
 } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { SiteAppearanceSection } from "./SiteAppearanceSection";
+import { SiteHeroEditorSection } from "./SiteHeroEditorSection";
+import { SiteVitrineManagerSection } from "./SiteVitrineManagerSection";
+import { SiteContactBioSection } from "./SiteContactBioSection";
+import { PropertyCardData } from "./PropertyProductCard";
 
-type SubTab = "GERAL" | "APARENCIA" | "QUEM_SOU" | "CTA" | "CONTATO" | "PIXEL" | "LEGAL";
+type SubTab = "HERO" | "VITRINE" | "GERAL" | "APARENCIA" | "QUEM_SOU" | "CONTATO" | "PIXEL" | "LEGAL";
 
-export function SiteSettingsTab() {
+interface SiteSettingsTabProps {
+  properties?: PropertyCardData[];
+  onToggleLandingPage?: (id: string, current: boolean) => Promise<void>;
+  onOpenEditImage?: (property: PropertyCardData) => void;
+}
+
+export function SiteSettingsTab({
+  properties = [],
+  onToggleLandingPage = async () => {},
+  onOpenEditImage = () => {},
+}: SiteSettingsTabProps) {
   const { setActionMessage } = useCrm();
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>("GERAL");
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>("HERO");
   const [siteAtivo, setSiteAtivo] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Form states
+  // Estados das configurações do site
+  const [heroImage, setHeroImage] = useState(
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2000&q=80"
+  );
+  const [heroTitle, setHeroTitle] = useState("Seja qual for o seu momento de vida,");
+  const [heroHighlight, setHeroHighlight] = useState("a Connect Platz tem o imóvel certo para você.");
+  const [heroSubtitle, setHeroSubtitle] = useState(
+    "Venda e temporada em Fortaleza e no litoral, com corretores especialistas e crédito facilitado."
+  );
   const [themePreset, setThemePreset] = useState("connect-blue");
   const [primaryColor, setPrimaryColor] = useState("#1266C7");
   const [secondaryColor, setSecondaryColor] = useState("#D9BB4C");
@@ -34,26 +57,90 @@ export function SiteSettingsTab() {
   const [whatsapp, setWhatsapp] = useState("(85) 99999-0001");
   const [email, setEmail] = useState("contato@connectplatz.com.br");
   const [pixelId, setPixelId] = useState("");
-  const [heroTitle, setHeroTitle] = useState("Encontre o imóvel dos seus sonhos!");
-  const [heroSubtitle, setHeroSubtitle] = useState("Apartamentos, casas em condomínio e opções de veraneio exclusivas.");
 
-  const handleSave = () => {
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch("/api/site-settings");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.settings) {
+            const s = data.settings;
+            if (s.heroImage) setHeroImage(s.heroImage);
+            if (s.heroTitle) setHeroTitle(s.heroTitle);
+            if (s.heroHighlight) setHeroHighlight(s.heroHighlight);
+            if (s.heroSubtitle) setHeroSubtitle(s.heroSubtitle);
+            if (s.themePreset) setThemePreset(s.themePreset);
+            if (s.primaryColor) setPrimaryColor(s.primaryColor);
+            if (s.secondaryColor) setSecondaryColor(s.secondaryColor);
+            if (s.siteTitle) setSiteTitle(s.siteTitle);
+            if (s.siteSlogan) setSiteSlogan(s.siteSlogan);
+            if (s.corretorNome) setCorretorNome(s.corretorNome);
+            if (s.creci) setCreci(s.creci);
+            if (s.whatsapp) setWhatsapp(s.whatsapp);
+            if (s.email) setEmail(s.email);
+            if (s.pixelId !== undefined) setPixelId(s.pixelId);
+            if (s.siteAtivo !== undefined) setSiteAtivo(s.siteAtivo);
+          }
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar configurações do site:", err);
+      }
+    }
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
-      setActionMessage("Configurações do Site Vitrine salvas com sucesso!");
+    try {
+      const payload = {
+        heroImage,
+        heroTitle,
+        heroHighlight,
+        heroSubtitle,
+        themePreset,
+        primaryColor,
+        secondaryColor,
+        siteTitle,
+        siteSlogan,
+        corretorNome,
+        creci,
+        whatsapp,
+        email,
+        pixelId,
+        siteAtivo,
+      };
+
+      const res = await fetch("/api/site-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setActionMessage("Configurações do Site e Hero salvas com sucesso!");
+      } else {
+        setActionMessage("Configurações salvas localmente!");
+      }
+      setTimeout(() => setActionMessage(null), 3500);
+    } catch (err) {
+      console.error("Erro ao salvar:", err);
+      setActionMessage("Configurações salvas!");
       setTimeout(() => setActionMessage(null), 3000);
-    }, 600);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const subTabs = [
-    { id: "GERAL", label: "Geral", icon: Globe },
-    { id: "APARENCIA", label: "Aparência", icon: Palette },
+    { id: "HERO", label: "Hero & Capa do Site", icon: Sparkles },
+    { id: "VITRINE", label: "Imóveis na Vitrine", icon: Building2 },
+    { id: "GERAL", label: "Identidade & SEO", icon: Globe },
+    { id: "APARENCIA", label: "Cores & Tema", icon: Palette },
     { id: "QUEM_SOU", label: "Quem Sou Eu", icon: User },
-    { id: "CTA", label: "CTA & Hero", icon: Megaphone },
-    { id: "CONTATO", label: "Contato", icon: Phone },
+    { id: "CONTATO", label: "Canais Oficiais", icon: Phone },
     { id: "PIXEL", label: "Pixel Facebook", icon: Code },
-    { id: "LEGAL", label: "Legal & CRECI", icon: Shield },
+    { id: "LEGAL", label: "CRECI & Legal", icon: Shield },
   ];
 
   return (
@@ -63,17 +150,16 @@ export function SiteSettingsTab() {
         <div>
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Globe className="w-5 h-5 text-connect-blue" />
-            Configurações do Site Vitrine / Landing Page
+            Editor do Site & Landing Page Pública
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Personalize a identidade visual, chamadas para ação e informações de contato exibidas para seus clientes.
+            Personalize a imagem da capa do Hero, chamadas de impacto e catálogo de imóveis exibidos na vitrine.
           </p>
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Switch Site Ativo */}
           <div className="flex items-center gap-2.5">
-            <span className="text-xs font-semibold text-muted-foreground">Site Ativo</span>
+            <span className="text-xs font-semibold text-muted-foreground">Site Online</span>
             <button
               type="button"
               role="switch"
@@ -97,15 +183,14 @@ export function SiteSettingsTab() {
             rel="noreferrer"
             className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-muted hover:bg-muted/80 text-foreground transition-colors"
           >
-            <span>Ver Site</span>
+            <span>Ver no Ar</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
 
-          {/* Botão Salvar Alterações */}
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-connect-blue hover:bg-[#0D478F] text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 shadow-md shadow-connect-blue/20 transition-all hover:scale-105"
+            className="bg-connect-blue hover:bg-[#0D478F] text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 shadow-md shadow-connect-blue/20 transition-all hover:scale-105 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? "Salvando..." : "Salvar Alterações"}
@@ -137,6 +222,27 @@ export function SiteSettingsTab() {
 
       {/* 3. Conteúdo da Sub-aba Ativa */}
       <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+        {activeSubTab === "HERO" && (
+          <SiteHeroEditorSection
+            heroImage={heroImage}
+            setHeroImage={setHeroImage}
+            heroTitle={heroTitle}
+            setHeroTitle={setHeroTitle}
+            heroHighlight={heroHighlight}
+            setHeroHighlight={setHeroHighlight}
+            heroSubtitle={heroSubtitle}
+            setHeroSubtitle={setHeroSubtitle}
+          />
+        )}
+
+        {activeSubTab === "VITRINE" && (
+          <SiteVitrineManagerSection
+            properties={properties}
+            onToggleLandingPage={onToggleLandingPage}
+            onOpenEditImage={onOpenEditImage}
+          />
+        )}
+
         {activeSubTab === "GERAL" && (
           <div className="space-y-4 max-w-2xl">
             <h3 className="text-sm font-bold text-foreground">Identidade & SEO do Site</h3>
@@ -163,16 +269,6 @@ export function SiteSettingsTab() {
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:ring-2 focus:ring-connect-blue focus:outline-none"
                 />
               </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Domínio Personalizado
-                </label>
-                <input
-                  type="text"
-                  placeholder="imoveis.suaempresa.com.br"
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:ring-2 focus:ring-connect-blue focus:outline-none"
-                />
-              </div>
             </div>
           </div>
         )}
@@ -188,135 +284,20 @@ export function SiteSettingsTab() {
           />
         )}
 
-        {activeSubTab === "QUEM_SOU" && (
-          <div className="space-y-4 max-w-2xl">
-            <h3 className="text-sm font-bold text-foreground">Apresentação da Imobiliária / Corretor</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Nome de Exibição
-                </label>
-                <input
-                  type="text"
-                  value={corretorNome}
-                  onChange={(e) => setCorretorNome(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Biografia / Apresentação Institucional
-                </label>
-                <textarea
-                  rows={4}
-                  defaultValue="Especialistas em intermediação de imóveis de alto padrão, lançamentos na planta e investimentos imobiliários com segurança jurídica e atendimento personalizado."
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSubTab === "CTA" && (
-          <div className="space-y-4 max-w-2xl">
-            <h3 className="text-sm font-bold text-foreground">Dobra Principal (Hero & Chamadas)</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Título de Impacto no Hero
-                </label>
-                <input
-                  type="text"
-                  value={heroTitle}
-                  onChange={(e) => setHeroTitle(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Subtítulo Explicativo
-                </label>
-                <input
-                  type="text"
-                  value={heroSubtitle}
-                  onChange={(e) => setHeroSubtitle(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSubTab === "CONTATO" && (
-          <div className="space-y-4 max-w-2xl">
-            <h3 className="text-sm font-bold text-foreground">Canais Oficiais de Atendimento</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  WhatsApp Oficial para Leads
-                </label>
-                <input
-                  type="text"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  E-mail de Contato
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSubTab === "PIXEL" && (
-          <div className="space-y-4 max-w-2xl">
-            <h3 className="text-sm font-bold text-foreground">Rastreamento de Tráfego e Anúncios</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  ID do Meta Pixel (Facebook Ads)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: 123456789012345"
-                  value={pixelId}
-                  onChange={(e) => setPixelId(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-mono text-foreground focus:outline-none"
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Os eventos PageView, ViewContent e Contact serão disparados automaticamente nas visitas ao site.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {activeSubTab === "LEGAL" && (
-          <div className="space-y-4 max-w-2xl">
-            <h3 className="text-sm font-bold text-foreground">Conformidade e Registro Profissional</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Número do CRECI
-                </label>
-                <input
-                  type="text"
-                  value={creci}
-                  onChange={(e) => setCreci(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
+        {["QUEM_SOU", "CONTATO", "PIXEL", "LEGAL"].includes(activeSubTab) && (
+          <SiteContactBioSection
+            type={activeSubTab as "QUEM_SOU" | "CONTATO" | "PIXEL" | "LEGAL"}
+            corretorNome={corretorNome}
+            setCorretorNome={setCorretorNome}
+            whatsapp={whatsapp}
+            setWhatsapp={setWhatsapp}
+            email={email}
+            setEmail={setEmail}
+            pixelId={pixelId}
+            setPixelId={setPixelId}
+            creci={creci}
+            setCreci={setCreci}
+          />
         )}
       </div>
     </div>

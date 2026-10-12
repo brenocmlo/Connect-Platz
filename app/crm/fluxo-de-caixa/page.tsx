@@ -42,6 +42,33 @@ export default function FluxoCaixaDREPage() {
   const [filterTipo, setFilterTipo] = useState<"TODOS" | "RECEITA" | "DESPESA">("TODOS");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  React.useEffect(() => {
+    async function loadFinanceiro() {
+      try {
+        const res = await fetch("/api/financeiro");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.entries && data.entries.length > 0) {
+            const normalized = data.entries.map((item: any) => ({
+              id: item.id,
+              tipo: item.tipo,
+              categoria: item.categoria,
+              descricao: item.descricao,
+              valor: Number(item.valor),
+              dataVencimento: new Date(item.dataVencimento).toLocaleDateString("pt-BR"),
+              status: item.status,
+              meioPagamento: item.meioPagamento || "TED",
+            }));
+            setCashFlows(normalized);
+          }
+        }
+      } catch (err) {
+        // Fallback gracioso
+      }
+    }
+    loadFinanceiro();
+  }, []);
+
   const totalReceitas = cashFlows
     .filter((c) => c.tipo === "RECEITA" && c.status === "PAGO")
     .reduce((acc, curr) => acc + curr.valor, 0);
@@ -52,14 +79,24 @@ export default function FluxoCaixaDREPage() {
 
   const saldoLiquido = totalReceitas - totalDespesas;
 
-  const handleAddEntry = (entry: CashFlowItem) => {
-    setCashFlows([entry, ...cashFlows]);
+  const handleAddEntry = async (entry: CashFlowItem) => {
+    setCashFlows((prev) => [entry, ...prev]);
     setActionMessage(
       entry.status === "PAGO"
         ? "Lançamento liquidado e registrado no caixa com sucesso!"
         : "Lançamento agendado adicionado com sucesso!"
     );
     setTimeout(() => setActionMessage(null), 4000);
+
+    try {
+      await fetch("/api/financeiro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      });
+    } catch (e) {
+      console.warn("Falha ao salvar lançamento financeiro:", e);
+    }
   };
 
   const handleConfirmMovement = (

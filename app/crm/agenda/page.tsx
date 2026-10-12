@@ -76,6 +76,23 @@ export default function AgendaPage() {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [selectedForOutcome, setSelectedForOutcome] = useState<AppointmentItem | null>(null);
 
+  React.useEffect(() => {
+    async function loadAppointments() {
+      try {
+        const res = await fetch("/api/agenda");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.appointments && data.appointments.length > 0) {
+            setAppointments(data.appointments);
+          }
+        }
+      } catch (err) {
+        // Fallback
+      }
+    }
+    loadAppointments();
+  }, []);
+
   // Navigation handlers
   const handleNavigate = (direction: "prev" | "today" | "next") => {
     if (direction === "today") {
@@ -97,11 +114,20 @@ export default function AgendaPage() {
     setCurrentDate(newDate);
   };
 
-  const handleCreateAppointment = (newApp: AppointmentItem) => {
+  const handleCreateAppointment = async (newApp: AppointmentItem) => {
     setAppointments([newApp, ...appointments]);
+    try {
+      await fetch("/api/agenda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newApp),
+      });
+    } catch (e) {
+      console.warn("Falha ao salvar compromisso no backend:", e);
+    }
   };
 
-  const handleSaveOutcome = (
+  const handleSaveOutcome = async (
     appId: string,
     status: "CONCLUIDO" | "NAO_COMPARECEU",
     resultado: string
@@ -109,6 +135,15 @@ export default function AgendaPage() {
     setAppointments((prev) =>
       prev.map((a) => (a.id === appId ? { ...a, status, resultadoVisita: resultado } : a))
     );
+    try {
+      await fetch("/api/agenda", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, status, resultadoVisita: resultado }),
+      });
+    } catch (e) {
+      console.warn("Falha ao atualizar status do compromisso:", e);
+    }
   };
 
   // Filter appointments

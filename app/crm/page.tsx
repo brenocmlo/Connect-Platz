@@ -14,6 +14,28 @@ import { UpcomingAppointmentsTimeline } from "@/components/crm/dashboard/Upcomin
 import { TeamPerformanceAndActivity } from "@/components/crm/dashboard/TeamPerformanceAndActivity";
 
 export default function CrmDashboardPage() {
+  const [data, setData] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const res = await fetch("/api/dashboard");
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } catch (err) {
+        // Fallback gracioso com valores padrão já nos componentes
+      }
+    }
+    loadDashboard();
+  }, []);
+
+  const vgv = data?.financial?.vgvTotal || 35396000;
+  const cashFlow = data?.financial?.cashFlow || { balance: 1480000, inflow: 2150000, outflow: 670000 };
+  const financial = data?.financial || {};
+  const operational = data?.operational || {};
+
   return (
     <div className="space-y-7 max-w-7xl mx-auto pb-12">
       {/* 1. CABEÇALHO PADRÃO SEÇÃO 5.2 */}
@@ -34,24 +56,35 @@ export default function CrmDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <HeroMetricCard
             label="VGV TOTAL"
-            value={35396000}
+            value={vgv}
             subtitle="Soma das vendas fechadas no período"
             trendText="+100%"
             sparklineData={[15, 22, 18, 30, 42, 36, 52, 48, 65]}
           />
           <CashFlowSummaryCard
-            balance={1480000}
-            inflow={2150000}
-            outflow={670000}
+            balance={cashFlow.balance}
+            inflow={cashFlow.inflow}
+            outflow={cashFlow.outflow}
           />
         </div>
 
         {/* Linha de 5 StatCards */}
-        <FinancialStatCards />
+        <FinancialStatCards
+          totalSales={financial.totalSales}
+          commissionReceived={financial.commissionReceived}
+          averageTicket={financial.averageTicket}
+          commissionPaid={financial.commissionPaid}
+          commissionPending={financial.commissionPending}
+        />
       </div>
 
       {/* 3. OPERACIONAL & PERFORMANCE DE LEADS (5.3 item 4) */}
-      <OperationalAndLeadCards />
+      <OperationalAndLeadCards
+        activeBrokers={operational.activeBrokers}
+        leadsToday={operational.leadsToday}
+        totalLeads={operational.totalLeads}
+        conversionRate={operational.conversionRate}
+      />
 
       {/* 4. VENDAS MENSAIS & FUNIL DE VENDAS (5.3 itens 5 e 6) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

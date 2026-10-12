@@ -71,28 +71,50 @@ export class RoletaService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Buscar corretores qualificados
-    const eligibleCorretores = await prisma.user.findMany({
-      where: {
-        organizationId,
-        isActive: true,
-        role: "CORRETOR",
-        status: CorretorStatus.DISPONIVEL,
-        checkIns: {
-          some: {
-            date: today,
+    // Execução da Roleta dentro de transação atômica serializável (proteção contra race conditions em Load Balancer)
+    const selectedCorretor = await prisma.$transaction(
+      async (tx) => {
+        const eligibleCorretores = await tx.user.findMany({
+          where: {
+            organizationId,
+            isActive: true,
+            role: "CORRETOR",
+            status: CorretorStatus.DISPONIVEL,
+            checkIns: {
+              some: {
+                date: today,
+              },
+            },
           },
-        },
-      },
-      orderBy: [
-        // Corretores com lastLeadAssignedAt nulo primeiro, depois pelo mais antigo
-        { lastLeadAssignedAt: { sort: "asc", nulls: "first" } },
-        { createdAt: "asc" },
-      ],
-      take: 1,
-    });
+          orderBy: [
+            { lastLeadAssignedAt: { sort: "asc", nulls: "first" } },
+            { createdAt: "asc" },
+          ],
+          take: 1,
+        });
 
-    if (eligibleCorretores.length === 0) {
+        if (eligibleCorretores.length === 0) {
+          return null;
+        }
+
+        const corretor = eligibleCorretores[0];
+
+        // Atualiza atomicamente o timestamp no mesmo bloco transacional
+        await tx.user.update({
+          where: { id: corretor.id },
+          data: { lastLeadAssignedAt: new Date() },
+        });
+
+        return corretor;
+      },
+      {
+        isolationLevel: "Serializable",
+        maxWait: 4000,
+        timeout: 8000,
+      }
+    );
+
+    if (!selectedCorretor) {
       return {
         assignedCorretor: null,
         isNightQueue: false,
@@ -100,18 +122,10 @@ export class RoletaService {
       };
     }
 
-    const selectedCorretor = eligibleCorretores[0];
-
-    // Atualiza o timestamp do corretor de forma atômica
-    await prisma.user.update({
-      where: { id: selectedCorretor.id },
-      data: { lastLeadAssignedAt: new Date() },
-    });
-
     return {
       assignedCorretor: selectedCorretor,
       isNightQueue: false,
-      reason: `Lead atribuído ao corretor ${selectedCorretor.nome} via Roleta Round-Robin`,
+      reason: `Lead atribuído ao corretor ${selectedCorretor.nome} via Roleta Round-Robin Atômica`,
     };
   }
 

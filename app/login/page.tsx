@@ -28,11 +28,10 @@ export default function LoginPage() {
         throw new Error(data.error || "Falha na autenticação");
       }
 
-      // Salva token no localStorage para requisições de cliente
-      localStorage.setItem("connect_platz_token", data.token);
-      localStorage.setItem("connect_platz_user", JSON.stringify(data.user));
-
+      // O cookie seguro HttpOnly 'connect_platz_token' foi gravado pelo servidor
+      // Redireciona diretamente para o CRM protegido
       router.push("/crm");
+      router.refresh();
     } catch (err: any) {
       setError(err.message || "Erro de conexão com o servidor.");
     } finally {

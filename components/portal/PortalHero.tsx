@@ -46,7 +46,21 @@ function HeroSelect({
   );
 }
 
-export function PortalHero({ onSearch }: { onSearch: (filters: PortalFilters) => void }) {
+interface PortalHeroProps {
+  onSearch: (filters: PortalFilters) => void;
+  heroImage?: string;
+  heroTitle?: string;
+  heroHighlight?: string;
+  heroSubtitle?: string;
+}
+
+export function PortalHero({
+  onSearch,
+  heroImage: propImage,
+  heroTitle: propTitle,
+  heroHighlight: propHighlight,
+  heroSubtitle: propSubtitle,
+}: PortalHeroProps) {
   const [mounted, setMounted] = useState(false);
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<"VENDA" | "VERANEIO">("VENDA");
@@ -55,8 +69,39 @@ export function PortalHero({ onSearch }: { onSearch: (filters: PortalFilters) =>
   const [quartosMin, setQuartosMin] = useState("TODOS");
   const [faixaPreco, setFaixaPreco] = useState("TODOS");
 
+  // Estados dinâmicos configuráveis pela administração do CRM
+  const [dynamicImage, setDynamicImage] = useState(propImage || HERO_PHOTO);
+  const [dynamicTitle, setDynamicTitle] = useState(
+    propTitle || "Seja qual for o seu momento de vida,"
+  );
+  const [dynamicHighlight, setDynamicHighlight] = useState(
+    propHighlight || "a Connect Platz tem o imóvel certo para você."
+  );
+  const [dynamicSubtitle, setDynamicSubtitle] = useState(
+    propSubtitle ||
+      "Venda e temporada em Fortaleza e no litoral, com corretores especialistas e crédito facilitado."
+  );
+
   useEffect(() => {
     setMounted(true);
+    // Carrega configurações persistidas se não forem passadas via props
+    async function fetchSettings() {
+      try {
+        const res = await fetch("/api/site-settings");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.settings) {
+            if (data.settings.heroImage) setDynamicImage(data.settings.heroImage);
+            if (data.settings.heroTitle) setDynamicTitle(data.settings.heroTitle);
+            if (data.settings.heroHighlight) setDynamicHighlight(data.settings.heroHighlight);
+            if (data.settings.heroSubtitle) setDynamicSubtitle(data.settings.heroSubtitle);
+          }
+        }
+      } catch (err) {
+        console.warn("Usando configurações padrão do hero:", err);
+      }
+    }
+    fetchSettings();
   }, []);
 
   const changeTab = (id: "VENDA" | "VERANEIO") => {
@@ -81,9 +126,9 @@ export function PortalHero({ onSearch }: { onSearch: (filters: PortalFilters) =>
   return (
     <section className="relative isolate overflow-hidden bg-portal-navy">
       <img
-        src={HERO_PHOTO}
-        alt="Casa moderna com piscina ao entardecer"
-        className="absolute inset-0 -z-20 h-full w-full object-cover"
+        src={propImage || dynamicImage}
+        alt="Foto principal da vitrine de imóveis"
+        className="absolute inset-0 -z-20 h-full w-full object-cover transition-opacity duration-700"
         fetchPriority="high"
       />
       <div className="absolute inset-0 -z-10 bg-gradient-to-r from-portal-navy/90 via-portal-navy/60 to-portal-navy/10" />
@@ -93,13 +138,13 @@ export function PortalHero({ onSearch }: { onSearch: (filters: PortalFilters) =>
           {...enter(0)}
           className="max-w-xl text-[1.65rem] leading-snug text-white drop-shadow-sm sm:text-3xl lg:text-4xl"
         >
-          <span className="block font-normal">Seja qual for o seu momento de vida,</span>
-          <span className="block font-extrabold uppercase tracking-tight">
-            a Connect Platz tem o imóvel certo para você.
+          <span className="block font-normal">{propTitle || dynamicTitle}</span>
+          <span className="block font-extrabold uppercase tracking-tight text-white">
+            {propHighlight || dynamicHighlight}
           </span>
         </motion.h1>
         <motion.p {...enter(0.08)} className="mt-4 max-w-md text-sm leading-relaxed text-white/80 sm:text-base">
-          Venda e temporada em Fortaleza e no litoral, com corretores especialistas e crédito facilitado.
+          {propSubtitle || dynamicSubtitle}
         </motion.p>
 
         <motion.form {...enter(0.16)} onSubmit={submit} className="mt-8 w-full max-w-[540px]">

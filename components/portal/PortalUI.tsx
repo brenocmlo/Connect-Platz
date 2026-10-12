@@ -96,7 +96,7 @@ export function Reveal({
 /* Count-up que escreve direto no DOM, sem re-render por frame. */
 export function CountUp({ value, suffix = "" }: { value: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.6 });
+  const inView = useInView(ref, { once: true, amount: 0.1 });
   const reduce = useReducedMotion();
 
   useEffect(() => {
@@ -109,11 +109,11 @@ export function CountUp({ value, suffix = "" }: { value: number; suffix?: string
       render(value);
       return;
     }
-    const controls = animate(0, value, { duration: 1.4, ease: [0, 0, 0.2, 1], onUpdate: render });
+    const controls = animate(0, value, { duration: 1.2, ease: [0, 0, 0.2, 1], onUpdate: render });
     return () => controls.stop();
   }, [inView, value, suffix, reduce]);
 
-  return <span ref={ref}>0{suffix}</span>;
+  return <span ref={ref}>{value > 0 ? `${Math.round(value).toLocaleString("pt-BR")}${suffix}` : `0${suffix}`}</span>;
 }
 
 export function PortalLogo({ subtitle = true }: { subtitle?: boolean }) {

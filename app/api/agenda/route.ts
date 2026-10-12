@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { container } from "@/lib/container";
+import { verifySessionToken } from "@/lib/auth/jwt";
 import { initialSampleAppointments } from "@/components/crm/agenda/sampleAppointments";
 
 export const dynamic = "force-dynamic";
 
+function getSessionContext(req: NextRequest) {
+  const cookieToken = req.cookies.get("connect_platz_token")?.value;
+  const authHeader = req.headers.get("authorization");
+  const token = cookieToken || authHeader?.replace("Bearer ", "");
+  if (!token) return null;
+  return verifySessionToken(token);
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization");
-    const cookieToken = req.cookies.get("connect_platz_token")?.value;
-    const token = authHeader?.replace("Bearer ", "") || cookieToken;
-
-    const tokenService = container.tokenService;
-    const payload = (token ? await tokenService.verifyToken(token) : null) || {
-      userId: "user-robson-1",
-      organizationId: "org-platz-1",
-      role: "ADMINISTRADOR" as const,
-      email: "robson@connectplatz.com.br",
-      nome: "Robson Carvalho",
-    };
+    const payload = getSessionContext(req);
+    if (!payload) {
+      return NextResponse.json({ appointments: initialSampleAppointments }, { status: 200 });
+    }
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -45,17 +45,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Token ausente" }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
-    const tokenService = container.tokenService;
-    const payload = await tokenService.verifyToken(token);
-
+    const payload = getSessionContext(req);
     if (!payload) {
-      return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
+      return NextResponse.json({ error: "Sessão inválida ou não autenticada." }, { status: 401 });
     }
 
     const body = await req.json();
@@ -92,15 +84,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Token ausente" }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
-    const tokenService = container.tokenService;
-    const payload = await tokenService.verifyToken(token);
-
+    const payload = getSessionContext(req);
     if (!payload) {
       return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
     }

@@ -5,7 +5,19 @@ import { FileCheck, CalendarCheck, UserCheck, UserPlus, Target } from "lucide-re
 import { SectionTitle } from "@/components/crm/SectionTitle";
 import { StatCard } from "@/components/crm/primitives/StatCard";
 
-export function OperationalAndLeadCards() {
+interface OperationalAndLeadCardsProps {
+  activeBrokers?: number;
+  leadsToday?: number;
+  totalLeads?: number;
+  conversionRate?: number;
+}
+
+export function OperationalAndLeadCards({
+  activeBrokers = 14,
+  leadsToday = 8,
+  totalLeads = 186,
+  conversionRate = 6.45,
+}: OperationalAndLeadCardsProps) {
   return (
     <div className="space-y-4">
       {/* 1. SEÇÃO OPERACIONAL (3 CARDS) (5.3) */}

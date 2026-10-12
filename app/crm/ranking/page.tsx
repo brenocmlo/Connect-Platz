@@ -146,12 +146,31 @@ const mockHighlights: HighlightItem[] = [
 
 export default function RankingGamificacaoPage() {
   const { user, setActionMessage } = useCrm();
+  const [brokers, setBrokers] = useState<BrokerRankItem[]>(mockBrokers);
   const [selectedBrokerId, setSelectedBrokerId] = useState<string>("b-1");
   const [activeGoal, setActiveGoal] = useState<GoalIncentive | null>(null);
 
   const isAdmin = user ? user.role === "ADMINISTRADOR" || user.role === "DIRETOR" || user.role === "GERENTE" : true;
 
   useEffect(() => {
+    async function loadRanking() {
+      try {
+        const res = await fetch("/api/ranking");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ranking && data.ranking.length > 0) {
+            setBrokers(data.ranking);
+            if (data.ranking[0]?.id) {
+              setSelectedBrokerId(data.ranking[0].id);
+            }
+          }
+        }
+      } catch (err) {
+        // Fallback
+      }
+    }
+    loadRanking();
+
     try {
       const saved = localStorage.getItem("connect_platz_active_goal");
       if (saved) {
@@ -237,7 +256,7 @@ export default function RankingGamificacaoPage() {
 
       {/* 3. Card Corretor do Mês com Coroa Animada e Anel Dourado */}
       <BrokerOfTheMonthCard
-        brokers={mockBrokers}
+        brokers={brokers}
         selectedBrokerId={selectedBrokerId}
         onSelectBroker={setSelectedBrokerId}
       />
@@ -246,7 +265,7 @@ export default function RankingGamificacaoPage() {
       <HighlightsGrid highlights={mockHighlights} />
 
       {/* 5. Tabela Completa com Tabs e 1º lugar Ouro com Coroa */}
-      <RankingTable brokers={mockBrokers} />
+      <RankingTable brokers={brokers} />
     </div>
   );
 }

@@ -86,6 +86,7 @@ const initialFilters: VendasFilterState = {
 export default function VendasComissoesPage() {
   const { setActionMessage, selectedPeriod, setSelectedPeriod } = useCrm();
   const [sales, setSales] = useState<SaleItem[]>(initialSales);
+  const [loadingSales, setLoadingSales] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "vendas_mensais" | "comissoes" | "agenda_vencimentos" | "pendencias" | "estatisticas"
   >("vendas_mensais");
@@ -95,6 +96,26 @@ export default function VendasComissoesPage() {
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
   const [selectedSaleDetail, setSelectedSaleDetail] = useState<SaleItem | null>(null);
   const [selectedReceiptSale, setSelectedReceiptSale] = useState<SaleItem | null>(null);
+
+  React.useEffect(() => {
+    async function loadSales() {
+      try {
+        setLoadingSales(true);
+        const res = await fetch("/api/vendas");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.sales && data.sales.length > 0) {
+            setSales(data.sales);
+          }
+        }
+      } catch (e) {
+        // Fallback resiliente
+      } finally {
+        setLoadingSales(false);
+      }
+    }
+    loadSales();
+  }, []);
 
   // Filtragem (incluindo período)
   const filteredSales = useMemo(() => {
@@ -198,10 +219,20 @@ export default function VendasComissoesPage() {
     setTimeout(() => setActionMessage(null), 4000);
   };
 
-  const handleAddSale = (newSale: SaleItem) => {
-    setSales([newSale, ...sales]);
+  const handleAddSale = async (newSale: SaleItem) => {
+    setSales((prev) => [newSale, ...prev]);
     setActionMessage("Venda cadastrada e splits gerados com sucesso!");
     setTimeout(() => setActionMessage(null), 4000);
+
+    try {
+      await fetch("/api/vendas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSale),
+      });
+    } catch (e) {
+      console.warn("Falha ao sincronizar venda com backend:", e);
+    }
   };
 
   return (

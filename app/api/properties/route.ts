@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { PropertyModality, PriceRange, UnitStatus } from "@prisma/client";
-import { initialSampleProperties } from "@/components/crm/properties/sampleProperties";
+import { getSampleProperties, addSampleProperty } from "@/components/crm/properties/sampleProperties";
 
 export const dynamic = "force-dynamic";
 
@@ -155,8 +155,14 @@ export async function GET(req: NextRequest) {
       },
     ];
 
+    const sampleList = getSampleProperties();
     const finalProperties =
-      properties && properties.length > 0 ? properties : initialSampleProperties;
+      properties && properties.length > 0 ? properties : sampleList;
+
+    const cacheHeader =
+      portal === "true"
+        ? "public, s-maxage=60, stale-while-revalidate=300"
+        : "private, no-cache, no-store, must-revalidate";
 
     return NextResponse.json(
       {
@@ -166,16 +172,22 @@ export async function GET(req: NextRequest) {
         total: finalProperties.length,
         directory,
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": cacheHeader,
+        },
+      }
     );
   } catch (error: any) {
     console.warn("API /api/properties error, falling back to sample properties:", error?.message);
+    const sampleList = getSampleProperties();
     return NextResponse.json(
       {
-        properties: initialSampleProperties,
+        properties: sampleList,
         cidades: ["Fortaleza", "Aquiraz", "Itajaí"],
         bairros: ["Meireles", "Aldeota", "Porto das Dunas"],
-        total: initialSampleProperties.length,
+        total: sampleList.length,
         directory: [],
       },
       { status: 200 }

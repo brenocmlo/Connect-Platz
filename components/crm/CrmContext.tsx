@@ -136,43 +136,30 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
       setIsSidebarCollapsed(true);
     }
 
-    const defaultDemoUser: UserSession = {
-      id: "user-robson-1",
-      nome: "Robson Carvalho",
-      email: "robson@connectplatz.com.br",
-      role: "ADMINISTRADOR",
-      status: "DISPONIVEL",
-      organizationId: "org-platz-1",
-      hasCheckedInToday: true,
-      creci: "12345-J",
-    };
-    const defaultDemoToken = "jwt-session-connect-platz-token";
-
-    const storedToken = localStorage.getItem("connect_platz_token");
-    const storedUser = localStorage.getItem("connect_platz_user");
-
-    if (!storedToken || !storedUser) {
-      // Auto-inicializa com o usuário demo para que a tela carregue imediatamente
-      localStorage.setItem("connect_platz_token", defaultDemoToken);
-      localStorage.setItem("connect_platz_user", JSON.stringify(defaultDemoUser));
-      setUser(defaultDemoUser);
-      setToken(defaultDemoToken);
-      setLoading(false);
-      return;
+    // Inicialização da Sessão Autenticada via Cookie HttpOnly
+    async function loadSession() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user) {
+            setUser(data.user);
+            setToken("cookie-session");
+          } else {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar sessão:", err);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    try {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setToken(storedToken);
-    } catch {
-      localStorage.setItem("connect_platz_token", defaultDemoToken);
-      localStorage.setItem("connect_platz_user", JSON.stringify(defaultDemoUser));
-      setUser(defaultDemoUser);
-      setToken(defaultDemoToken);
-    } finally {
-      setLoading(false);
-    }
+    loadSession();
   }, [router]);
 
   const toggleTheme = () => {
@@ -297,8 +284,12 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("connect_platz_token");
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      // Ignora erro de rede no logout
+    }
     localStorage.removeItem("connect_platz_user");
     setUser(null);
     setToken(null);

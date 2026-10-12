@@ -106,3 +106,30 @@ export const initialSampleProperties: PropertyCardData[] = [
     construtora: "Platz Urbanismo",
   },
 ];
+
+// Cache em memória para suportar edições mesmo sem banco PostgreSQL ativo
+let memoryProperties: PropertyCardData[] = [...initialSampleProperties];
+
+export function getSampleProperties(): PropertyCardData[] {
+  return memoryProperties;
+}
+
+export function updateSampleProperty(id: string, patch: Partial<PropertyCardData>): PropertyCardData | null {
+  const index = memoryProperties.findIndex((p) => p.id === id);
+  if (index === -1) {
+    // Se não encontrou pelo ID exato, tenta achar por slug
+    const bySlug = memoryProperties.findIndex((p) => p.slug === id);
+    if (bySlug !== -1) {
+      memoryProperties[bySlug] = { ...memoryProperties[bySlug], ...patch };
+      return memoryProperties[bySlug];
+    }
+    return null;
+  }
+  memoryProperties[index] = { ...memoryProperties[index], ...patch };
+  return memoryProperties[index];
+}
+
+export function addSampleProperty(property: PropertyCardData): void {
+  memoryProperties = [property, ...memoryProperties];
+}
+

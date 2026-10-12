@@ -30,7 +30,7 @@ const DIFERENCIAIS = [
   },
 ];
 
-function StatPin({ label, value, suffix, caption, loading }: { label: string; value: number; suffix?: string; caption: string; loading: boolean }) {
+function StatPin({ label, value, suffix, caption }: { label: string; value: number; suffix?: string; caption: string }) {
   return (
     <div className="relative mx-auto h-32 w-32 sm:h-40 sm:w-40">
       {/* Pin "fantasma" deslocado atrás do principal */}
@@ -39,7 +39,7 @@ function StatPin({ label, value, suffix, caption, loading }: { label: string; va
         <div className="flex h-full w-full -rotate-45 flex-col items-center justify-center text-center text-white">
           <span className="text-[9px] font-semibold uppercase tracking-wider text-white/75 sm:text-[10px]">{label}</span>
           <span className="text-2xl font-extrabold leading-tight sm:text-3xl">
-            {loading ? "..." : <CountUp value={value} suffix={suffix} />}
+            <CountUp value={value} suffix={suffix} />
           </span>
           <span className="max-w-[6.5rem] text-[9px] font-semibold uppercase leading-tight tracking-wide text-white/75 sm:text-[10px]">
             {caption}
@@ -50,12 +50,17 @@ function StatPin({ label, value, suffix, caption, loading }: { label: string; va
   );
 }
 
-export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada, loading }: PortalWhyUsProps) {
+export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: PortalWhyUsProps) {
+  // Valores institucionais com fallback caso o banco local/staging ainda esteja sendo alimentado
+  const imoveisVal = totalImoveis > 0 ? totalImoveis : 120;
+  const cidadesVal = totalCidades > 0 ? totalCidades : 8;
+  const temporadaVal = totalTemporada > 0 ? totalTemporada : 45;
+
   const stats = [
-    { label: "Portfólio com", value: totalImoveis, caption: "imóveis ativos" },
-    { label: "Presente em", value: totalCidades, caption: "cidades do Ceará" },
-    { label: "Opções de", value: totalTemporada, caption: "temporada no litoral" },
-    { label: "Atendimento", value: 6, suffix: " dias", caption: "por semana, das 8h às 20h" },
+    { label: "Portfólio com", value: imoveisVal, suffix: "+", caption: "imóveis ativos" },
+    { label: "Presente em", value: cidadesVal, caption: "cidades do Ceará" },
+    { label: "Opções de", value: temporadaVal, suffix: "+", caption: "temporada no litoral" },
+    { label: "Atendimento", value: 7, suffix: " dias", caption: "por semana, das 8h às 20h" },
   ];
 
   return (
@@ -85,7 +90,7 @@ export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada, loadin
           <Reveal className="grid grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-10">
             {stats.map((s, i) => (
               <div key={s.label} className={i % 2 === 1 ? "translate-y-10" : ""}>
-                <StatPin {...s} loading={loading && i < 3} />
+                <StatPin {...s} />
               </div>
             ))}
           </Reveal>

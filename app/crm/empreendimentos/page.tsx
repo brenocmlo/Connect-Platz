@@ -13,6 +13,7 @@ import { PublishLandingModal } from "@/components/crm/properties/PublishLandingM
 import { PropertyMaterialsModal } from "@/components/crm/properties/PropertyMaterialsModal";
 import { NewEmpreendimentoModal } from "@/components/crm/properties/NewEmpreendimentoModal";
 import { NewImovelAvulsoModal } from "@/components/crm/properties/NewImovelAvulsoModal";
+import { EditPropertyImageModal } from "@/components/crm/properties/EditPropertyImageModal";
 
 export default function EmpreendimentosPage() {
   const { setActionMessage } = useCrm();
@@ -24,6 +25,7 @@ export default function EmpreendimentosPage() {
   const [selectedEspelhoProperty, setSelectedEspelhoProperty] = useState<EmpreendimentoData | null>(null);
   const [publishModalProperty, setPublishModalProperty] = useState<PropertyCardData | null>(null);
   const [materialsProperty, setMaterialsProperty] = useState<PropertyCardData | null>(null);
+  const [editImageProperty, setEditImageProperty] = useState<PropertyCardData | null>(null);
   const [isNewEmpModalOpen, setIsNewEmpModalOpen] = useState(false);
   const [isNewAvulsoModalOpen, setIsNewAvulsoModalOpen] = useState(false);
 
@@ -178,13 +180,18 @@ export default function EmpreendimentosPage() {
           onOpenDetails={(prop) => setSelectedEspelhoProperty(prop as any)}
           onOpenPublishModal={(prop) => setPublishModalProperty(prop)}
           onOpenMaterials={(prop) => setMaterialsProperty(prop)}
+          onOpenEditImage={(prop) => setEditImageProperty(prop)}
           onOpenNewEmpModal={() => setIsNewEmpModalOpen(true)}
           onOpenNewAvulsoModal={() => setIsNewAvulsoModalOpen(true)}
           onToggleLandingPage={handleToggleLandingPage}
           onDeleteProperty={handleDeleteProperty}
         />
       ) : (
-        <SiteSettingsTab />
+        <SiteSettingsTab
+          properties={properties}
+          onToggleLandingPage={handleToggleLandingPage}
+          onOpenEditImage={(prop) => setEditImageProperty(prop)}
+        />
       )}
 
       {/* 5. Modais */}
@@ -205,6 +212,19 @@ export default function EmpreendimentosPage() {
           loadProperties();
           setActionMessage("Imóvel avulso cadastrado com sucesso!");
           setTimeout(() => setActionMessage(null), 4000);
+        }}
+      />
+
+      <EditPropertyImageModal
+        isOpen={Boolean(editImageProperty)}
+        onClose={() => setEditImageProperty(null)}
+        property={editImageProperty}
+        onSuccess={(updated) => {
+          setProperties((prev) =>
+            prev.map((p) => (p.id === updated.id ? updated : p))
+          );
+          setActionMessage("Foto de capa do imóvel atualizada com sucesso!");
+          setTimeout(() => setActionMessage(null), 3500);
         }}
       />
 

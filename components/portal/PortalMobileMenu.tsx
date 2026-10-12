@@ -134,13 +134,6 @@ export function PortalMobileMenu({ open, onClose, cities, onNavigate }: PortalMo
                 <MessageCircle className="h-4 w-4" />
                 Falar com corretor
               </a>
-              <a
-                href="/login"
-                className="flex h-12 items-center justify-center gap-2 rounded-lg border border-white/25 text-sm font-medium"
-              >
-                <UserRound className="h-4 w-4" />
-                Área do corretor
-              </a>
             </div>
           </motion.aside>
         </>

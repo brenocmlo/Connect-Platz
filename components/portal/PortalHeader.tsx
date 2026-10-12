@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, Menu, MessageCircle, UserRound } from "lucide-react";
+import { ChevronDown, Menu, MessageCircle } from "lucide-react";
 import type { DirectoryCity, NavigateFn } from "./types";
 import { PortalLogo } from "./PortalUI";
 import { PortalMobileMenu } from "./PortalMobileMenu";
@@ -83,13 +83,6 @@ export function PortalHeader({ cities, onNavigate }: PortalHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2">
-          <a
-            href="/login"
-            className="hidden items-center gap-2 rounded-lg border border-white/25 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:border-white/60 md:inline-flex"
-          >
-            <UserRound className="h-4 w-4" />
-            Área do corretor
-          </a>
           <a
             href={waLink("Olá! Gostaria de informações sobre imóveis com a Connect Platz.")}
             target="_blank"

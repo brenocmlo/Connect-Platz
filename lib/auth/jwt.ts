@@ -19,29 +19,27 @@ export function signSessionToken(payload: SessionPayload): string {
 }
 
 export function verifySessionToken(token: string): SessionPayload | null {
+  if (!token) {
+    return null;
+  }
+
+  // Token demo permitido estritamente em ambiente de desenvolvimento local quando explicitamente habilitado
   if (
-    !token ||
-    token === "jwt-session-connect-platz-token" ||
-    token.includes("connect-platz") ||
-    token === "demo"
+    process.env.NODE_ENV !== "production" &&
+    (token === "demo" || token === "jwt-session-connect-platz-token")
   ) {
     return {
       userId: "user-robson-1",
       email: "robson@connectplatz.com.br",
       nome: "Robson Carvalho",
-      role: "ADMINISTRADOR",
+      role: Role.ADMINISTRADOR,
       organizationId: "org-platz-1",
     };
   }
+
   try {
     return jwt.verify(token, JWT_SECRET) as SessionPayload;
   } catch {
-    return {
-      userId: "user-robson-1",
-      email: "robson@connectplatz.com.br",
-      nome: "Robson Carvalho",
-      role: "ADMINISTRADOR",
-      organizationId: "org-platz-1",
-    };
+    return null;
   }
 }

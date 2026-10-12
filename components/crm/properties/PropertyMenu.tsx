@@ -10,6 +10,7 @@ import {
   Trash2,
   Check,
   FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 
 interface PropertyMenuProps {
@@ -19,6 +20,7 @@ interface PropertyMenuProps {
   onOpenDetails: () => void;
   onOpenPublishModal: () => void;
   onOpenMaterials?: () => void;
+  onOpenEditImage?: () => void;
   onDelete?: () => void;
 }
 
@@ -29,6 +31,7 @@ export function PropertyMenu({
   onOpenDetails,
   onOpenPublishModal,
   onOpenMaterials,
+  onOpenEditImage,
   onDelete,
 }: PropertyMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -99,6 +102,22 @@ export function PropertyMenu({
             <Eye className="w-4 h-4 text-connect-blue group-hover:text-white" />
             <span>Ver Espelho / Detalhes</span>
           </button>
+
+          {/* 2. Alterar Foto / Capa do Imóvel */}
+          {onOpenEditImage && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+                onOpenEditImage();
+              }}
+              className="w-full text-left px-3 py-2 text-foreground hover:bg-connect-blue hover:text-white flex items-center gap-2.5 transition-colors"
+            >
+              <ImageIcon className="w-4 h-4 text-platz-gold group-hover:text-white" />
+              <span>Alterar Foto / Capa</span>
+            </button>
+          )}
 
           {/* 2. Materiais e Anexos (PDFs) */}
           {onOpenMaterials && (

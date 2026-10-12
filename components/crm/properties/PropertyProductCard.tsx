@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Sparkles,
   FileText,
+  Camera,
 } from "lucide-react";
 import { PropertyMenu } from "./PropertyMenu";
 
@@ -49,6 +50,7 @@ interface PropertyProductCardProps {
   onOpenDetails: (prop: PropertyCardData) => void;
   onOpenPublishModal: (prop: PropertyCardData) => void;
   onOpenMaterials?: (prop: PropertyCardData) => void;
+  onOpenEditImage?: (prop: PropertyCardData) => void;
   onToggleLandingPage: (id: string, current: boolean) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }
@@ -58,6 +60,7 @@ export function PropertyProductCard({
   onOpenDetails,
   onOpenPublishModal,
   onOpenMaterials,
+  onOpenEditImage,
   onToggleLandingPage,
   onDelete,
 }: PropertyProductCardProps) {
@@ -143,7 +146,7 @@ export function PropertyProductCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/30 pointer-events-none" />
 
           {/* Botão quadrado primário '⋮' no canto superior esquerdo (Seção 5.6) */}
-          <div className="absolute top-2.5 left-2.5 z-10">
+          <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5">
             <PropertyMenu
               propertyId={property.id}
               propertyName={property.nome}
@@ -151,8 +154,24 @@ export function PropertyProductCard({
               onOpenDetails={() => onOpenDetails(property)}
               onOpenPublishModal={() => onOpenPublishModal(property)}
               onOpenMaterials={onOpenMaterials ? () => onOpenMaterials(property) : undefined}
+              onOpenEditImage={onOpenEditImage ? () => onOpenEditImage(property) : undefined}
               onDelete={onDelete ? () => onDelete(property.id) : undefined}
             />
+
+            {onOpenEditImage && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenEditImage(property);
+                }}
+                aria-label="Alterar foto de capa"
+                title="Alterar imagem do imóvel"
+                className="w-8 h-8 rounded-lg bg-black/60 hover:bg-connect-blue text-white backdrop-blur-md shadow-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Pílulas de status sobre a imagem no canto superior direito (Seção 5.6) */}

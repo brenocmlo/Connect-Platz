@@ -18,6 +18,7 @@ interface PropertyListSectionProps {
   onOpenDetails: (prop: PropertyCardData) => void;
   onOpenPublishModal: (prop: PropertyCardData) => void;
   onOpenMaterials?: (prop: PropertyCardData) => void;
+  onOpenEditImage?: (prop: PropertyCardData) => void;
   onOpenNewEmpModal: () => void;
   onOpenNewAvulsoModal: () => void;
   onToggleLandingPage: (id: string, current: boolean) => Promise<void>;
@@ -29,6 +30,7 @@ export function PropertyListSection({
   onOpenDetails,
   onOpenPublishModal,
   onOpenMaterials,
+  onOpenEditImage,
   onOpenNewEmpModal,
   onOpenNewAvulsoModal,
   onToggleLandingPage,
@@ -173,6 +175,7 @@ export function PropertyListSection({
               onOpenDetails={onOpenDetails}
               onOpenPublishModal={onOpenPublishModal}
               onOpenMaterials={onOpenMaterials}
+              onOpenEditImage={onOpenEditImage}
               onToggleLandingPage={onToggleLandingPage}
               onDelete={onDeleteProperty}
             />

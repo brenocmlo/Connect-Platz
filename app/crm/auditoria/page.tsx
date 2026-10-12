@@ -7,6 +7,7 @@ import { AccessDeniedCard } from "@/components/crm/AccessDeniedCard";
 import {
   AuditLogEntry,
   getAuditLogs,
+  fetchAuditLogsFromApi,
   resetAuditLogsToMock,
 } from "@/lib/services/auditLogger";
 import { AuditStatCards } from "@/components/crm/auditoria/AuditStatCards";
@@ -30,7 +31,11 @@ export default function AuditoriaPage() {
     user?.role === "GERENTE";
 
   useEffect(() => {
-    setLogs(getAuditLogs());
+    async function loadLogs() {
+      const data = await fetchAuditLogsFromApi();
+      setLogs(data);
+    }
+    loadLogs();
   }, []);
 
   // Filtragem

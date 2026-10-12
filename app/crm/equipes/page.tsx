@@ -50,6 +50,23 @@ export default function EquipesPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"membros" | "roleta">("membros");
 
+  React.useEffect(() => {
+    async function loadTeam() {
+      try {
+        const res = await fetch("/api/equipes");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.members && data.members.length > 0) {
+            setTeam(data.members);
+          }
+        }
+      } catch (e) {
+        // Fallback gracioso
+      }
+    }
+    loadTeam();
+  }, []);
+
   const totalAtivos = team.filter((m) => m.status === "DISPONIVEL").length;
   const totalVisitas = team.filter((m) => m.status === "EM_VISITA").length;
   const totalGerentes = team.filter((m) => m.role === "GERENTE" || m.role === "DIRETOR").length;
@@ -77,7 +94,7 @@ export default function EquipesPage() {
     setTimeout(() => setActionMessage(null), 4000);
   };
 
-  const handleSendInvite = (data: InviteCollaboratorData) => {
+  const handleSendInvite = async (data: InviteCollaboratorData) => {
     const newMember: TeamMember = {
       id: `m-${Date.now()}`,
       nome: data.nome,
@@ -91,6 +108,16 @@ export default function EquipesPage() {
     setTeam([...team, newMember]);
     setIsInviteModalOpen(false);
     setActionMessage(`Convite enviado para ${data.email} com senha temporária configurada!`);
+
+    try {
+      await fetch("/api/equipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } catch (e) {
+      console.warn("Falha ao salvar convite no backend:", e);
+    }
 
     logAuditEvent({
       usuario: {

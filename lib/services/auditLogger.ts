@@ -256,6 +256,22 @@ export function getAuditLogs(): AuditLogEntry[] {
   }
 }
 
+export async function fetchAuditLogsFromApi(): Promise<AuditLogEntry[]> {
+  if (typeof window === "undefined") return initialMockAuditLogs;
+  try {
+    const res = await fetch("/api/auditoria");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.logs && data.logs.length > 0) {
+        return data.logs;
+      }
+    }
+  } catch {
+    // Fallback gracioso
+  }
+  return getAuditLogs();
+}
+
 export function logAuditEvent(
   entry: Omit<AuditLogEntry, "id" | "timestamp" | "dataHoraFormatada">
 ): AuditLogEntry {
@@ -281,6 +297,13 @@ export function logAuditEvent(
       const current = getAuditLogs();
       const updated = [newLog, ...current];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+      // Sincronização assíncrona com PostgreSQL via API
+      fetch("/api/auditoria", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      }).catch(() => {});
     } catch {
       // fallback silencioso
     }
