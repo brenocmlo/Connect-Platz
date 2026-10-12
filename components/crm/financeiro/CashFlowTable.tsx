@@ -16,6 +16,7 @@ export interface CashFlowItem {
   dataLiquidacao?: string;
   foiAntecipado?: boolean;
   observacaoLiquidacao?: string;
+  centroCusto?: string;
 }
 
 interface CashFlowTableProps {

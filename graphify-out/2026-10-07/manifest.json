@@ -96,10 +96,10 @@
     "semantic_hash": "f2e5faf34b7b4f03e765533100ab344c"
   },
   "app/crm/configuracoes/page.tsx": {
-    "mtime": 1791241336.5200706,
-    "seen": 1791241508.757876,
-    "ast_hash": "665e65469ac7fc24fe0c809ea154d4fd",
-    "semantic_hash": "665e65469ac7fc24fe0c809ea154d4fd"
+    "mtime": 1791421007.7369518,
+    "seen": 1791421480.2864058,
+    "ast_hash": "e457207fe1e759570f3acfb3abdf6359",
+    "semantic_hash": ""
   },
   "app/crm/empreendimentos/page.tsx": {
     "mtime": 1791246207.515979,
@@ -132,9 +132,9 @@
     "semantic_hash": "1e8aaf3d63700d0d4703fe31914bf146"
   },
   "app/crm/leads/page.tsx": {
-    "mtime": 1791242598.6590672,
-    "seen": 1791320512.851255,
-    "ast_hash": "edfddfa986ed8dae9758dac35287f398",
+    "mtime": 1791420807.8640664,
+    "seen": 1791421480.286967,
+    "ast_hash": "f9cacb4623137a531942e5f6bac0167d",
     "semantic_hash": ""
   },
   "app/crm/page.tsx": {
@@ -162,9 +162,9 @@
     "semantic_hash": "baf782f6b7991700b09e2635bb909ad5"
   },
   "app/crm/vendas/page.tsx": {
-    "mtime": 1791246219.7214186,
-    "seen": 1791320512.851688,
-    "ast_hash": "f9ccfb8b881660380300830dfb42a1b1",
+    "mtime": 1791420932.2946672,
+    "seen": 1791421480.2876532,
+    "ast_hash": "ecd78862a823a99181cf8e710b53111d",
     "semantic_hash": ""
   },
   "app/espelho/[slug]/page.tsx": {
@@ -174,10 +174,10 @@
     "semantic_hash": "2c1004b95dd4adb46b5bed654c2f7713"
   },
   "app/layout.tsx": {
-    "mtime": 1791241390.8344357,
-    "seen": 1791241508.7597408,
-    "ast_hash": "b360f4b307ee1da19f5b8b919c397b8e",
-    "semantic_hash": "b360f4b307ee1da19f5b8b919c397b8e"
+    "mtime": 1791418653.8596928,
+    "seen": 1791418869.590792,
+    "ast_hash": "efe434955fad63d1138d0e14b40b37dc",
+    "semantic_hash": ""
   },
   "app/login/page.tsx": {
     "mtime": 1790815202.4471066,
@@ -210,9 +210,9 @@
     "semantic_hash": "f2039b3fe648e6130665cecf8291a71f"
   },
   "components/crm/CrmContext.tsx": {
-    "mtime": 1791241963.891463,
-    "seen": 1791320512.85282,
-    "ast_hash": "4240a6fc4959afffcd5d78d7f6a74d56",
+    "mtime": 1791418726.12278,
+    "seen": 1791418869.5912151,
+    "ast_hash": "05def0d2010445e283ed7a325fc9055b",
     "semantic_hash": ""
   },
   "components/crm/FloatingSupport.tsx": {
@@ -222,10 +222,10 @@
     "semantic_hash": "169909a510ddf59090989c2094bb1bfb"
   },
   "components/crm/LeadDrawer.tsx": {
-    "mtime": 1790959686.2010925,
-    "seen": 1791241244.882,
-    "ast_hash": "275f694cd60bda083ba618ca7187643f",
-    "semantic_hash": "275f694cd60bda083ba618ca7187643f"
+    "mtime": 1791421374.5543194,
+    "seen": 1791421480.2893062,
+    "ast_hash": "1114f6919d687eaa44a23f02019db787",
+    "semantic_hash": ""
   },
   "components/crm/PageHeader.tsx": {
     "mtime": 1791246183.137071,
@@ -324,9 +324,9 @@
     "semantic_hash": "437ad86a842623520cae5fc0827d78b7"
   },
   "components/crm/configuracoes/ProfileTab.tsx": {
-    "mtime": 1791320233.939064,
-    "seen": 1791320512.855744,
-    "ast_hash": "78c934350cd2217a8537bc2072aa9acd",
+    "mtime": 1791418799.1957393,
+    "seen": 1791418869.593251,
+    "ast_hash": "a0741e39b058952aac4448828df46d1b",
     "semantic_hash": ""
   },
   "components/crm/configuracoes/SlaEngineTab.tsx": {
@@ -600,10 +600,10 @@
     "semantic_hash": "e931daf9963156189a84768b7942ee00"
   },
   "components/crm/leads/NewLeadModal.tsx": {
-    "mtime": 1790910555.0424826,
-    "seen": 1791241244.882103,
-    "ast_hash": "18e30e6d784fdd692cfc5a75e989b397",
-    "semantic_hash": "18e30e6d784fdd692cfc5a75e989b397"
+    "mtime": 1791421154.9378998,
+    "seen": 1791421480.299428,
+    "ast_hash": "8e80c4aa618bf1e5c421fdd1b58b0e98",
+    "semantic_hash": ""
   },
   "components/crm/leads/leadCalculations.ts": {
     "mtime": 1790912482.9323633,
@@ -1605,6 +1605,54 @@
     "mtime": 1791321949.6433403,
     "seen": 1791322655.827529,
     "ast_hash": "c2655c41c1ce4bf0ed193e3234095d23",
+    "semantic_hash": ""
+  },
+  "components/crm/configuracoes/AccessibilitySection.tsx": {
+    "mtime": 1791418754.2845726,
+    "seen": 1791418869.593042,
+    "ast_hash": "d06771cfd4af6526188ca5a71e73be14",
+    "semantic_hash": ""
+  },
+  "components/crm/configuracoes/ScoreCalibrationTab.tsx": {
+    "mtime": 1791420975.5528646,
+    "seen": 1791421480.292681,
+    "ast_hash": "df71aa8a0ce481e18a0ead2cf133e165",
+    "semantic_hash": ""
+  },
+  "components/crm/leads/DiscardLeadModal.tsx": {
+    "mtime": 1791420661.4529765,
+    "seen": 1791421480.2983081,
+    "ast_hash": "3d24cfbf4a6dd858b37adc71d617a359",
+    "semantic_hash": ""
+  },
+  "components/crm/leads/ImportLeadsModal.tsx": {
+    "mtime": 1791420645.7553458,
+    "seen": 1791421480.298409,
+    "ast_hash": "bc65da4f1f947a496fe9ebb55b3365fc",
+    "semantic_hash": ""
+  },
+  "components/crm/leads/LeadsModalsContainer.tsx": {
+    "mtime": 1791421220.1858025,
+    "seen": 1791421480.299148,
+    "ast_hash": "e8b2cde922046424260ab1c737118467",
+    "semantic_hash": ""
+  },
+  "components/crm/leads/useLeadsActions.ts": {
+    "mtime": 1791420772.3531322,
+    "seen": 1791421480.299608,
+    "ast_hash": "f82d7c1b968599ce407316887140350b",
+    "semantic_hash": ""
+  },
+  "components/crm/vendas/CommissionReceiptModal.tsx": {
+    "mtime": 1791421289.5462074,
+    "seen": 1791421480.302994,
+    "ast_hash": "772eba65882ddd41074c3ba6bb4490dc",
+    "semantic_hash": ""
+  },
+  "lib/services/leads-csv.ts": {
+    "mtime": 1791421391.65519,
+    "seen": 1791421480.3100748,
+    "ast_hash": "57b45363b7fb476591a9f7a133b1fadb",
     "semantic_hash": ""
   }
 }

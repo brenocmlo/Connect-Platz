@@ -1,5 +1,5 @@
-// Connect Platz CRM Service Worker for PWA
-const CACHE_NAME = "connect-platz-pwa-v1";
+// Connect Platz CRM Service Worker for PWA & Web Push
+const CACHE_NAME = "connect-platz-pwa-v2";
 
 const STATIC_ASSETS = [
   "/",
@@ -30,7 +30,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Ignora requisições de API para dados sempre frescos
+  // Ignora requisições de API para manter dados sempre frescos
   if (event.request.url.includes("/api/")) {
     return;
   }
@@ -41,9 +41,69 @@ self.addEventListener("fetch", (event) => {
         return cachedResponse;
       }
       return fetch(event.request).catch(() => {
-        // Fallback offline se necessário
         return cachedResponse;
       });
+    })
+  );
+});
+
+// Suporte a Web Push Notifications nativas PWA
+self.addEventListener("push", (event) => {
+  let data = {
+    title: "Connect Platz CRM",
+    body: "Você possui uma nova atualização no CRM.",
+    url: "/crm/leads",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-192x192.png",
+  };
+
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || "/icons/icon-192x192.png",
+    badge: data.badge || "/icons/icon-192x192.png",
+    vibrate: [100, 50, 100],
+    data: {
+      url: data.url || "/crm/leads",
+      dateOfArrival: Date.now(),
+    },
+    actions: [
+      { action: "open", title: "Ver Lead" },
+      { action: "close", title: "Dispensar" },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+// Abertura de janela ao clicar na notificação
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  if (event.action === "close") {
+    return;
+  }
+
+  const targetUrl = event.notification.data?.url || "/crm/leads";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (let client of windowClients) {
+        if (client.url.includes("/crm") && "focus" in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
     })
   );
 });

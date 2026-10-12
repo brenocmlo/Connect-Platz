@@ -16,6 +16,7 @@ import {
   Check,
   Plus,
   ChevronRight,
+  MessageSquare,
 } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 
@@ -23,6 +24,7 @@ interface LeadCardMenuProps {
   lead: LeadDetail;
   onOpenDetails: () => void;
   onEdit: () => void;
+  onOpenWhatsApp?: () => void;
   onAdvanceStage: () => void;
   onAddReminder: () => void;
   onScheduleVisit: () => void;
@@ -43,6 +45,7 @@ export function LeadCardMenu({
   lead,
   onOpenDetails,
   onEdit,
+  onOpenWhatsApp,
   onAdvanceStage,
   onAddReminder,
   onScheduleVisit,
@@ -127,6 +130,20 @@ export function LeadCardMenu({
             <Edit className="w-3.5 h-3.5" />
             <span>Editar</span>
           </button>
+
+          {/* WhatsApp Templates */}
+          {onOpenWhatsApp && (
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onOpenWhatsApp();
+              }}
+              className="w-full text-left px-3 py-2 flex items-center gap-2 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Templates WhatsApp</span>
+            </button>
+          )}
 
           {/* 3. Etiquetas ▸ com Submenu */}
           <div

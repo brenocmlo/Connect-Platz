@@ -35,6 +35,7 @@ interface LeadCardProps {
   onUpdateTags?: (leadId: string, tags: string[]) => void;
   onEditLead?: (lead: LeadDetail) => void;
   onScheduleVisit?: (lead: LeadDetail) => void;
+  onOpenWhatsApp?: (lead: LeadDetail) => void;
 }
 
 export function LeadCard({
@@ -52,6 +53,7 @@ export function LeadCard({
   onUpdateTags,
   onEditLead,
   onScheduleVisit,
+  onOpenWhatsApp,
 }: LeadCardProps) {
   const { hideValues, formatMoney } = useCrm();
 
@@ -132,6 +134,7 @@ export function LeadCard({
           onAdvanceStage={() => onAdvanceStage && onAdvanceStage(lead.id)}
           onAddReminder={() => alert(`Lembrete adicionado para ${lead.nome}`)}
           onScheduleVisit={() => (onScheduleVisit ? onScheduleVisit(lead) : onSelectLead(lead))}
+          onOpenWhatsApp={() => onOpenWhatsApp && onOpenWhatsApp(lead)}
           onMoveToBolsao={() => onMoveToBolsao && onMoveToBolsao(lead.id)}
           onDelete={() => onDeleteLead && onDeleteLead(lead.id)}
           onUpdateTags={(tags) => onUpdateTags && onUpdateTags(lead.id, tags)}
@@ -165,16 +168,28 @@ export function LeadCard({
               <Phone className="w-3.5 h-3.5" />
             </a>
 
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="p-1 rounded-md text-[#22C55E] hover:bg-[#22C55E]/10 transition-colors"
-              title="Abrir WhatsApp Web"
-              aria-label="Chamar no WhatsApp"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-            </a>
+            {onOpenWhatsApp ? (
+              <button
+                type="button"
+                onClick={() => onOpenWhatsApp(lead)}
+                className="p-1 rounded-md text-[#22C55E] hover:bg-[#22C55E]/10 transition-colors"
+                title="Templates Rápidos WhatsApp"
+                aria-label="Chamar no WhatsApp com Templates"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="p-1 rounded-md text-[#22C55E] hover:bg-[#22C55E]/10 transition-colors"
+                title="Abrir WhatsApp Web"
+                aria-label="Chamar no WhatsApp"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+              </a>
+            )}
           </div>
         </div>
 

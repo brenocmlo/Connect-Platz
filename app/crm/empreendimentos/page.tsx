@@ -10,6 +10,7 @@ import { SiteSettingsTab } from "@/components/crm/properties/SiteSettingsTab";
 import { PropertyCardData } from "@/components/crm/properties/PropertyProductCard";
 import { EspelhoVendasModal, EmpreendimentoData } from "@/components/crm/properties/EspelhoVendasModal";
 import { PublishLandingModal } from "@/components/crm/properties/PublishLandingModal";
+import { PropertyMaterialsModal } from "@/components/crm/properties/PropertyMaterialsModal";
 import { NewEmpreendimentoModal } from "@/components/crm/properties/NewEmpreendimentoModal";
 import { NewImovelAvulsoModal } from "@/components/crm/properties/NewImovelAvulsoModal";
 
@@ -22,6 +23,7 @@ export default function EmpreendimentosPage() {
   // Modais
   const [selectedEspelhoProperty, setSelectedEspelhoProperty] = useState<EmpreendimentoData | null>(null);
   const [publishModalProperty, setPublishModalProperty] = useState<PropertyCardData | null>(null);
+  const [materialsProperty, setMaterialsProperty] = useState<PropertyCardData | null>(null);
   const [isNewEmpModalOpen, setIsNewEmpModalOpen] = useState(false);
   const [isNewAvulsoModalOpen, setIsNewAvulsoModalOpen] = useState(false);
 
@@ -175,6 +177,7 @@ export default function EmpreendimentosPage() {
           properties={properties}
           onOpenDetails={(prop) => setSelectedEspelhoProperty(prop as any)}
           onOpenPublishModal={(prop) => setPublishModalProperty(prop)}
+          onOpenMaterials={(prop) => setMaterialsProperty(prop)}
           onOpenNewEmpModal={() => setIsNewEmpModalOpen(true)}
           onOpenNewAvulsoModal={() => setIsNewAvulsoModalOpen(true)}
           onToggleLandingPage={handleToggleLandingPage}
@@ -215,6 +218,12 @@ export default function EmpreendimentosPage() {
         onClose={() => setPublishModalProperty(null)}
         property={publishModalProperty}
         onToggleLandingPage={handleToggleLandingPage}
+      />
+
+      <PropertyMaterialsModal
+        isOpen={Boolean(materialsProperty)}
+        onClose={() => setMaterialsProperty(null)}
+        property={materialsProperty}
       />
     </div>
   );

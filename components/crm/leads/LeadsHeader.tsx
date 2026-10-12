@@ -12,8 +12,8 @@ import {
 import { useCrm, PeriodFilter } from "@/components/crm/CrmContext";
 
 interface LeadsHeaderProps {
-  viewMode: "kanban" | "table" | "bolsao";
-  setViewMode: (mode: "kanban" | "table" | "bolsao") => void;
+  viewMode: "kanban" | "table" | "bolsao" | "nightQueue";
+  setViewMode: (mode: "kanban" | "table" | "bolsao" | "nightQueue") => void;
   onOpenNewLead: () => void;
   onImport?: () => void;
   onExport?: () => void;

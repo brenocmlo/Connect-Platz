@@ -1,16 +1,17 @@
 "use client";
 
 import React from "react";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, Moon } from "lucide-react";
 
 interface LeadsSubBarProps {
   selectedFunnel: string;
   setSelectedFunnel: (funnel: string) => void;
   selectedMember: string;
   setSelectedMember: (member: string) => void;
-  viewMode: "kanban" | "table" | "bolsao";
-  setViewMode: (mode: "kanban" | "table" | "bolsao") => void;
+  viewMode: "kanban" | "table" | "bolsao" | "nightQueue";
+  setViewMode: (mode: "kanban" | "table" | "bolsao" | "nightQueue") => void;
   bolsaoCount: number;
+  nightQueueCount?: number;
 }
 
 export function LeadsSubBar({
@@ -21,6 +22,7 @@ export function LeadsSubBar({
   viewMode,
   setViewMode,
   bolsaoCount,
+  nightQueueCount = 0,
 }: LeadsSubBarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-1">
@@ -50,21 +52,42 @@ export function LeadsSubBar({
         </select>
       </div>
 
-      {/* Botão Bolsão com contador */}
-      <button
-        onClick={() => setViewMode(viewMode === "bolsao" ? "kanban" : "bolsao")}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
-          viewMode === "bolsao"
-            ? "bg-amber-600 text-white border-amber-600 shadow-sm"
-            : "bg-card border-border hover:border-amber-500/50 text-foreground"
-        }`}
-      >
-        <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-        <span>Bolsão</span>
-        <span className="bg-amber-500/20 text-amber-500 px-1.5 py-0.2 rounded-full text-[10px]">
-          {bolsaoCount}
-        </span>
-      </button>
+      <div className="flex items-center gap-2">
+        {/* Botão Fila Noturna com contador */}
+        {nightQueueCount > 0 && (
+          <button
+            onClick={() => setViewMode(viewMode === "nightQueue" ? "kanban" : "nightQueue")}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+              viewMode === "nightQueue"
+                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                : "bg-card border-border hover:border-indigo-500/50 text-foreground"
+            }`}
+            title="Leads retidos na Fila Noturna"
+          >
+            <Moon className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Fila Noturna</span>
+            <span className="bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded-full text-[10px]">
+              {nightQueueCount}
+            </span>
+          </button>
+        )}
+
+        {/* Botão Bolsão com contador */}
+        <button
+          onClick={() => setViewMode(viewMode === "bolsao" ? "kanban" : "bolsao")}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+            viewMode === "bolsao"
+              ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+              : "bg-card border-border hover:border-amber-500/50 text-foreground"
+          }`}
+        >
+          <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+          <span>Bolsão</span>
+          <span className="bg-amber-500/20 text-amber-500 px-1.5 py-0.2 rounded-full text-[10px]">
+            {bolsaoCount}
+          </span>
+        </button>
+      </div>
     </div>
   );
 }

@@ -2,26 +2,25 @@
 
 import React, { useState, useEffect } from "react";
 import { useCrm } from "@/components/crm/CrmContext";
-import { LeadDrawer, LeadDetail } from "@/components/crm/LeadDrawer";
+import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { KanbanBoard, FunnelColumn } from "@/components/crm/leads/KanbanBoard";
 import { LeadsTable } from "@/components/crm/leads/LeadsTable";
 import { BolsaoSection } from "@/components/crm/leads/BolsaoSection";
-import { NewLeadModal } from "@/components/crm/leads/NewLeadModal";
+import { NightQueueSection } from "@/components/crm/leads/NightQueueSection";
 import { LeadStatCards } from "@/components/crm/leads/LeadStatCards";
-import { LeadFilterSheet } from "@/components/crm/leads/LeadFilterSheet";
 import { LeadsHeader } from "@/components/crm/leads/LeadsHeader";
 import { LeadsSubBar } from "@/components/crm/leads/LeadsSubBar";
 import { LeadsSearchBar } from "@/components/crm/leads/LeadsSearchBar";
-import { EditLeadModal } from "@/components/crm/leads/EditLeadModal";
-import { NewAppointmentModal } from "@/components/crm/agenda/NewAppointmentModal";
+import { LeadsModalsContainer } from "@/components/crm/leads/LeadsModalsContainer";
 import { initialSampleLeads } from "@/components/crm/leads/sampleLeads";
 import { useLeadsFilter } from "@/components/crm/leads/useLeadsFilter";
-import { findLeadStageIndex, defaultStages } from "@/components/crm/leads/leadCalculations";
-import { ToastFeedback } from "@/components/crm/primitives";
+import { useLeadsActions } from "@/components/crm/leads/useLeadsActions";
+import { defaultStages } from "@/components/crm/leads/leadCalculations";
+import { exportLeadsToCsv } from "@/lib/services/leads-csv";
 
 export default function LeadsPage() {
   const { token, selectedPeriod } = useCrm();
-  const [viewMode, setViewMode] = useState<"kanban" | "table" | "bolsao">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "table" | "bolsao" | "nightQueue">("kanban");
   const [selectedFunnel, setSelectedFunnel] = useState("Lançamentos de Médio & Alto Padrão");
   const [selectedMember, setSelectedMember] = useState("TODOS");
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,6 +35,9 @@ export default function LeadsPage() {
   const [editingLead, setEditingLead] = useState<LeadDetail | null>(null);
   const [appointmentLead, setAppointmentLead] = useState<LeadDetail | null>(null);
   const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [discardLeadTarget, setDiscardLeadTarget] = useState<LeadDetail | null>(null);
+  const [whatsAppLeadTarget, setWhatsAppLeadTarget] = useState<LeadDetail | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,136 +73,24 @@ export default function LeadsPage() {
     }
   };
 
-  const handleDropLead = async (leadId: string, targetStageId: string) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, stageId: targetStageId } : l))
-    );
-    if (selectedLead?.id === leadId) {
-      setSelectedLead((prev) => (prev ? { ...prev, stageId: targetStageId } : null));
-    }
-
-    if (token) {
-      try {
-        const stageObj = stages.find((s) => s.id === targetStageId);
-        const resolvedStageId = stageObj?.id || targetStageId;
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedStageId);
-
-        if (isUuid) {
-          await fetch(`/api/leads/${leadId}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ stageId: resolvedStageId }),
-          });
-        }
-      } catch (err) {
-        console.error("Erro ao mover lead:", err);
-      }
-    }
-  };
-
-  const handleAdvanceStage = (leadId: string) => {
-    const lead = leads.find((l) => l.id === leadId);
-    if (!lead) return;
-    const currentIdx = findLeadStageIndex(lead, stages);
-    if (currentIdx < stages.length - 1) {
-      const nextStage = stages[currentIdx + 1];
-      handleDropLead(leadId, nextStage.id);
-      setToastMessage(`Lead avançado para "${nextStage.nome}"!`);
-    } else {
-      setToastMessage("Lead já está na última etapa do funil!");
-    }
-  };
-
-  const handleChangeStage = (leadId: string, targetStageId: string) => {
-    handleDropLead(leadId, targetStageId);
-    const targetStage = stages.find((s) => s.id === targetStageId);
-    setToastMessage(`Etapa alterada para "${targetStage?.nome || "Nova etapa"}"!`);
-  };
-
-  const handleMoveToBolsao = (leadId: string) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, isBolsao: true } : l))
-    );
-    if (selectedLead?.id === leadId) {
-      setSelectedLead((prev) => (prev ? { ...prev, isBolsao: true } : null));
-    }
-    setToastMessage("Lead transferido para o Bolsão de Oportunidades!");
-  };
-
-  const handleDeleteLead = (leadId: string) => {
-    setLeads((prev) => prev.filter((l) => l.id !== leadId));
-    setToastMessage("Lead excluído com sucesso.");
-  };
-
-  const handleUpdateTags = (leadId: string, tags: string[]) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, tags } : l))
-    );
-    setToastMessage("Etiquetas atualizadas!");
-  };
-
-  const handleCreateManualLead = async (leadData: {
-    nome: string;
-    telefone: string;
-    email?: string;
-    empreendimentoInteresse?: string;
-    temperatura?: "FRIO" | "MORNO" | "QUENTE";
-    origem?: string;
-    rendaDeclarada?: number;
-    stageId?: string;
-  }) => {
-    if (!token) {
-      const newManualLead: LeadDetail = {
-        id: `lead-${Date.now()}`,
-        nome: leadData.nome,
-        telefone: leadData.telefone,
-        email: leadData.email,
-        empreendimentoInteresse: leadData.empreendimentoInteresse || "Reserva Imperial",
-        temperatura: leadData.temperatura || "MORNO",
-        source: leadData.origem || "Manual / Corretor",
-        rendaDeclarada: leadData.rendaDeclarada || null,
-        stageId: leadData.stageId || "stage-1",
-        score: leadData.temperatura === "QUENTE" ? 85 : leadData.temperatura === "MORNO" ? 60 : 38,
-        tags: [
-          leadData.temperatura === "QUENTE" ? "Cliente Quente" : "Potencial",
-          leadData.origem || "Manual",
-        ],
-        createdAt: "Agora",
-      };
-      setLeads((prev) => [newManualLead, ...prev]);
-      setToastMessage("Lead cadastrado com sucesso!");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          nome: leadData.nome,
-          telefone: leadData.telefone,
-          email: leadData.email,
-          empreendimentoInteresse: leadData.empreendimentoInteresse,
-          temperatura: leadData.temperatura,
-          rendaDeclarada: leadData.rendaDeclarada,
-          source: leadData.origem || "MANUAL_CORRETOR",
-          stageId: leadData.stageId || "stage-1",
-        }),
-      });
-      if (res.ok) {
-        fetchLeads(token);
-        setToastMessage("Lead criado com sucesso!");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const {
+    handleDropLead,
+    handleAdvanceStage,
+    handleChangeStage,
+    handleMoveToBolsao,
+    handleDeleteLead,
+    handleUpdateTags,
+    handleCreateManualLead,
+  } = useLeadsActions({
+    leads,
+    setLeads,
+    stages,
+    selectedLead,
+    setSelectedLead,
+    token,
+    setToastMessage,
+    setDiscardLeadTarget,
+  });
 
   const {
     filteredLeads,
@@ -222,6 +112,56 @@ export default function LeadsPage() {
     selectedPeriod,
   });
 
+  const handleConfirmDiscard = (leadId: string, motivo: string, obs?: string) => {
+    setLeads((prev) =>
+      prev.map((l) =>
+        l.id === leadId
+          ? {
+              ...l,
+              statusLabel: `Encerrado: ${motivo}`,
+            }
+          : l
+      )
+    );
+    setDiscardLeadTarget(null);
+    setToastMessage(`Oportunidade encerrada (${motivo}).`);
+  };
+
+  const handleImportSuccess = (imported: LeadDetail[]) => {
+    setLeads((prev) => [...imported, ...prev]);
+    setToastMessage(`${imported.length} leads importados e distribuídos com sucesso!`);
+  };
+
+  const handleExportLeads = () => {
+    try {
+      exportLeadsToCsv(filteredLeads);
+      setToastMessage("Planilha CSV de leads exportada com sucesso!");
+    } catch (err: any) {
+      setToastMessage(err.message || "Erro ao exportar leads.");
+    }
+  };
+
+  const nightQueueCount = leads.filter((l) => l.isNightQueue).length;
+
+  const handleDispatchNightQueue = () => {
+    const nightLeads = leads.filter((l) => l.isNightQueue);
+    if (nightLeads.length === 0) return;
+    setLeads((prev) =>
+      prev.map((l) =>
+        l.isNightQueue
+          ? {
+              ...l,
+              isNightQueue: false,
+              corretor: { id: "user-1", nome: "Lucas Pinheiro" },
+              slaDueAt: new Date(Date.now() + 20 * 60000).toISOString(),
+            }
+          : l
+      )
+    );
+    setViewMode("kanban");
+    setToastMessage(`${nightLeads.length} lead(s) da Fila Noturna liberados e distribuídos via Roleta!`);
+  };
+
   return (
     <div className="space-y-4 max-w-full">
       {/* 1. CABEÇALHO DA SEÇÃO DE LEADS (Seção 5.4) */}
@@ -229,9 +169,11 @@ export default function LeadsPage() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         onOpenNewLead={() => setIsNewLeadModalOpen(true)}
+        onImport={() => setIsImportModalOpen(true)}
+        onExport={handleExportLeads}
       />
 
-      {/* 2. SUB-BARRA: FUNIL, MEMBROS & BOLSÃO */}
+      {/* 2. SUB-BARRA: FUNIL, MEMBROS, BOLSÃO & FILA NOTURNA */}
       <LeadsSubBar
         selectedFunnel={selectedFunnel}
         setSelectedFunnel={setSelectedFunnel}
@@ -240,6 +182,7 @@ export default function LeadsPage() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         bolsaoCount={bolsaoCount}
+        nightQueueCount={nightQueueCount}
       />
 
       {/* 3. FAIXA DE 6 STATCARDS COMPACTOS (Seção 5.4) */}
@@ -260,7 +203,7 @@ export default function LeadsPage() {
         hasActiveFilters={hasActiveFilters}
       />
 
-      {/* 5. VISUALIZAÇÃO PRINCIPAL (KANBAN / TABELA / BOLSÃO) */}
+      {/* 5. VISUALIZAÇÃO PRINCIPAL (KANBAN / TABELA / BOLSÃO / FILA NOTURNA) */}
       {viewMode === "kanban" && (
         <KanbanBoard
           stages={stages}
@@ -274,6 +217,7 @@ export default function LeadsPage() {
           onUpdateTags={handleUpdateTags}
           onEditLead={(lead) => setEditingLead(lead)}
           onScheduleVisit={(lead) => setAppointmentLead(lead)}
+          onOpenWhatsApp={(lead) => setWhatsAppLeadTarget(lead)}
         />
       )}
 
@@ -297,22 +241,35 @@ export default function LeadsPage() {
         />
       )}
 
-      {/* 6. MODAIS E DRAWERS */}
-      <NewLeadModal
-        isOpen={isNewLeadModalOpen}
-        onClose={() => setIsNewLeadModalOpen(false)}
-        onSubmit={handleCreateManualLead}
-        availableStages={stages}
-      />
+      {viewMode === "nightQueue" && (
+        <NightQueueSection
+          leads={leads}
+          onDispatchNightQueue={handleDispatchNightQueue}
+          onSelectLead={setSelectedLead}
+        />
+      )}
 
-      <LeadDrawer
-        lead={selectedLead}
-        stages={stages}
-        onClose={() => setSelectedLead(null)}
+      {/* 6. MODAIS E DRAWERS CENTRALIZADOS */}
+      <LeadsModalsContainer
+        isNewLeadModalOpen={isNewLeadModalOpen}
+        onCloseNewLeadModal={() => setIsNewLeadModalOpen(false)}
+        onCreateManualLead={handleCreateManualLead}
+        availableStages={stages}
+        isImportModalOpen={isImportModalOpen}
+        onCloseImportModal={() => setIsImportModalOpen(false)}
+        onImportSuccess={handleImportSuccess}
+        discardLeadTarget={discardLeadTarget}
+        onCloseDiscardModal={() => setDiscardLeadTarget(null)}
+        onConfirmDiscard={handleConfirmDiscard}
+        whatsAppLeadTarget={whatsAppLeadTarget}
+        onCloseWhatsAppModal={() => setWhatsAppLeadTarget(null)}
+        onOpenWhatsApp={(lead) => setWhatsAppLeadTarget(lead)}
+        selectedLead={selectedLead}
+        onCloseLeadDrawer={() => setSelectedLead(null)}
         onAdvanceStage={handleAdvanceStage}
         onChangeStage={handleChangeStage}
-        onEditLead={(lead) => setEditingLead(lead)}
-        onScheduleAppointment={(lead) => setAppointmentLead(lead)}
+        onOpenEditLead={(lead) => setEditingLead(lead)}
+        onOpenAppointmentModal={(lead) => setAppointmentLead(lead)}
         onMoveToBolsao={handleMoveToBolsao}
         onTakeoverBolsao={(leadId) => {
           setLeads((prev) =>
@@ -330,41 +287,34 @@ export default function LeadsPage() {
           setToastMessage("Lead assumido com sucesso! SLA de 20 minutos iniciado.");
         }}
         onDeleteLead={handleDeleteLead}
-      />
-
-      <EditLeadModal
-        isOpen={Boolean(editingLead)}
-        lead={editingLead}
-        stages={stages}
-        onClose={() => setEditingLead(null)}
-        onSave={(updated) => {
-          setLeads((prev) =>
-            prev.map((l) => (l.id === updated.id ? updated : l))
-          );
+        editingLead={editingLead}
+        onCloseEditLead={() => setEditingLead(null)}
+        onSaveEditLead={(updated) => {
+          setLeads((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
           if (selectedLead?.id === updated.id) setSelectedLead(updated);
           setToastMessage("Lead atualizado com sucesso!");
         }}
-      />
-
-      <NewAppointmentModal
-        isOpen={Boolean(appointmentLead)}
-        initialLeadName={appointmentLead?.nome}
-        initialProperty={appointmentLead?.empreendimentoInteresse || "Reserva Imperial"}
-        onClose={() => setAppointmentLead(null)}
-        onSubmit={(app) => {
+        appointmentLead={appointmentLead}
+        onCloseAppointmentModal={() => setAppointmentLead(null)}
+        onSubmitAppointment={(app) => {
           if (appointmentLead) {
-            setLeads((prev) => prev.map((l) => l.id === appointmentLead.id ? { ...l, compromissosCount: (l.compromissosCount || 0) + 1 } : l));
+            setLeads((prev) =>
+              prev.map((l) =>
+                l.id === appointmentLead.id
+                  ? { ...l, compromissosCount: (l.compromissosCount || 0) + 1 }
+                  : l
+              )
+            );
             if (selectedLead?.id === appointmentLead.id) {
-              setSelectedLead((prev) => (prev ? { ...prev, compromissosCount: (prev.compromissosCount || 0) + 1 } : null));
+              setSelectedLead((prev) =>
+                prev ? { ...prev, compromissosCount: (prev.compromissosCount || 0) + 1 } : null
+              );
             }
           }
           setToastMessage(`Compromisso agendado para ${app.lead?.nome || "cliente"}!`);
         }}
-      />
-
-      <LeadFilterSheet
-        isOpen={isFilterSheetOpen}
-        onClose={() => setIsFilterSheetOpen(false)}
+        isFilterSheetOpen={isFilterSheetOpen}
+        onCloseFilterSheet={() => setIsFilterSheetOpen(false)}
         selectedFunnel={selectedFunnel}
         setSelectedFunnel={setSelectedFunnel}
         temperatureFilter={temperatureFilter}
@@ -374,15 +324,13 @@ export default function LeadsPage() {
         slaFilter={slaFilter}
         setSlaFilter={setSlaFilter}
         onResetFilters={() => {
-          setTemperatureFilter("TODAS"); setOriginFilter("TODAS"); setSlaFilter("TODOS"); setSelectedMember("TODOS");
+          setTemperatureFilter("TODAS");
+          setOriginFilter("TODAS");
+          setSlaFilter("TODOS");
+          setSelectedMember("TODOS");
         }}
-      />
-
-      {/* Toast Feedback */}
-      <ToastFeedback
-        message={toastMessage}
-        type="success"
-        onClose={() => setToastMessage(null)}
+        toastMessage={toastMessage}
+        onCloseToast={() => setToastMessage(null)}
       />
     </div>
   );

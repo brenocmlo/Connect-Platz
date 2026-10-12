@@ -9,12 +9,14 @@ interface LeadDrawerHeaderProps {
   lead: LeadDetail;
   onClose: () => void;
   onTakeoverBolsao?: (leadId: string) => void;
+  onOpenWhatsApp?: (lead: LeadDetail) => void;
 }
 
 export function LeadDrawerHeader({
   lead,
   onClose,
   onTakeoverBolsao,
+  onOpenWhatsApp,
 }: LeadDrawerHeaderProps) {
   const getInitials = (name: string) => {
     return name
@@ -66,7 +68,7 @@ export function LeadDrawerHeader({
           </div>
         </div>
 
-        {/* Ações Rápidas: Ligar + WhatsApp Web */}
+        {/* Ações Rápidas: Ligar + WhatsApp Web com Templates */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <a
             href={`tel:${rawPhone}`}
@@ -77,15 +79,27 @@ export function LeadDrawerHeader({
             <Phone className="w-4 h-4" />
           </a>
 
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">WhatsApp</span>
-          </a>
+          {onOpenWhatsApp ? (
+            <button
+              type="button"
+              onClick={() => onOpenWhatsApp(lead)}
+              className="bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+              title="Templates WhatsApp"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">WhatsApp</span>
+            </button>
+          ) : (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">WhatsApp</span>
+            </a>
+          )}
         </div>
       </div>
 

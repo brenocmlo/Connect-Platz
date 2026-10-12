@@ -237,3 +237,14 @@
 > - ⚠️ **Os testes (testes automatizados, capturas em navegador/screenshots, scripts de teste) são feitos APENAS no final do roadmap ou quando expressamente solicitados pelo usuário.**  
 > - Durante o avanço das fases do roadmap, focar diretamente na implementação, arquitetura, compilação (`npm run build`) e limite de linhas, sem executar rotinas pesadas de testes ou captura de screenshots intermediárias a menos que solicitado.
 
+---
+
+### 7. Regra Permanente de Sanitização e Não-Duplicação de Sinais e Ícones
+
+> **MANDATÓRIO / NÃO NEGOCIÁVEL:**  
+> - **Evitar Sinais Repetidos:** Em badges de métricas, StatCards, `TrendBadge` e quaisquer indicadores visuais do sistema, é terminantemente proibido duplicar sinais, setas ou símbolos:
+>   1. **Sem setas duplicadas:** Nunca exibir simultaneamente um ícone visual (Lucide `<TrendingUp />` ou `<TrendingDown />`) e um caractere Unicode de seta (`↗` ou `↘`). Quando houver ícone, o texto não deve conter seta adicional.
+>   2. **Sem sinais matemáticos repetidos:** Nunca exibir `++` ou `--` (ex: `++12.5%` ou `--3%`). O sinal deve ser rigorosamente único: `+12.5%` ou `-3%`.
+>   3. **Sem sufixos duplicados:** Nunca exibir `%%` (ex: `12.5%%`). Componentes como `TrendBadge` devem sanitizar valores em string para evitar concatenação de sufixos já existentes.
+
+

@@ -189,8 +189,21 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   const applyFontSize = (size: FontSizePreference) => {
     setFontSizeState(size);
     localStorage.setItem("connect_platz_font_size", size);
+    if (user?.id) localStorage.setItem(`connect_platz_font_size_${user.id}`, size);
     document.documentElement.setAttribute("data-font-size", size);
   };
+
+  // Ao trocar de usuário logado, aplica a preferência de acessibilidade individual dele
+  useEffect(() => {
+    if (!user?.id) return;
+    const perUser = localStorage.getItem(`connect_platz_font_size_${user.id}`) as FontSizePreference | null;
+    if (perUser && perUser !== fontSize) {
+      setFontSizeState(perUser);
+      localStorage.setItem("connect_platz_font_size", perUser);
+      document.documentElement.setAttribute("data-font-size", perUser);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const fontSizesList: FontSizePreference[] = ["small", "normal", "large", "extra-large"];
 

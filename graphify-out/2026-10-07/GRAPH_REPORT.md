@@ -1,78 +1,72 @@
-# Graph Report - Connect-Platz  (2026-10-06)
+# Graph Report - Connect-Platz  (2026-10-07)
 
 ## Corpus Check
-- 250 files · ~167,885 words
+- 258 files · ~173,143 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: .jsonl 2, (none) 1, .css 1)
 
 ## Summary
-- 1525 nodes · 2957 edges · 95 communities (87 shown, 8 thin omitted)
+- 1557 nodes · 3081 edges · 89 communities (83 shown, 6 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 28 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ef134399`
+- Built from commit: `c6287aea`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - portalUtils.ts
 - useCrm
-- empreendimentos/page.tsx
+- lucide-react
 - vendas/page.tsx
 - agenda/page.tsx
 - generate_pdf_report.py
 - meta-webhook.ts
 - ranking/page.tsx
-- AuthenticateUserUseCase.ts
-- next
-- CountUpNumber
-- LeadDetailsSections.tsx
-- leads/page.tsx
-- index.ts
-- LeadCard.tsx
-- package.json
 - IUserRepository
-- 5. Especificações Visuais e de Telas Extraídas do Habitus CRM (Vídeo Oficial e Web)
-- verifySessionToken
-- react
-- CreditPolicies.ts
+- next
+- ImportLeadsModal.tsx
+- LeadDrawer.tsx
+- LeadsModalsContainer.tsx
+- index.ts
+- FunnelColumn
+- package.json
+- bcryptjs
+- CountUpNumber
+- container.ts
+- crm/layout.tsx
+- leads/page.tsx
 - dependencies
 - compilerOptions
-- prisma.ts
+- leads/route.ts
 - @prisma/client
 - brandkit/SKILL.md
 - jwt.ts
-- container.ts
-- leads/route.ts
+- ILeadRepository
+- IntegrationsSection.tsx
 - CORE DIRECTIVE: IMAGE-FIRST WEBSITE DESIGN TO CODE
 - devDependencies
 - CORE DIRECTIVE: PREMIUM MOBILE APP IMAGE DIRECTION
 - High-Agency Frontend Skill
 - manifest.json
 - auditoria/page.tsx
-- recharts
+- react
 - LeadDetail
-- EditLeadModal.tsx
+- tailwindcss
 - scripts
-- bcryptjs
 - app/layout.tsx
-- agenda/route.ts
+- prisma.ts
 - Appendix B - Canonical Sources (read these before reinventing)
 - Design Audit
 - Analysis & Synthesis Instructions
 - fluxo-de-caixa/page.tsx
-- tailwindcss
 - sw.js
 - Agent Skill: Principal UI/UX Architect & Motion Choreographer (Awwwards-Tier)
 - SKILL: Industrial Brutalism & Tactical Telemetry UI
-- ILeadRepository
 - Design System: Taste Standard
-- PrismaLeadRepository
 - CORE DIRECTIVE: AWWWARDS-LEVEL IMAGE ART DIRECTION
 - 2. THE COMBINATORIAL VARIATION ENGINE
-- LeadDrawer.tsx
-- equipes/page.tsx
 - 4. DESIGN ENGINEERING DIRECTIVES (Bias Correction)
 - 10. REFERENCE VOCABULARY (Pattern Names the Agent Should Know)
 - tasteskill: Anti-Slop Frontend Skill
@@ -98,7 +92,7 @@
 - 5. CONTEXT-AWARE PROACTIVITY
 - 8. DARK MODE PROTOCOL
 - 21. MOBILE ANTI-AI-TELLS RULE
-- LeadDrawerHeader.tsx
+- LeadsTable.tsx
 - 7. DIAL DEFINITIONS (Technical Reference)
 - 33. DEFAULT SECTION PACKS
 - 14. HERO MINIMALISM RULES
@@ -111,16 +105,16 @@
 - next.config.mjs
 
 ## God Nodes (most connected - your core abstractions)
-1. `react` - 147 edges
-2. `lucide-react` - 114 edges
-3. `useCrm()` - 63 edges
-4. `CORE DIRECTIVE: IMAGE-FIRST WEBSITE DESIGN TO CODE` - 39 edges
-5. `CORE DIRECTIVE: PREMIUM MOBILE APP IMAGE DIRECTION` - 39 edges
-6. `@prisma/client` - 38 edges
-7. `LeadDetail` - 34 edges
+1. `react` - 154 edges
+2. `lucide-react` - 119 edges
+3. `useCrm()` - 67 edges
+4. `LeadDetail` - 43 edges
+5. `CORE DIRECTIVE: IMAGE-FIRST WEBSITE DESIGN TO CODE` - 39 edges
+6. `CORE DIRECTIVE: PREMIUM MOBILE APP IMAGE DIRECTION` - 39 edges
+7. `@prisma/client` - 38 edges
 8. `next` - 27 edges
-9. `CountUpNumber()` - 22 edges
-10. `CORE DIRECTIVE: AWWWARDS-LEVEL IMAGE ART DIRECTION` - 22 edges
+9. `SectionTitle()` - 25 edges
+10. `CountUpNumber()` - 22 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `1. Padrões de Animação e Movimento (Motion System)` --references--> `AnimatedCrown()`  [INFERRED]
@@ -132,7 +126,7 @@
 - `PATCH()` --calls--> `verifySessionToken()`  [EXTRACTED]
   app/api/auth/status/route.ts → lib/auth/jwt.ts
 - `getSessionContext()` --calls--> `verifySessionToken()`  [EXTRACTED]
-  app/api/financeiro/route.ts → lib/auth/jwt.ts
+  app/api/bookings/route.ts → lib/auth/jwt.ts
 
 ## Import Cycles
 - 3-file cycle: `components/crm/LeadDrawer.tsx -> components/crm/leads/KanbanBoard.tsx -> components/crm/leads/KanbanColumn.tsx -> components/crm/LeadDrawer.tsx`
@@ -142,27 +136,27 @@
 - 5-file cycle: `components/crm/LeadDrawer.tsx -> components/crm/leads/KanbanBoard.tsx -> components/crm/leads/KanbanColumn.tsx -> components/crm/leads/LeadCard.tsx -> components/crm/leads/leadCalculations.ts -> components/crm/LeadDrawer.tsx`
 - 5-file cycle: `components/crm/LeadDrawer.tsx -> components/crm/leads/KanbanBoard.tsx -> components/crm/leads/KanbanColumn.tsx -> components/crm/leads/LeadCard.tsx -> components/crm/leads/LeadCardMenu.tsx -> components/crm/LeadDrawer.tsx`
 
-## Communities (95 total, 8 thin omitted)
+## Communities (89 total, 6 thin omitted)
 
 ### Community 0 - "portalUtils.ts"
 Cohesion: 0.06
-Nodes (76): LandingPage(), AnimatedCrownProps, CATEGORIES, PortalCategories(), Field(), ModalPanel(), PortalContactModal(), PortalContactModalProps (+68 more)
+Nodes (74): LandingPage(), CATEGORIES, PortalCategories(), Field(), ModalPanel(), PortalContactModal(), PortalContactModalProps, digitsOnly() (+66 more)
 
 ### Community 1 - "useCrm"
-Cohesion: 0.12
-Nodes (29): ConfigTab, ConfiguracoesPage(), tabList, campaignRoiData, closedLeadsForRemarketing, funnelEfficiencyData, RelatoriosBiPage(), BookingItem (+21 more)
+Cohesion: 0.10
+Nodes (38): ConfigTab, ConfiguracoesPage(), tabList, EquipesPage(), mockTeam, TeamMember, campaignRoiData, closedLeadsForRemarketing (+30 more)
 
-### Community 2 - "empreendimentos/page.tsx"
-Cohesion: 0.08
-Nodes (30): EmpreendimentosPage(), EmptyState(), EmptyStateProps, EmpreendimentosListProps, EmpreendimentoData, EspelhoVendasModal(), EspelhoVendasModalProps, PropertyUnitData (+22 more)
+### Community 2 - "lucide-react"
+Cohesion: 0.10
+Nodes (26): EmpreendimentosPage(), EmptyState(), EmptyStateProps, EmpreendimentosListProps, EmpreendimentoData, EspelhoVendasModal(), EspelhoVendasModalProps, PropertyUnitData (+18 more)
 
 ### Community 3 - "vendas/page.tsx"
-Cohesion: 0.07
-Nodes (37): dynamic, generateSlug(), POST(), initialFilters, initialSales, VendasComissoesPage(), initialSampleProperties, NewSaleModal() (+29 more)
+Cohesion: 0.08
+Nodes (36): initialFilters, initialSales, VendasComissoesPage(), initialSampleProperties, CommissionReceiptModal(), CommissionReceiptModalProps, NewSaleModal(), NewSaleModalProps (+28 more)
 
 ### Community 4 - "agenda/page.tsx"
-Cohesion: 0.15
-Nodes (22): AgendaPage(), initialAppointments, AgendaDayView(), AgendaDayViewProps, AgendaHeader(), AgendaHeaderProps, AgendaMonthView(), AgendaMonthViewProps (+14 more)
+Cohesion: 0.13
+Nodes (23): AgendaPage(), initialAppointments, AgendaDayView(), AgendaDayViewProps, AgendaHeader(), AgendaHeaderProps, AgendaMonthView(), AgendaMonthViewProps (+15 more)
 
 ### Community 5 - "generate_pdf_report.py"
 Cohesion: 0.12
@@ -173,60 +167,60 @@ Cohesion: 0.14
 Nodes (9): GET(), POST(), IngestLeadInput, IngestLeadSchema, MetaWebhookLeadgenEntrySchema, MetaWebhookPayloadSchema, MetaWebhookService, RoletaService (+1 more)
 
 ### Community 7 - "ranking/page.tsx"
-Cohesion: 0.08
-Nodes (35): 1. Padrões de Animação e Movimento (Motion System), mockBrokers, mockHighlights, RankingGamificacaoPage(), AnimatedCrown(), initialIntegrations, IntegrationCard(), IntegrationCardProps (+27 more)
+Cohesion: 0.06
+Nodes (46): 1. Padrões de Animação e Movimento (Motion System), 2. Padrões Visuais e Identidade de Interface (UI System), 3. Diretrizes de Escopo, 4. Diretrizes de Engenharia, Modularidade e Manutenibilidade de Código, 5.10 Integrações, 5.11 Motion e Micro-interações (capturadas), 5.12 Checklist de Conformidade para Novas Telas, 5.1 Tokens de Design (Habitus → Connect Platz) (+38 more)
 
-### Community 8 - "AuthenticateUserUseCase.ts"
-Cohesion: 0.12
-Nodes (9): AuthenticateInput, AuthenticateOutput, AuthenticateUserUseCase, IPasswordHasher, ITokenService, UserTokenPayload, BcryptPasswordHasher, JwtTokenService (+1 more)
+### Community 8 - "IUserRepository"
+Cohesion: 0.06
+Nodes (14): AuthenticateInput, AuthenticateOutput, AuthenticateUserUseCase, RegisterUserInput, RegisterUserUseCase, IPasswordHasher, ITokenService, UserTokenPayload (+6 more)
 
 ### Community 9 - "next"
-Cohesion: 0.14
+Cohesion: 0.12
 Nodes (10): POST(), GET(), POST(), POST(), POST(), POST(), POST(), StandardWebhookPayload (+2 more)
 
-### Community 10 - "CountUpNumber"
-Cohesion: 0.16
-Nodes (14): CountUpNumber(), CountUpNumberProps, CashFlowSummaryCard(), CashFlowSummaryCardProps, ExecutiveKpiCards(), FinancialStatCards(), FinancialStatCardsProps, OperationalAndLeadCards() (+6 more)
+### Community 10 - "ImportLeadsModal.tsx"
+Cohesion: 0.36
+Nodes (7): ImportLeadsModal(), ImportLeadsModalProps, cleanHeader(), escapeCsv(), exportLeadsToCsv(), ParsedCsvLead, parseLeadsCsv()
 
-### Community 11 - "LeadDetailsSections.tsx"
-Cohesion: 0.18
-Nodes (14): AbordagemItem, canaisConfig, CanalAbordagem, DesfechoAbordagem, desfechosConfig, LeadAbordagemSection(), LeadAbordagemSectionProps, LeadAttachmentsSection() (+6 more)
+### Community 11 - "LeadDrawer.tsx"
+Cohesion: 0.14
+Nodes (17): AbordagemItem, canaisConfig, CanalAbordagem, DesfechoAbordagem, desfechosConfig, LeadAbordagemSection(), LeadAbordagemSectionProps, LeadAttachmentFile (+9 more)
 
-### Community 12 - "leads/page.tsx"
-Cohesion: 0.18
-Nodes (14): LeadsPage(), BolsaoSection(), LeadFilterSheet(), LeadFilterSheetProps, LeadsHeader(), LeadsSearchBar(), LeadsSearchBarProps, LeadsSubBar() (+6 more)
+### Community 12 - "LeadsModalsContainer.tsx"
+Cohesion: 0.15
+Nodes (16): DiscardLeadModal(), DiscardLeadModalProps, dropReasons, EditLeadModal(), EditLeadModalProps, DocumentSlot, initialDocs, LeadDocumentUploadSlots() (+8 more)
 
 ### Community 13 - "index.ts"
 Cohesion: 0.07
 Nodes (37): CrmDashboardPage(), HotLeadsRankedList(), mockRankedLeadsPage1, mockRankedLeadsPage2, RankedHotLead, annualData, monthlyData, MonthlySalesChart() (+29 more)
 
-### Community 14 - "LeadCard.tsx"
-Cohesion: 0.21
-Nodes (15): LeadDrawerActions(), LeadDrawerActionsProps, LeadDrawerProps, FunnelColumn, KanbanBoard(), KanbanBoardProps, KanbanColumn(), KanbanColumnProps (+7 more)
+### Community 14 - "FunnelColumn"
+Cohesion: 0.19
+Nodes (17): LeadDrawerActions(), LeadDrawerActionsProps, LeadDrawerProps, FunnelColumn, KanbanBoard(), KanbanBoardProps, KanbanColumn(), KanbanColumnProps (+9 more)
 
 ### Community 15 - "package.json"
 Cohesion: 0.11
 Nodes (18): name, private, version, autoprefixer, clsx, date-fns, postcss, prisma (+10 more)
 
-### Community 16 - "IUserRepository"
+### Community 16 - "bcryptjs"
+Cohesion: 0.29
+Nodes (3): bcryptjs, testSolidPrinciples(), testSecurity()
+
+### Community 17 - "CountUpNumber"
 Cohesion: 0.11
-Nodes (5): RegisterUserInput, RegisterUserUseCase, CreateUserData, IUserRepository, PrismaUserRepository
+Nodes (21): BookingItem, mockBookings, TemporadaVeraneioPage(), CountUpNumber(), CountUpNumberProps, CashFlowSummaryCard(), CashFlowSummaryCardProps, ExecutiveKpiCards() (+13 more)
 
-### Community 17 - "5. Especificações Visuais e de Telas Extraídas do Habitus CRM (Vídeo Oficial e Web)"
-Cohesion: 0.10
-Nodes (19): 2. Padrões Visuais e Identidade de Interface (UI System), 3. Diretrizes de Escopo, 4. Diretrizes de Engenharia, Modularidade e Manutenibilidade de Código, 5.10 Integrações, 5.11 Motion e Micro-interações (capturadas), 5.12 Checklist de Conformidade para Novas Telas, 5.1 Tokens de Design (Habitus → Connect Platz), 5.2 Shell da Aplicação (Layout Global) (+11 more)
-
-### Community 18 - "verifySessionToken"
-Cohesion: 0.13
-Nodes (12): POST(), LoginSchema, PATCH(), StatusSchema, BookingSchema, getSessionContext(), POST(), dynamic (+4 more)
-
-### Community 19 - "react"
-Cohesion: 0.08
-Nodes (24): CrmLayout(), CrmShell(), mockPublicUnits, Unit, CrmProvider(), topPropertiesData, FloatingSupport(), TimelineEntry (+16 more)
-
-### Community 20 - "CreditPolicies.ts"
+### Community 18 - "container.ts"
 Cohesion: 0.20
-Nodes (7): QualifyCreditInput, CreditQualificationData, CreditValidationResult, ICreditPolicy, AutonomoCreditPolicy, CltCreditPolicy, CreditPolicyRegistry
+Nodes (8): LoginSchema, BookingSchema, getSessionContext(), POST(), PublicLeadSchema, container, ServiceContainer, zod
+
+### Community 19 - "crm/layout.tsx"
+Cohesion: 0.21
+Nodes (11): CrmLayout(), CrmShell(), CrmProvider(), FloatingSupport(), PwaInstallPrompt(), NavItem, navItems, Sidebar() (+3 more)
+
+### Community 20 - "leads/page.tsx"
+Cohesion: 0.18
+Nodes (13): LeadsPage(), PeriodFilter, BolsaoSection(), LeadsHeader(), LeadsHeaderProps, LeadsSearchBar(), LeadsSearchBarProps, LeadsSubBar() (+5 more)
 
 ### Community 21 - "dependencies"
 Cohesion: 0.11
@@ -236,9 +230,9 @@ Nodes (18): dependencies, bcryptjs, canvas-confetti, clsx, date-fns, framer-moti
 Cohesion: 0.11
 Nodes (17): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+9 more)
 
-### Community 23 - "prisma.ts"
-Cohesion: 0.13
-Nodes (16): dynamic, fallbackEntries, GET(), getSessionContext(), GET(), getSessionContext(), PATCH(), UpdateLeadSchema (+8 more)
+### Community 23 - "leads/route.ts"
+Cohesion: 0.12
+Nodes (23): POST(), PATCH(), StatusSchema, dynamic, fallbackEntries, GET(), getSessionContext(), GET() (+15 more)
 
 ### Community 24 - "@prisma/client"
 Cohesion: 0.22
@@ -252,13 +246,13 @@ Nodes (43): 1. Logo Cover, 1. Monogram + Meaning, 2 × 3 REFERENCE-STYLE LAYOUT,
 Cohesion: 0.24
 Nodes (8): SessionPayload, signSessionToken(), hashPassword(), verifyPassword(), AuthService, LoginResult, main(), prisma
 
-### Community 27 - "container.ts"
-Cohesion: 0.19
-Nodes (9): DistributeLeadUseCase, DistributionResult, IngestLeadDto, IngestLeadResult, IngestLeadUseCase, ProcessSlaTransbordoUseCase, ServiceContainer, IDistributionStrategy (+1 more)
+### Community 27 - "ILeadRepository"
+Cohesion: 0.05
+Nodes (20): DistributeLeadUseCase, DistributionResult, IngestLeadDto, IngestLeadResult, IngestLeadUseCase, ProcessSlaTransbordoUseCase, QualifyCreditInput, QualifyCreditUseCase (+12 more)
 
-### Community 28 - "leads/route.ts"
-Cohesion: 0.29
-Nodes (8): dynamic, GET(), getSessionContext(), ManualLeadSchema, POST(), defaultStages, initialSampleLeads, buildLeadRLSWhere()
+### Community 28 - "IntegrationsSection.tsx"
+Cohesion: 0.33
+Nodes (7): initialIntegrations, IntegrationCard(), IntegrationCardProps, IntegrationInstructionsTab(), IntegrationInstructionsTabProps, IntegrationItem, IntegrationStatus
 
 ### Community 29 - "CORE DIRECTIVE: IMAGE-FIRST WEBSITE DESIGN TO CODE"
 Cohesion: 0.06
@@ -284,29 +278,25 @@ Nodes (9): background_color, description, display, icons, name, orientation, sho
 Cohesion: 0.19
 Nodes (16): AuditoriaPage(), AuditDetailModal(), AuditDetailModalProps, AuditFilters(), AuditFiltersProps, AuditStatCards(), AuditStatCardsProps, AuditTable() (+8 more)
 
-### Community 35 - "recharts"
-Cohesion: 0.29
-Nodes (3): leadEvolutionData, regionDistributionData, recharts
+### Community 35 - "react"
+Cohesion: 0.05
+Nodes (19): mockPublicUnits, Unit, AnimatedCrownProps, leadEvolutionData, regionDistributionData, topPropertiesData, RoletaDistributionPanelProps, RoletaMember (+11 more)
 
 ### Community 36 - "LeadDetail"
-Cohesion: 0.21
-Nodes (7): LeadAttachmentsSectionProps, LeadInfoTabProps, LeadTrackingTabProps, LeadDetail, BolsaoSectionProps, AVAILABLE_TAGS, LeadCardMenuProps
-
-### Community 37 - "EditLeadModal.tsx"
-Cohesion: 0.38
-Nodes (5): EditLeadModal(), EditLeadModalProps, DocumentSlot, initialDocs, LeadDocumentUploadSlots()
+Cohesion: 0.23
+Nodes (6): LeadInfoTabProps, LeadTrackingTabProps, LeadDetail, BolsaoSectionProps, AVAILABLE_TAGS, LeadCardMenuProps
 
 ### Community 38 - "scripts"
 Cohesion: 0.29
 Nodes (7): scripts, build, dev, lint, prisma:generate, prisma:migrate, start
 
-### Community 39 - "bcryptjs"
-Cohesion: 0.29
-Nodes (3): bcryptjs, testSolidPrinciples(), testSecurity()
-
 ### Community 40 - "app/layout.tsx"
-Cohesion: 0.18
+Cohesion: 0.33
 Nodes (3): dmSans, metadata, viewport
+
+### Community 41 - "prisma.ts"
+Cohesion: 0.13
+Nodes (8): dynamic, dynamic, dynamic, generateSlug(), POST(), globalForPrisma, prisma, RoletaDistributionResult
 
 ### Community 42 - "Appendix B - Canonical Sources (read these before reinventing)"
 Cohesion: 0.09
@@ -321,8 +311,8 @@ Cohesion: 0.11
 Nodes (18): 1. Define the Atmosphere, 2. Map the Color Palette, 3. Establish Typography Rules, 4. Define the Hero Section, 5. Describe Component Stylings, 6. Define Layout Principles, 7. Define Responsive Rules, 8. Encode Motion Philosophy (+10 more)
 
 ### Community 45 - "fluxo-de-caixa/page.tsx"
-Cohesion: 0.20
-Nodes (13): FluxoCaixaDREPage(), initialCashFlows, CashFlowProjection(), projectionData, CashFlowItem, CashFlowTable(), CashFlowTableProps, ConfirmCashMovementModal() (+5 more)
+Cohesion: 0.15
+Nodes (17): FluxoCaixaDREPage(), initialCashFlows, IntegracoesPage(), AccessDeniedCard(), AccessDeniedCardProps, CashFlowProjection(), projectionData, CashFlowItem (+9 more)
 
 ### Community 50 - "Agent Skill: Principal UI/UX Architect & Motion Choreographer (Awwwards-Tier)"
 Cohesion: 0.11
@@ -336,10 +326,6 @@ Nodes (16): 1. Skill Meta, 2.1 Swiss Industrial Print, 2.2 Tactical Telemetry & 
 Cohesion: 0.13
 Nodes (14): 1. Visual Theme & Atmosphere, 2. Color Palette & Roles, 3. Typography Rules, 4. Component Stylings, 5. Hero Section, 6. Layout Principles, 7. Responsive Rules, 8. Motion & Interaction (Code-Phase Intent) (+6 more)
 
-### Community 54 - "PrismaLeadRepository"
-Cohesion: 0.20
-Nodes (3): CreateLeadDto, CreateTimelineDto, PrismaLeadRepository
-
 ### Community 55 - "CORE DIRECTIVE: AWWWARDS-LEVEL IMAGE ART DIRECTION"
 Cohesion: 0.14
 Nodes (14): 10. SECTION RHYTHM RULE, 12. DENSITY & SPACING DISCIPLINE, 14. IMAGE / MEDIA DIRECTION, 16. MULTI-IMAGE CONSISTENCY RULE, 17. CLARITY CHECK, 19. RESPONSE BEHAVIOR, 1. ACTIVE BASELINE CONFIGURATION, 21. FINAL GOAL (+6 more)
@@ -347,14 +333,6 @@ Nodes (14): 10. SECTION RHYTHM RULE, 12. DENSITY & SPACING DISCIPLINE, 14. IMAGE
 ### Community 56 - "2. THE COMBINATORIAL VARIATION ENGINE"
 Cohesion: 0.14
 Nodes (14): 2. THE COMBINATORIAL VARIATION ENGINE, Background Character, Background Mode (per-section), Composition Anchor (per-section), CTA Variation, Hero Architecture, Hero Scale (per-page), Motion-Implied Language (+6 more)
-
-### Community 57 - "LeadDrawer.tsx"
-Cohesion: 0.43
-Nodes (5): defaultEvents(), HistoryEvent, LeadHistoryTimeline(), LeadHistoryTimelineProps, LeadDrawer()
-
-### Community 58 - "equipes/page.tsx"
-Cohesion: 0.18
-Nodes (13): EquipesPage(), mockTeam, TeamMember, IntegracoesPage(), AccessDeniedCard(), AccessDeniedCardProps, InviteCollaboratorData, InviteCollaboratorModal() (+5 more)
 
 ### Community 60 - "4. DESIGN ENGINEERING DIRECTIVES (Bias Correction)"
 Cohesion: 0.17
@@ -456,9 +434,9 @@ Nodes (5): 8.A Token Strategy (pick one, stick to it), 8.B Do Not Prescribe Spec
 Cohesion: 0.40
 Nodes (5): 21. MOBILE ANTI-AI-TELLS RULE, Copy AI tells, Layout AI tells, UI clutter tells, Visual AI tells
 
-### Community 87 - "LeadDrawerHeader.tsx"
-Cohesion: 0.29
-Nodes (7): HotLeadsPanel(), LeadQuente, mockHotLeads, LeadDrawerHeader(), LeadDrawerHeaderProps, SlaBadge(), SlaBadgeProps
+### Community 87 - "LeadsTable.tsx"
+Cohesion: 0.17
+Nodes (12): HotLeadsPanel(), LeadQuente, mockHotLeads, LeadDrawerHeader(), LeadDrawerHeaderProps, LeadsTable(), LeadsTableProps, LeadTag() (+4 more)
 
 ### Community 88 - "7. DIAL DEFINITIONS (Technical Reference)"
 Cohesion: 0.50
@@ -493,24 +471,24 @@ Cohesion: 0.50
 Nodes (4): 20. EXAMPLE INTERPRETATIONS, Example 1, Example 2, Example 3
 
 ## Knowledge Gaps
-- **702 isolated node(s):** `dynamic`, `LoginSchema`, `StatusSchema`, `BookingSchema`, `dynamic` (+697 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 799 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **706 isolated node(s):** `dynamic`, `LoginSchema`, `StatusSchema`, `BookingSchema`, `dynamic` (+701 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 803 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `react` to `portalUtils.ts`, `useCrm`, `empreendimentos/page.tsx`, `vendas/page.tsx`, `agenda/page.tsx`, `ranking/page.tsx`, `next`, `CountUpNumber`, `LeadDetailsSections.tsx`, `leads/page.tsx`, `index.ts`, `LeadCard.tsx`, `package.json`, `auditoria/page.tsx`, `recharts`, `LeadDetail`, `EditLeadModal.tsx`, `fluxo-de-caixa/page.tsx`, `LeadDrawer.tsx`, `equipes/page.tsx`, `LeadDrawerHeader.tsx`?**
-  _High betweenness centrality (0.168) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `portalUtils.ts`, `useCrm`, `lucide-react`, `vendas/page.tsx`, `agenda/page.tsx`, `ranking/page.tsx`, `ImportLeadsModal.tsx`, `LeadDrawer.tsx`, `LeadsModalsContainer.tsx`, `index.ts`, `FunnelColumn`, `package.json`, `CountUpNumber`, `crm/layout.tsx`, `leads/page.tsx`, `IntegrationsSection.tsx`, `auditoria/page.tsx`, `LeadDetail`, `fluxo-de-caixa/page.tsx`, `LeadsTable.tsx`?**
+  _High betweenness centrality (0.175) - this node is a cross-community bridge._
 - **What connects `dynamic`, `LoginSchema`, `StatusSchema` to the rest of the system?**
-  _702 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _706 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `portalUtils.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.062066063538817585 - nodes in this community are weakly interconnected._
-- **Why does `lucide-react` connect `react` to `portalUtils.ts`, `useCrm`, `empreendimentos/page.tsx`, `vendas/page.tsx`, `agenda/page.tsx`, `ranking/page.tsx`, `next`, `CountUpNumber`, `LeadDetailsSections.tsx`, `leads/page.tsx`, `index.ts`, `LeadCard.tsx`, `package.json`, `auditoria/page.tsx`, `LeadDetail`, `EditLeadModal.tsx`, `fluxo-de-caixa/page.tsx`, `LeadDrawer.tsx`, `equipes/page.tsx`, `LeadDrawerHeader.tsx`?**
-  _High betweenness centrality (0.093) - this node is a cross-community bridge._
+  _Cohesion score 0.06472564389697648 - nodes in this community are weakly interconnected._
+- **Why does `@prisma/client` connect `@prisma/client` to `meta-webhook.ts`, `IUserRepository`, `prisma.ts`, `next`, `package.json`, `container.ts`, `leads/route.ts`, `jwt.ts`, `ILeadRepository`?**
+  _High betweenness centrality (0.095) - this node is a cross-community bridge._
 - **Should `useCrm` be split into smaller, more focused modules?**
-  _Cohesion score 0.11951219512195121 - nodes in this community are weakly interconnected._
-- **Why does `@prisma/client` connect `@prisma/client` to `vendas/page.tsx`, `meta-webhook.ts`, `AuthenticateUserUseCase.ts`, `next`, `package.json`, `IUserRepository`, `verifySessionToken`, `CreditPolicies.ts`, `PrismaLeadRepository`, `prisma.ts`, `jwt.ts`, `container.ts`, `leads/route.ts`?**
-  _High betweenness centrality (0.088) - this node is a cross-community bridge._
-- **Should `empreendimentos/page.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.07632850241545894 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1027450980392157 - nodes in this community are weakly interconnected._
+- **Why does `lucide-react` connect `lucide-react` to `portalUtils.ts`, `useCrm`, `vendas/page.tsx`, `agenda/page.tsx`, `ranking/page.tsx`, `ImportLeadsModal.tsx`, `LeadDrawer.tsx`, `LeadsModalsContainer.tsx`, `index.ts`, `FunnelColumn`, `package.json`, `CountUpNumber`, `crm/layout.tsx`, `leads/page.tsx`, `IntegrationsSection.tsx`, `auditoria/page.tsx`, `react`, `LeadDetail`, `fluxo-de-caixa/page.tsx`, `LeadsTable.tsx`?**
+  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+- **Should `lucide-react` be split into smaller, more focused modules?**
+  _Cohesion score 0.1039136302294197 - nodes in this community are weakly interconnected._

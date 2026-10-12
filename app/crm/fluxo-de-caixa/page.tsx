@@ -52,15 +52,6 @@ export default function FluxoCaixaDREPage() {
 
   const saldoLiquido = totalReceitas - totalDespesas;
 
-  // Lógica contábil do DRE
-  const receitaBruta = 342500;
-  const deducoesImpostos = 20550;
-  const receitaLiquida = receitaBruta - deducoesImpostos;
-  const custosVariaveisSplits = 137000;
-  const margemContribuicao = receitaLiquida - custosVariaveisSplits;
-  const despesasOperacionais = 48500;
-  const ebitda = margemContribuicao - despesasOperacionais;
-
   const handleAddEntry = (entry: CashFlowItem) => {
     setCashFlows([entry, ...cashFlows]);
     setActionMessage(
@@ -229,17 +220,7 @@ export default function FluxoCaixaDREPage() {
       </div>
 
       {/* 4. CONTEÚDO DAS ABAS MODULARIZADAS */}
-      {activeTab === "dre" && (
-        <DreTable
-          receitaBruta={receitaBruta}
-          deducoesImpostos={deducoesImpostos}
-          receitaLiquida={receitaLiquida}
-          custosVariaveisSplits={custosVariaveisSplits}
-          margemContribuicao={margemContribuicao}
-          despesasOperacionais={despesasOperacionais}
-          ebitda={ebitda}
-        />
-      )}
+      {activeTab === "dre" && <DreTable entries={cashFlows} />}
 
       {activeTab === "contas" && (
         <CashFlowTable

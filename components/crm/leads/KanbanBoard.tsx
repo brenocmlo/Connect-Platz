@@ -25,6 +25,7 @@ interface KanbanBoardProps {
   onUpdateTags?: (leadId: string, tags: string[]) => void;
   onEditLead?: (lead: LeadDetail) => void;
   onScheduleVisit?: (lead: LeadDetail) => void;
+  onOpenWhatsApp?: (lead: LeadDetail) => void;
 }
 
 export function KanbanBoard({
@@ -39,6 +40,7 @@ export function KanbanBoard({
   onUpdateTags,
   onEditLead,
   onScheduleVisit,
+  onOpenWhatsApp,
 }: KanbanBoardProps) {
   const [draggingLeadId, setDraggingLeadId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -98,6 +100,7 @@ export function KanbanBoard({
               onUpdateTags={onUpdateTags}
               onEditLead={onEditLead}
               onScheduleVisit={onScheduleVisit}
+              onOpenWhatsApp={onOpenWhatsApp}
             />
           );
         })}

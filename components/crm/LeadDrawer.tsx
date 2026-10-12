@@ -28,9 +28,12 @@ export interface LeadDetail {
   utmSource?: string | null;
   utmCampaign?: string | null;
   stageId: string;
+  stage?: { id: string; nome: string; cor?: string } | null;
+  statusLabel?: string | null;
   slaDueAt?: string | null;
   slaBreached?: boolean;
   isBolsao?: boolean;
+  isNightQueue?: boolean;
   tipoOcupacaoCredito?: "CLT" | "AUTONOMO" | "EMPRESARIO" | "OUTRO" | null;
   rendaDeclarada?: number | null;
   rendaEspecificaAutonomo?: number | null;
@@ -58,6 +61,7 @@ interface LeadDrawerProps {
   onMoveToBolsao?: (leadId: string) => void;
   onScheduleAppointment?: (lead: LeadDetail) => void;
   onDeleteLead?: (leadId: string) => void;
+  onOpenWhatsApp?: (lead: LeadDetail) => void;
 }
 
 export function LeadDrawer({
@@ -71,6 +75,7 @@ export function LeadDrawer({
   onMoveToBolsao,
   onScheduleAppointment,
   onDeleteLead,
+  onOpenWhatsApp,
 }: LeadDrawerProps) {
   const [activeTab, setActiveTab] = useState<"details" | "history">("details");
   const [mounted, setMounted] = useState(false);
@@ -103,6 +108,7 @@ export function LeadDrawer({
           lead={lead}
           onClose={onClose}
           onTakeoverBolsao={onTakeoverBolsao}
+          onOpenWhatsApp={onOpenWhatsApp}
         />
 
         {/* Navegação entre Detalhes e Histórico */}

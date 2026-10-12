@@ -9,6 +9,7 @@ import {
   Share2,
   Trash2,
   Check,
+  FileText,
 } from "lucide-react";
 
 interface PropertyMenuProps {
@@ -17,6 +18,7 @@ interface PropertyMenuProps {
   isNaLanding: boolean;
   onOpenDetails: () => void;
   onOpenPublishModal: () => void;
+  onOpenMaterials?: () => void;
   onDelete?: () => void;
 }
 
@@ -26,6 +28,7 @@ export function PropertyMenu({
   isNaLanding,
   onOpenDetails,
   onOpenPublishModal,
+  onOpenMaterials,
   onDelete,
 }: PropertyMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -97,7 +100,23 @@ export function PropertyMenu({
             <span>Ver Espelho / Detalhes</span>
           </button>
 
-          {/* 2. Subir na Landing Page */}
+          {/* 2. Materiais e Anexos (PDFs) */}
+          {onOpenMaterials && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+                onOpenMaterials();
+              }}
+              className="w-full text-left px-3 py-2 text-foreground hover:bg-connect-blue hover:text-white flex items-center gap-2.5 transition-colors"
+            >
+              <FileText className="w-4 h-4 text-connect-blue group-hover:text-white" />
+              <span>Materiais & Anexos (PDF)</span>
+            </button>
+          )}
+
+          {/* 3. Subir na Landing Page */}
           <button
             type="button"
             onClick={(e) => {

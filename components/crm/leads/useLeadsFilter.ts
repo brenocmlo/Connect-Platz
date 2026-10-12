@@ -11,7 +11,7 @@ interface UseLeadsFilterProps {
   originFilter: string;
   slaFilter: string;
   selectedMember: string;
-  viewMode: "kanban" | "table" | "bolsao";
+  viewMode: "kanban" | "table" | "bolsao" | "nightQueue";
   selectedPeriod?: PeriodFilter;
 }
 
@@ -50,7 +50,12 @@ export function useLeadsFilter({
       const matchesMember =
         selectedMember === "TODOS" || lead.corretor?.nome === selectedMember;
 
-      const matchesBolsao = viewMode === "bolsao" ? lead.isBolsao : !lead.isBolsao;
+      const matchesBolsao =
+        viewMode === "bolsao"
+          ? Boolean(lead.isBolsao)
+          : viewMode === "nightQueue"
+          ? Boolean(lead.isNightQueue)
+          : !lead.isBolsao && !lead.isNightQueue;
 
       let matchesPeriod = true;
       if (selectedPeriod && selectedPeriod !== "todos") {

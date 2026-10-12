@@ -13,6 +13,7 @@ import {
   Globe,
   MessageSquare,
   Sparkles,
+  FileText,
 } from "lucide-react";
 import { PropertyMenu } from "./PropertyMenu";
 
@@ -47,6 +48,7 @@ interface PropertyProductCardProps {
   property: PropertyCardData;
   onOpenDetails: (prop: PropertyCardData) => void;
   onOpenPublishModal: (prop: PropertyCardData) => void;
+  onOpenMaterials?: (prop: PropertyCardData) => void;
   onToggleLandingPage: (id: string, current: boolean) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }
@@ -55,6 +57,7 @@ export function PropertyProductCard({
   property,
   onOpenDetails,
   onOpenPublishModal,
+  onOpenMaterials,
   onToggleLandingPage,
   onDelete,
 }: PropertyProductCardProps) {
@@ -147,6 +150,7 @@ export function PropertyProductCard({
               isNaLanding={isNaLanding}
               onOpenDetails={() => onOpenDetails(property)}
               onOpenPublishModal={() => onOpenPublishModal(property)}
+              onOpenMaterials={onOpenMaterials ? () => onOpenMaterials(property) : undefined}
               onDelete={onDelete ? () => onDelete(property.id) : undefined}
             />
           </div>
@@ -272,6 +276,17 @@ export function PropertyProductCard({
           <Eye className="w-3.5 h-3.5" />
           <span>Ver Detalhes</span>
         </button>
+
+        {onOpenMaterials && (
+          <button
+            type="button"
+            onClick={() => onOpenMaterials(property)}
+            className="p-2 rounded-xl border border-connect-blue/30 bg-connect-blue/5 hover:bg-connect-blue/15 text-connect-blue transition-all shadow-sm"
+            title="Materiais & Anexos (PDF)"
+          >
+            <FileText className="w-3.5 h-3.5" />
+          </button>
+        )}
 
         <button
           type="button"

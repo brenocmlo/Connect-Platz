@@ -3,19 +3,21 @@
 import React, { useState } from "react";
 import { X, User, Phone, Mail, Building, DollarSign, Tag, Flame } from "lucide-react";
 
+export interface NewLeadFormData {
+  nome: string;
+  telefone: string;
+  email?: string;
+  empreendimentoInteresse?: string;
+  temperatura?: "FRIO" | "MORNO" | "QUENTE";
+  origem?: string;
+  rendaDeclarada?: number;
+  stageId?: string;
+}
+
 interface NewLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (leadData: {
-    nome: string;
-    telefone: string;
-    email?: string;
-    empreendimentoInteresse?: string;
-    temperatura?: "FRIO" | "MORNO" | "QUENTE";
-    origem?: string;
-    rendaDeclarada?: number;
-    stageId?: string;
-  }) => void;
+  onSubmit: (leadData: NewLeadFormData) => void;
   availableStages?: { id: string; nome: string }[];
 }
 

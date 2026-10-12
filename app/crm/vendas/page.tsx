@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Plus, Filter, Eye, EyeOff, Calendar } from "lucide-react";
+import { Plus, Filter, Eye, EyeOff } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { SaleItem, VendasFilterState } from "@/components/crm/vendas/types";
 import { VendasStatCards } from "@/components/crm/vendas/VendasStatCards";
@@ -9,6 +9,7 @@ import { VendasTable } from "@/components/crm/vendas/VendasTable";
 import { VendasFilterSheet } from "@/components/crm/vendas/VendasFilterSheet";
 import { NewSaleModal } from "@/components/crm/vendas/NewSaleModal";
 import { SaleDetailModal } from "@/components/crm/vendas/SaleDetailModal";
+import { CommissionReceiptModal } from "@/components/crm/vendas/CommissionReceiptModal";
 
 const initialSales: SaleItem[] = [
   {
@@ -93,6 +94,7 @@ export default function VendasComissoesPage() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState<boolean>(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
   const [selectedSaleDetail, setSelectedSaleDetail] = useState<SaleItem | null>(null);
+  const [selectedReceiptSale, setSelectedReceiptSale] = useState<SaleItem | null>(null);
 
   // Filtragem (incluindo período)
   const filteredSales = useMemo(() => {
@@ -226,23 +228,6 @@ export default function VendasComissoesPage() {
             {hideValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
 
-          {/* Seletor de Período Interativo */}
-          <div className="relative">
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value as any)}
-              className="appearance-none pl-8 pr-7 py-2 rounded-xl border border-slate-200 dark:border-[#1F2937] bg-white dark:bg-[#0A0E17] text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-[#161F30] cursor-pointer transition-colors shadow-xs"
-              aria-label="Filtrar por período"
-            >
-              <option value="hoje">Hoje</option>
-              <option value="7d">Últimos 7 dias</option>
-              <option value="mes">Mês atual</option>
-              <option value="30d">Últimos 30 dias</option>
-              <option value="ano">Ano atual</option>
-              <option value="todos">Todo o período</option>
-            </select>
-            <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
 
           {/* Botão Filtros (Abre Sheet) */}
           <button
@@ -302,7 +287,7 @@ export default function VendasComissoesPage() {
         sales={filteredSales}
         hideValues={hideValues}
         onViewDetails={(s) => setSelectedSaleDetail(s)}
-        onViewReceipt={(s) => setSelectedSaleDetail(s)}
+        onViewReceipt={(s) => setSelectedReceiptSale(s)}
         onEditPayment={(s) => setSelectedSaleDetail(s)}
       />
 
@@ -326,6 +311,11 @@ export default function VendasComissoesPage() {
         sale={selectedSaleDetail}
         onClose={() => setSelectedSaleDetail(null)}
         onBaixaComissao={handleBaixaComissao}
+      />
+
+      <CommissionReceiptModal
+        sale={selectedReceiptSale}
+        onClose={() => setSelectedReceiptSale(null)}
       />
     </div>
   );

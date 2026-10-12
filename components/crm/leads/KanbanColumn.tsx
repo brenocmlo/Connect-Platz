@@ -22,6 +22,7 @@ interface KanbanColumnProps {
   onUpdateTags?: (leadId: string, tags: string[]) => void;
   onEditLead?: (lead: LeadDetail) => void;
   onScheduleVisit?: (lead: LeadDetail) => void;
+  onOpenWhatsApp?: (lead: LeadDetail) => void;
 }
 
 export function KanbanColumn({
@@ -40,6 +41,7 @@ export function KanbanColumn({
   onUpdateTags,
   onEditLead,
   onScheduleVisit,
+  onOpenWhatsApp,
 }: KanbanColumnProps) {
   const [isOver, setIsOver] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -155,6 +157,7 @@ export function KanbanColumn({
                 onUpdateTags={onUpdateTags}
                 onEditLead={onEditLead}
                 onScheduleVisit={onScheduleVisit}
+                onOpenWhatsApp={onOpenWhatsApp}
               />
             );
           })

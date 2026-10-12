@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, CheckCircle2 } from "lucide-react";
 import { CashFlowItem } from "./CashFlowTable";
+import { accountsByType, getAccount, COST_CENTERS } from "@/lib/services/dre";
 
 interface NewCashFlowModalProps {
   isOpen: boolean;
@@ -16,11 +17,17 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
   const [valor, setValor] = useState<number>(0);
   const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
   const [categoria, setCategoria] = useState("Tráfego Pago Meta Ads");
+  const [centroCusto, setCentroCusto] = useState<string>(getAccount("Tráfego Pago Meta Ads", "DESPESA").centroCustoPadrao);
   const [vencimento, setVencimento] = useState(todayStr);
   const [status, setStatus] = useState<"PENDENTE" | "PAGO">("PENDENTE");
   const [meio, setMeio] = useState("PIX");
 
   if (!isOpen) return null;
+
+  const changeCategoria = (cat: string, t: "RECEITA" | "DESPESA" = tipo) => {
+    setCategoria(cat);
+    setCentroCusto(getAccount(cat, t).centroCustoPadrao);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +35,7 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
       id: `cf-${Date.now()}`,
       tipo,
       categoria,
+      centroCusto,
       descricao,
       valor,
       dataVencimento: vencimento,
@@ -42,9 +50,12 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
     onClose();
   };
 
+  const selectCls =
+    "w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue font-semibold";
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <h3 className="text-base font-bold text-foreground">Novo Lançamento Financeiro</h3>
           <button
@@ -64,9 +75,9 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
                 onChange={(e) => {
                   const t = e.target.value as "RECEITA" | "DESPESA";
                   setTipo(t);
-                  setCategoria(t === "RECEITA" ? "Comissão Venda" : "Tráfego Pago Meta Ads");
+                  changeCategoria(t === "RECEITA" ? "Comissão Venda" : "Tráfego Pago Meta Ads", t);
                 }}
-                className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue font-semibold"
+                className={selectCls}
               >
                 <option value="DESPESA">Despesa (Saída)</option>
                 <option value="RECEITA">Receita (Entrada)</option>
@@ -82,6 +93,29 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
                 onChange={(e) => setValor(Number(e.target.value))}
                 className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-mono font-bold focus:outline-none focus:ring-2 focus:ring-connect-blue"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-muted-foreground font-semibold mb-1">Conta (Plano de Contas)</label>
+              <select value={categoria} onChange={(e) => changeCategoria(e.target.value)} className={selectCls}>
+                {accountsByType(tipo).map((a) => (
+                  <option key={a.categoria} value={a.categoria}>
+                    {a.categoria}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-muted-foreground font-semibold mb-1">Centro de Custo</label>
+              <select value={centroCusto} onChange={(e) => setCentroCusto(e.target.value)} className={selectCls}>
+                {COST_CENTERS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
