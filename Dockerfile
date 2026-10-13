@@ -7,10 +7,13 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
+# Forçar instalação de devDependencies (TypeScript, types) mesmo se NODE_ENV=production no Coolify
+ENV NODE_ENV=development
+
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
-RUN npm ci || npm install
+RUN npm ci --include=dev || npm install --include=dev
 RUN npx prisma generate
 
 FROM node:20-alpine AS builder

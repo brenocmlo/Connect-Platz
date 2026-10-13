@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { AppointmentItem } from "@/components/crm/agenda/types";
-import { AgendaHeader } from "@/components/crm/agenda/AgendaHeader";
-import { AgendaDayView } from "@/components/crm/agenda/AgendaDayView";
-import { AgendaWeekView } from "@/components/crm/agenda/AgendaWeekView";
-import { AgendaMonthView } from "@/components/crm/agenda/AgendaMonthView";
-import { NewAppointmentModal } from "@/components/crm/agenda/NewAppointmentModal";
-import { VisitOutcomeModal } from "@/components/crm/agenda/VisitOutcomeModal";
+import {
+  AppointmentItem,
+  AgendaHeader,
+  AgendaDayView,
+  AgendaWeekView,
+  AgendaMonthView,
+  NewAppointmentModal,
+  VisitOutcomeModal,
+} from "@/components/crm/agenda";
 
 const initialAppointments: AppointmentItem[] = [
   {
