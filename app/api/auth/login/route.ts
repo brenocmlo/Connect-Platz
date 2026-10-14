@@ -3,6 +3,7 @@ import { container } from "@/lib/container";
 import { signSessionToken } from "@/lib/auth/jwt";
 import { Role } from "@prisma/client";
 import { z } from "zod";
+import { ensureDefaultAdmin } from "@/lib/auth/seedAdmin";
 
 const LoginSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -51,55 +52,78 @@ export async function POST(req: NextRequest) {
         plainTextPassword: password,
       });
     } catch (dbError: any) {
-      const isDbUnreachable =
-        dbError?.message?.includes("Can't reach database server") ||
-        dbError?.message?.includes("localhost:5432") ||
-        dbError?.message?.includes("ECONNREFUSED") ||
-        dbError?.code === "P1001" ||
-        dbError?.code === "P1002" ||
-        dbError?.code === "P1003";
+      const normalized = email.toLowerCase().trim();
 
-      if (isDbUnreachable) {
-        console.warn(
-          "[AUTH] PostgreSQL offline (localhost:5432). Autenticando com credenciais de demonstração resilientes."
-        );
-        const normalized = email.toLowerCase().trim();
-        const matched = DEMO_USERS.find((u) => u.email === normalized) || {
-          id: "user-robson-1",
-          nome: "Robson Carvalho",
-          email: normalized,
-          role: Role.ADMINISTRADOR,
-          status: "DISPONIVEL",
-          organizationId: "org-platz-1",
-          hasCheckedInToday: true,
-        };
+      // Se for o admin Robson e o banco estiver recém-criado, garante a existência do admin
+      if (normalized === "robson@connectplatz.com.br" && password === "ConnectPlatz2026@") {
+        try {
+          const seeded = await ensureDefaultAdmin();
+          if (seeded) {
+            result = seeded;
+          }
+        } catch (seedErr) {
+          console.warn("[AUTH] Erro ao tentar auto-seed:", seedErr);
+        }
+      }
 
-        const token = signSessionToken({
-          userId: matched.id,
-          email: matched.email,
-          nome: matched.nome,
-          role: matched.role,
-          organizationId: matched.organizationId,
-        });
+      if (!result) {
+        const isDbUnreachable =
+          dbError?.message?.includes("Can't reach database server") ||
+          dbError?.message?.includes("localhost:5432") ||
+          dbError?.message?.includes("ECONNREFUSED") ||
+          dbError?.code === "P1001" ||
+          dbError?.code === "P1002" ||
+          dbError?.code === "P1003";
 
-        result = {
-          token,
-          user: matched,
-          warning: "Autenticado em modo offline/demonstração. Conexão com PostgreSQL em localhost:5432 indisponível.",
-        };
-      } else {
-        throw dbError;
+        if (isDbUnreachable) {
+          console.warn(
+            "[AUTH] PostgreSQL indisponível. Autenticando com credenciais de demonstração resilientes."
+          );
+          const matched = DEMO_USERS.find((u) => u.email === normalized) || {
+            id: "user-robson-1",
+            nome: "Robson Carvalho",
+            email: normalized,
+            role: Role.ADMINISTRADOR,
+            status: "DISPONIVEL",
+            organizationId: "org-platz-1",
+            hasCheckedInToday: true,
+          };
+
+          const token = signSessionToken({
+            userId: matched.id,
+            email: matched.email,
+            nome: matched.nome,
+            role: matched.role,
+            organizationId: matched.organizationId,
+          });
+
+          result = {
+            token,
+            user: matched,
+            warning: "Autenticado em modo offline/demonstração.",
+          };
+        } else {
+          throw dbError;
+        }
       }
     }
 
     const response = NextResponse.json(result, { status: 200 });
 
-    // Salvar token em cookie HttpOnly seguro
+    // Determina se a requisição está trafegando sobre HTTPS
+    // Se estiver sobre HTTP (como em teste na VPS sem SSL), o cookie NÃO pode ter 'secure: true',
+    // caso contrário o Chrome e outros navegadores descartam o cookie silenciosamente.
+    const isHttps =
+      req.nextUrl.protocol === "https:" ||
+      req.headers.get("x-forwarded-proto") === "https" ||
+      req.headers.get("x-forwarded-ssl") === "on";
+
+    // Salvar token em cookie HttpOnly
     response.cookies.set({
       name: "connect_platz_token",
       value: result.token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60, // 7 dias
       path: "/",

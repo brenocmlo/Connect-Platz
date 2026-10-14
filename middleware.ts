@@ -76,7 +76,9 @@ const ADMIN_ONLY_ROUTES = [
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get("connect_platz_token")?.value;
+  const authHeader = request.headers.get("authorization");
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+  const token = request.cookies.get("connect_platz_token")?.value || bearerToken;
 
   // 1. Rota de Login: se já tiver sessão válida, redireciona para o CRM
   if (pathname === "/login") {
