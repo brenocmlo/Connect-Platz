@@ -79,7 +79,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   // Filtros Globais da Shell
   const [selectedBranch, setSelectedBranch] = useState("Sede Fortaleza — Aldeota");
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>("mes");
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [slaBreachedCount, setSlaBreachedCount] = useState(2);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
@@ -131,10 +131,21 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     const savedHideValues = localStorage.getItem("connect_platz_hide_values") === "true";
     setHideValues(savedHideValues);
 
-    // Auto-recolher sidebar em mobile (< 768px)
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setIsSidebarCollapsed(true);
+    // Gerenciamento de Sidebar responsiva (desktop expandida, mobile recolhida)
+    if (typeof window !== "undefined") {
+      setIsSidebarCollapsed(window.innerWidth < 768);
+      const handleResize = () => {
+        if (window.innerWidth < 768) {
+          setIsSidebarCollapsed(true);
+        }
+      };
+      window.addEventListener("resize", handleResize);
+      // clean up listener on unmount
+      return () => window.removeEventListener("resize", handleResize);
     }
+  }, []);
+
+  useEffect(() => {
 
     // Inicialização da Sessão Autenticada via Cookie HttpOnly
     async function loadSession() {

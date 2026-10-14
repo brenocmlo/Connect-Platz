@@ -7,7 +7,7 @@ export function FloatingSupport() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-5 right-5 z-40">
+    <div className="fixed bottom-20 right-4 md:bottom-5 md:right-5 z-40">
       {/* Popover de Suporte Rápido */}
       {isOpen && (
         <div className="absolute bottom-12 right-0 mb-2 w-72 bg-card border border-border rounded-2xl shadow-2xl p-4 animate-fade-in-up">

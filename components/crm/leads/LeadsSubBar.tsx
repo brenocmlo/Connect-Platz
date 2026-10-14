@@ -25,13 +25,13 @@ export function LeadsSubBar({
   nightQueueCount = 0,
 }: LeadsSubBarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2.5 px-1">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
         {/* Seletor de Funil */}
         <select
           value={selectedFunnel}
           onChange={(e) => setSelectedFunnel(e.target.value)}
-          className="bg-card border border-border text-foreground text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-connect-blue shadow-xs cursor-pointer"
+          className="bg-card border border-border text-foreground text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-connect-blue shadow-xs cursor-pointer w-full sm:w-auto max-w-full truncate"
         >
           <option>Lançamentos de Médio & Alto Padrão</option>
           <option>Imóveis Prontos & Avulsos</option>
@@ -43,7 +43,7 @@ export function LeadsSubBar({
         <select
           value={selectedMember}
           onChange={(e) => setSelectedMember(e.target.value)}
-          className="bg-card border border-border text-foreground text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-connect-blue shadow-xs cursor-pointer"
+          className="bg-card border border-border text-foreground text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-connect-blue shadow-xs cursor-pointer w-full sm:w-auto max-w-full truncate"
         >
           <option value="TODOS">👥 Todos os Membros</option>
           <option value="Lucas Pinheiro">Lucas Pinheiro</option>

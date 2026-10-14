@@ -38,9 +38,10 @@ export function AgendaMonthView({
   }
 
   return (
-    <div className="bg-white dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1C2537] rounded-2xl overflow-hidden shadow-sm">
-      {/* Weekday Header */}
-      <div className="grid grid-cols-7 border-b border-slate-200 dark:border-[#1C2537] bg-slate-50 dark:bg-[#080C14]">
+    <div className="overflow-x-auto pb-4">
+      <div className="bg-white dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1C2537] rounded-2xl overflow-hidden shadow-sm min-w-[640px] md:min-w-0">
+        {/* Weekday Header */}
+        <div className="grid grid-cols-7 border-b border-slate-200 dark:border-[#1C2537] bg-slate-50 dark:bg-[#080C14]">
         {WEEKDAY_NAMES.map((name) => (
           <div
             key={name}
@@ -133,5 +134,6 @@ export function AgendaMonthView({
         })}
       </div>
     </div>
+  </div>
   );
 }

@@ -75,7 +75,7 @@ export function KanbanColumn({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`w-80 flex flex-col flex-shrink-0 rounded-2xl bg-card/60 backdrop-blur-xs border transition-all duration-200 ${
+      className={`w-[82vw] max-w-[320px] sm:w-80 flex flex-col flex-shrink-0 snap-center sm:snap-align-none rounded-2xl bg-card/60 backdrop-blur-xs border transition-all duration-200 ${
         isOver
           ? "border-connect-blue bg-connect-blue/5 ring-2 ring-connect-blue/20"
           : "border-border shadow-sm"

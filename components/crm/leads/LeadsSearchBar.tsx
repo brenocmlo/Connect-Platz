@@ -25,7 +25,7 @@ export function LeadsSearchBar({
           placeholder="Busque por nome, e-mail ou telefone…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue shadow-xs transition-all"
+          className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2 text-base sm:text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue shadow-xs transition-all"
         />
       </div>
 

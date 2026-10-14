@@ -4,6 +4,7 @@ import React from "react";
 import { CrmProvider, useCrm } from "@/components/crm/CrmContext";
 import { Sidebar } from "@/components/crm/Sidebar";
 import { Topbar } from "@/components/crm/Topbar";
+import { MobileBottomBar } from "@/components/crm/MobileBottomBar";
 import { FloatingSupport } from "@/components/crm/FloatingSupport";
 import { PwaInstallPrompt } from "@/components/crm/PwaInstallPrompt";
 
@@ -32,8 +33,9 @@ function CrmShell({ children }: { children: React.ReactNode }) {
         }`}
       >
         <Topbar />
-        <main className="flex-1 p-3.5 md:p-6 overflow-x-hidden animate-fade-in">{children}</main>
+        <main className="flex-1 p-3 sm:p-4 md:p-6 pb-24 md:pb-6 overflow-x-hidden animate-fade-in">{children}</main>
       </div>
+      <MobileBottomBar />
       <FloatingSupport />
       <PwaInstallPrompt />
     </div>

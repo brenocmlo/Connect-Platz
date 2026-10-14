@@ -64,7 +64,7 @@ export function KanbanBoard({
   return (
     <div className="relative">
       {/* Board com scroll horizontal fluido */}
-      <div className="flex gap-4 items-start overflow-x-auto pb-4 pt-1 max-w-full min-w-full">
+      <div className="flex gap-4 items-start overflow-x-auto pb-4 pt-1 max-w-full min-w-full snap-x snap-mandatory sm:snap-none scroll-smooth">
         {stages.map((stage) => {
           const stageLeads = leads.filter((l) => {
             // 1. Correspondência exata por stageId
