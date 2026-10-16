@@ -126,10 +126,10 @@
     "semantic_hash": "b2e385ea9ce10ab49dd5104afed8c7fb"
   },
   "app/crm/layout.tsx": {
-    "mtime": 1790910527.3222194,
-    "seen": 1791241244.881975,
-    "ast_hash": "1e8aaf3d63700d0d4703fe31914bf146",
-    "semantic_hash": "1e8aaf3d63700d0d4703fe31914bf146"
+    "mtime": 1792000929.0658467,
+    "seen": 1792001553.3204532,
+    "ast_hash": "9345e50d3a374afe4d9a8459826f2d85",
+    "semantic_hash": ""
   },
   "app/crm/leads/page.tsx": {
     "mtime": 1791423260.907013,
@@ -174,15 +174,15 @@
     "semantic_hash": "2c1004b95dd4adb46b5bed654c2f7713"
   },
   "app/layout.tsx": {
-    "mtime": 1791864725.5795872,
-    "seen": 1791865036.9836411,
-    "ast_hash": "284350da78073c047cfbd409103b5b6f",
+    "mtime": 1792001237.633304,
+    "seen": 1792001553.321669,
+    "ast_hash": "0f1126046c5e04f3473d9ac107442745",
     "semantic_hash": ""
   },
   "app/login/page.tsx": {
-    "mtime": 1791940919.6678834,
-    "seen": 1791941060.922838,
-    "ast_hash": "bf41e3db2c8e9fc921d028f51fc3f3c9",
+    "mtime": 1792001041.8365426,
+    "seen": 1792001553.3216739,
+    "ast_hash": "b035fefdf8dfd1510b1e4d65a22f4da0",
     "semantic_hash": ""
   },
   "app/page.tsx": {
@@ -210,16 +210,16 @@
     "semantic_hash": "f2039b3fe648e6130665cecf8291a71f"
   },
   "components/crm/CrmContext.tsx": {
-    "mtime": 1791823181.5741942,
-    "seen": 1791823633.181086,
-    "ast_hash": "b6f739442b4e625ad6ce7b90a12b0744",
+    "mtime": 1792001101.6301744,
+    "seen": 1792001553.322449,
+    "ast_hash": "22f3ab7218e3deca69c26ce65d6245bd",
     "semantic_hash": ""
   },
   "components/crm/FloatingSupport.tsx": {
-    "mtime": 1790819774.0945184,
-    "seen": 1791241244.881999,
-    "ast_hash": "169909a510ddf59090989c2094bb1bfb",
-    "semantic_hash": "169909a510ddf59090989c2094bb1bfb"
+    "mtime": 1792001197.041577,
+    "seen": 1792001553.322454,
+    "ast_hash": "bc76603bec04f33f4e17b05561c9fd6e",
+    "semantic_hash": ""
   },
   "components/crm/LeadDrawer.tsx": {
     "mtime": 1791423750.6689777,
@@ -276,10 +276,10 @@
     "semantic_hash": "00cc07b0b08489117e1040aed0875115"
   },
   "components/crm/agenda/AgendaMonthView.tsx": {
-    "mtime": 1790893251.1927216,
-    "seen": 1791241244.882015,
-    "ast_hash": "9517078ad5d08b67f4fe2db2881bc485",
-    "semantic_hash": "9517078ad5d08b67f4fe2db2881bc485"
+    "mtime": 1792001409.2721746,
+    "seen": 1792001553.323581,
+    "ast_hash": "6df3e31e18785ca4ff1a792e1d8ad272",
+    "semantic_hash": ""
   },
   "components/crm/agenda/AgendaWeekView.tsx": {
     "mtime": 1790893244.8673186,
@@ -534,15 +534,15 @@
     "semantic_hash": "52297c8b816bf3a82e65e2cf7e2c3500"
   },
   "components/crm/leads/KanbanBoard.tsx": {
-    "mtime": 1791423104.2708678,
-    "seen": 1791423882.493238,
-    "ast_hash": "0c47b9c6f2100409ca1c609ccdeaaef0",
+    "mtime": 1792001247.9981322,
+    "seen": 1792001553.328922,
+    "ast_hash": "ca9699fea892a49e9404888351cc947b",
     "semantic_hash": ""
   },
   "components/crm/leads/KanbanColumn.tsx": {
-    "mtime": 1791422560.4815645,
-    "seen": 1791423882.493241,
-    "ast_hash": "2d50d8066443a1862381c7d5f80222e1",
+    "mtime": 1792001254.2308695,
+    "seen": 1792001553.328925,
+    "ast_hash": "f6e1aca16fc1bf1206a15a441f306822",
     "semantic_hash": ""
   },
   "components/crm/leads/LeadCard.tsx": {
@@ -582,15 +582,15 @@
     "semantic_hash": ""
   },
   "components/crm/leads/LeadsSearchBar.tsx": {
-    "mtime": 1790910575.1224267,
-    "seen": 1791241244.882099,
-    "ast_hash": "990be800a2ef1def2c1570020a872d17",
-    "semantic_hash": "990be800a2ef1def2c1570020a872d17"
+    "mtime": 1792001286.2300386,
+    "seen": 1792001553.329535,
+    "ast_hash": "dab781717a3bac63b51ff298f6a259ab",
+    "semantic_hash": ""
   },
   "components/crm/leads/LeadsSubBar.tsx": {
-    "mtime": 1791422243.2710714,
-    "seen": 1791423882.493632,
-    "ast_hash": "98afa07c2e46215a89a048f85535f5d8",
+    "mtime": 1792001274.5468392,
+    "seen": 1792001553.329538,
+    "ast_hash": "22964405241c53f0278f690dbe60b3ba",
     "semantic_hash": ""
   },
   "components/crm/leads/LeadsTable.tsx": {
@@ -1869,6 +1869,12 @@
     "mtime": 1791940815.7792423,
     "seen": 1791941060.941043,
     "ast_hash": "538e785f6daa27cb9798977d1b99af47",
+    "semantic_hash": ""
+  },
+  "components/crm/MobileBottomBar.tsx": {
+    "mtime": 1792001210.6179752,
+    "seen": 1792001553.322603,
+    "ast_hash": "1255ecb2ed446ac31b018dd73708219b",
     "semantic_hash": ""
   }
 }

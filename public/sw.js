@@ -1,9 +1,8 @@
 // Connect Platz CRM Service Worker for PWA & Web Push
-const CACHE_NAME = "connect-platz-pwa-v2";
+const CACHE_NAME = "connect-platz-pwa-v3";
 
 const STATIC_ASSETS = [
   "/",
-  "/crm",
   "/manifest.json",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png"
@@ -30,7 +29,13 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Ignora requisições de API para manter dados sempre frescos
+  // 1. Não intercepta navegação de páginas (deixa o navegador lidar com redirects de autenticação nativamente)
+  // Isso previne o erro do Safari / WebKit: 'Response served by service worker has redirections'
+  if (event.request.mode === "navigate") {
+    return;
+  }
+
+  // 2. Ignora requisições de API para manter dados sempre frescos
   if (event.request.url.includes("/api/")) {
     return;
   }
