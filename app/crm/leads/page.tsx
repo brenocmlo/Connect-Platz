@@ -293,6 +293,47 @@ export default function LeadsPage() {
           setLeads((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
           if (selectedLead?.id === updated.id) setSelectedLead(updated);
           setToastMessage("Lead atualizado com sucesso!");
+
+          // Registra no histórico se houve adição/edição de observação
+          if (updated.observacoes && typeof window !== "undefined") {
+            try {
+              const storageKey = `connect_platz_lead_abordagens_${updated.id}`;
+              const existing = JSON.parse(localStorage.getItem(storageKey) || "[]");
+              const now = new Date();
+              const timeStr = `Hoje às ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+              const newObsItem = {
+                id: `obs-${Date.now()}`,
+                canal: "anotacao",
+                desfecho: "respondeu",
+                conteudo: updated.observacoes,
+                corretorNome: updated.corretor?.nome || "Corretor Responsável",
+                dataHora: timeStr,
+              };
+              // Atualiza se a última nota for diferente
+              if (!existing.some((e: any) => e.conteudo === updated.observacoes)) {
+                localStorage.setItem(storageKey, JSON.stringify([newObsItem, ...existing]));
+              }
+            } catch {}
+          }
+
+          // Se tiver token, sincroniza via PATCH /api/leads/[id]
+          if (token && updated.id) {
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updated.id);
+            if (isUuid) {
+              fetch(`/api/leads/${updated.id}`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  observacoes: updated.observacoes,
+                  rendaDeclarada: updated.rendaDeclarada,
+                  temperatura: updated.temperatura,
+                }),
+              }).catch((e) => console.warn("Erro ao salvar lead na API:", e));
+            }
+          }
         }}
         appointmentLead={appointmentLead}
         onCloseAppointmentModal={() => setAppointmentLead(null)}

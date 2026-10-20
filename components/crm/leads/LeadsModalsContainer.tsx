@@ -114,6 +114,7 @@ export function LeadsModalsContainer({
         onClose={onCloseNewLeadModal}
         onSubmit={onCreateManualLead}
         availableStages={availableStages}
+        currentFunnel={selectedFunnel}
       />
 
       <ImportLeadsModal

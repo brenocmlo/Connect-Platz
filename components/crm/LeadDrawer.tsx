@@ -47,6 +47,7 @@ export interface LeadDetail {
   tags?: string[];
   createdAt?: string | null;
   score?: number | null;
+  observacoes?: string | null;
 }
 
 interface LeadDrawerProps {

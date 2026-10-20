@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Home, Globe, X } from "lucide-react";
+import { Home, Globe, X, Search, Loader2 } from "lucide-react";
 import { ImageUploadZone } from "./ImageUploadZone";
+import { fetchAddressByCep, REGIONAL_NEIGHBORHOODS } from "@/lib/services/location";
 
 interface NewImovelAvulsoModalProps {
   isOpen: boolean;
@@ -18,9 +19,28 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
   const [valorVenda, setValorVenda] = useState("");
   const [valorDiaria, setValorDiaria] = useState("");
   const [taxaLimpeza, setTaxaLimpeza] = useState("180");
+  const [cep, setCep] = useState("");
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
   const [cidade, setCidade] = useState("Fortaleza");
   const [bairro, setBairro] = useState("");
   const [endereco, setEndereco] = useState("");
+
+  const handleCepChange = async (val: string) => {
+    setCep(val);
+    const clean = val.replace(/\D/g, "");
+    if (clean.length === 8) {
+      setIsSearchingCep(true);
+      const loc = await fetchAddressByCep(clean);
+      setIsSearchingCep(false);
+      if (loc) {
+        if (loc.cidade) setCidade(loc.cidade);
+        if (loc.bairro) setBairro(loc.bairro);
+        if (loc.logradouro) setEndereco(loc.logradouro);
+      }
+    }
+  };
+
+  const suggestedNeighborhoods = REGIONAL_NEIGHBORHOODS[cidade] || [];
   const [areaM2, setAreaM2] = useState("95");
   const [quartos, setQuartos] = useState("3");
   const [suites, setSuites] = useState("2");
@@ -183,17 +203,71 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
               </>
             )}
 
+            {/* CEP com Busca Automática */}
+            <div className="sm:col-span-2 p-3 rounded-xl bg-connect-blue/5 border border-connect-blue/20">
+              <label className="block text-slate-300 font-bold mb-1 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-connect-blue">
+                  <Search className="w-3.5 h-3.5" />
+                  Preenchimento Automático por CEP
+                </span>
+                {isSearchingCep && (
+                  <span className="text-[10px] text-connect-blue flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Buscando endereço...
+                  </span>
+                )}
+              </label>
+              <input
+                type="text"
+                value={cep}
+                onChange={(e) => handleCepChange(e.target.value)}
+                placeholder="Digite o CEP (ex: 60165-121) para preencher bairro e cidade direto"
+                maxLength={9}
+                className="w-full bg-[#080C14] border border-[#1C2537] rounded-lg p-2.5 text-white font-mono text-xs focus:outline-none focus:border-connect-blue"
+              />
+            </div>
+
             <div>
               <label className="block text-slate-300 font-bold mb-1">Cidade</label>
-              <input type="text" value={cidade} onChange={(e) => setCidade(e.target.value)} className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-2.5 text-white" />
+              <input
+                type="text"
+                list="cidades-avulso"
+                value={cidade}
+                onChange={(e) => setCidade(e.target.value)}
+                className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-2.5 text-white focus:outline-none"
+              />
+              <datalist id="cidades-avulso">
+                <option value="Fortaleza" />
+                <option value="Aquiraz" />
+                <option value="Eusébio" />
+                <option value="Itajaí" />
+                <option value="Balneário Camboriú" />
+              </datalist>
             </div>
             <div>
               <label className="block text-slate-300 font-bold mb-1">Bairro</label>
-              <input type="text" value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Meireles, Mucuripe..." className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-2.5 text-white" />
+              <input
+                type="text"
+                list="bairros-avulso"
+                value={bairro}
+                onChange={(e) => setBairro(e.target.value)}
+                placeholder="Selecione ou digite..."
+                className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-2.5 text-white focus:outline-none"
+              />
+              <datalist id="bairros-avulso">
+                {suggestedNeighborhoods.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-slate-300 font-bold mb-1">Endereço</label>
-              <input type="text" value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua / Av..." className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-2.5 text-white" />
+              <input
+                type="text"
+                value={endereco}
+                onChange={(e) => setEndereco(e.target.value)}
+                placeholder="Rua / Av..."
+                className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-2.5 text-white focus:outline-none"
+              />
             </div>
           </div>
 

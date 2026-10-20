@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Building2, Globe, Sparkles, X, CheckCircle2 } from "lucide-react";
+import { Building2, Globe, Sparkles, X, CheckCircle2, Search, Loader2 } from "lucide-react";
 import { ImageUploadZone } from "./ImageUploadZone";
+import { fetchAddressByCep, REGIONAL_NEIGHBORHOODS } from "@/lib/services/location";
 
 interface NewEmpreendimentoModalProps {
   isOpen: boolean;
@@ -16,14 +17,36 @@ export function NewEmpreendimentoModal({
   onSuccess,
 }: NewEmpreendimentoModalProps) {
   const [nome, setNome] = useState("");
+  const [modalidade, setModalidade] = useState<"VENDA" | "VERANEIO_TEMPORADA" | "AMBOS">("VENDA");
   const [estagioObra, setEstagioObra] = useState("Lançamento");
   const [valorAPartir, setValorAPartir] = useState("");
+  const [valorDiaria, setValorDiaria] = useState("");
+  const [cep, setCep] = useState("");
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
   const [cidade, setCidade] = useState("Fortaleza");
   const [bairro, setBairro] = useState("");
   const [endereco, setEndereco] = useState("");
   const [descricao, setDescricao] = useState("");
   const [fotos, setFotos] = useState<string[]>([]);
   const [exibirNaLandingPage, setExibirNaLandingPage] = useState(true);
+
+  // Busca automática ao digitar CEP
+  const handleCepChange = async (val: string) => {
+    setCep(val);
+    const clean = val.replace(/\D/g, "");
+    if (clean.length === 8) {
+      setIsSearchingCep(true);
+      const loc = await fetchAddressByCep(clean);
+      setIsSearchingCep(false);
+      if (loc) {
+        if (loc.cidade) setCidade(loc.cidade);
+        if (loc.bairro) setBairro(loc.bairro);
+        if (loc.logradouro) setEndereco(loc.logradouro);
+      }
+    }
+  };
+
+  const suggestedNeighborhoods = REGIONAL_NEIGHBORHOODS[cidade] || [];
 
   // Configuração rápida de unidades e andares para o espelho
   const [nomeBloco, setNomeBloco] = useState("Torre A");
@@ -49,9 +72,10 @@ export function NewEmpreendimentoModal({
           nome,
           tipoCadastro: "EMPREENDIMENTO",
           exibirNaLandingPage,
-          modalidade: "VENDA",
+          modalidade,
           estagioObra,
-          valorVenda: valorAPartir ? Number(valorAPartir) : 800000,
+          valorVenda: valorAPartir ? Number(valorAPartir) : null,
+          valorDiaria: valorDiaria ? Number(valorDiaria) : null,
           cidade,
           bairro,
           endereco,
@@ -145,6 +169,19 @@ export function NewEmpreendimentoModal({
             </div>
 
             <div>
+              <label className="block text-slate-300 font-bold mb-1">Finalidade / Modalidade</label>
+              <select
+                value={modalidade}
+                onChange={(e) => setModalidade(e.target.value as any)}
+                className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-3 text-white focus:outline-none"
+              >
+                <option value="VENDA">Venda</option>
+                <option value="VERANEIO_TEMPORADA">Aluguel de Temporada (Praia/Veraneio)</option>
+                <option value="AMBOS">Venda & Temporada</option>
+              </select>
+            </div>
+
+            <div>
               <label className="block text-slate-300 font-bold mb-1">Estágio da Obra</label>
               <select
                 value={estagioObra}
@@ -157,14 +194,52 @@ export function NewEmpreendimentoModal({
               </select>
             </div>
 
-            <div>
-              <label className="block text-slate-300 font-bold mb-1">Valor a Partir de (R$)</label>
+            {modalidade !== "VERANEIO_TEMPORADA" && (
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Valor Venda a Partir de (R$)</label>
+                <input
+                  type="number"
+                  value={valorAPartir}
+                  onChange={(e) => setValorAPartir(e.target.value)}
+                  placeholder="Ex: 850000"
+                  className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-3 text-white focus:outline-none"
+                />
+              </div>
+            )}
+
+            {(modalidade === "VERANEIO_TEMPORADA" || modalidade === "AMBOS") && (
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Valor Diária Aluguel (R$)</label>
+                <input
+                  type="number"
+                  value={valorDiaria}
+                  onChange={(e) => setValorDiaria(e.target.value)}
+                  placeholder="Ex: 1200"
+                  className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-3 text-white focus:outline-none"
+                />
+              </div>
+            )}
+
+            {/* CEP com Busca Automática */}
+            <div className="sm:col-span-2 p-3 rounded-xl bg-connect-blue/5 border border-connect-blue/20">
+              <label className="block text-slate-300 font-bold mb-1 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-connect-blue">
+                  <Search className="w-3.5 h-3.5" />
+                  Preenchimento Automático por CEP
+                </span>
+                {isSearchingCep && (
+                  <span className="text-[10px] text-connect-blue flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Buscando endereço...
+                  </span>
+                )}
+              </label>
               <input
-                type="number"
-                value={valorAPartir}
-                onChange={(e) => setValorAPartir(e.target.value)}
-                placeholder="Ex: 850000"
-                className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-3 text-white focus:outline-none"
+                type="text"
+                value={cep}
+                onChange={(e) => handleCepChange(e.target.value)}
+                placeholder="Digite o CEP (ex: 60165-121) para preencher bairro e cidade direto"
+                maxLength={9}
+                className="w-full bg-[#080C14] border border-[#1C2537] rounded-lg p-2.5 text-white font-mono text-xs focus:outline-none focus:border-connect-blue"
               />
             </div>
 
@@ -172,22 +247,38 @@ export function NewEmpreendimentoModal({
               <label className="block text-slate-300 font-bold mb-1">Cidade</label>
               <input
                 type="text"
+                list="cidades-sugeridas"
                 value={cidade}
                 onChange={(e) => setCidade(e.target.value)}
                 placeholder="Fortaleza, Aquiraz, Eusébio..."
                 className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-3 text-white focus:outline-none"
               />
+              <datalist id="cidades-sugeridas">
+                <option value="Fortaleza" />
+                <option value="Aquiraz" />
+                <option value="Eusébio" />
+                <option value="Itajaí" />
+                <option value="Balneário Camboriú" />
+              </datalist>
             </div>
 
             <div>
-              <label className="block text-slate-300 font-bold mb-1">Bairro / Região</label>
+              <label className="block text-slate-300 font-bold mb-1">
+                Bairro / Região
+              </label>
               <input
                 type="text"
+                list="bairros-sugeridos"
                 value={bairro}
                 onChange={(e) => setBairro(e.target.value)}
-                placeholder="Meireles, Porto das Dunas, Aldeota..."
+                placeholder="Selecione ou digite o bairro..."
                 className="w-full bg-[#080C14] border border-[#1C2537] rounded-xl p-3 text-white focus:outline-none"
               />
+              <datalist id="bairros-sugeridos">
+                {suggestedNeighborhoods.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
             </div>
           </div>
 

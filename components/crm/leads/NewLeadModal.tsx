@@ -12,6 +12,8 @@ export interface NewLeadFormData {
   origem?: string;
   rendaDeclarada?: number;
   stageId?: string;
+  funil?: string;
+  observacoes?: string;
 }
 
 interface NewLeadModalProps {
@@ -19,6 +21,7 @@ interface NewLeadModalProps {
   onClose: () => void;
   onSubmit: (leadData: NewLeadFormData) => void;
   availableStages?: { id: string; nome: string }[];
+  currentFunnel?: string;
 }
 
 export function NewLeadModal({
@@ -26,15 +29,22 @@ export function NewLeadModal({
   onClose,
   onSubmit,
   availableStages = [],
+  currentFunnel = "Lançamentos de Médio & Alto Padrão",
 }: NewLeadModalProps) {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
+  const [funil, setFunil] = useState(currentFunnel);
   const [empreendimento, setEmpreendimento] = useState("");
   const [temperatura, setTemperatura] = useState<"FRIO" | "MORNO" | "QUENTE">("MORNO");
   const [origem, setOrigem] = useState("Manual / Corretor");
   const [renda, setRenda] = useState("");
   const [stageId, setStageId] = useState(availableStages[0]?.id || "stage-1");
+  const [observacoes, setObservacoes] = useState("");
+
+  React.useEffect(() => {
+    if (currentFunnel) setFunil(currentFunnel);
+  }, [currentFunnel]);
 
   if (!isOpen) return null;
 
@@ -51,6 +61,8 @@ export function NewLeadModal({
       origem,
       rendaDeclarada: renda ? Number(renda.replace(/\D/g, "")) : undefined,
       stageId,
+      funil,
+      observacoes: observacoes.trim() || undefined,
     });
 
     // Reset
@@ -59,6 +71,7 @@ export function NewLeadModal({
     setEmail("");
     setEmpreendimento("");
     setRenda("");
+    setObservacoes("");
     onClose();
   };
 
@@ -254,6 +267,37 @@ export function NewLeadModal({
                 <option value="Portal Imobiliário">Portal Imobiliário (Zap/OLX)</option>
               </select>
             </div>
+          </div>
+
+          {/* Funil de Destino */}
+          <div>
+            <label className="block text-foreground font-semibold mb-1">
+              Funil de Vendas
+            </label>
+            <select
+              value={funil}
+              onChange={(e) => setFunil(e.target.value)}
+              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
+            >
+              <option value="Lançamentos de Médio & Alto Padrão">Lançamentos de Médio & Alto Padrão</option>
+              <option value="Imóveis Prontos & Avulsos">Imóveis Prontos & Avulsos</option>
+              <option value="Aluguel de Temporada (Veraneio)">Aluguel de Temporada (Veraneio)</option>
+              <option value="Programa Minha Casa Minha Vida">Programa Minha Casa Minha Vida</option>
+            </select>
+          </div>
+
+          {/* Observações / Anotações Iniciais */}
+          <div>
+            <label className="block text-foreground font-semibold mb-1">
+              Observações Iniciais do Lead
+            </label>
+            <textarea
+              rows={2}
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              placeholder="Descreva perfil, interesse ou notas sobre a captação..."
+              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue resize-none"
+            />
           </div>
 
           {/* Rodapé Fixo */}

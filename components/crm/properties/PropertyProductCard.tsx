@@ -184,9 +184,19 @@ export function PropertyProductCard({
               >
                 {estagio}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-connect-blue text-white shadow">
-                Ativo
-              </span>
+              {isTemporada ? (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/90 text-white shadow">
+                  🏖️ Aluguel
+                </span>
+              ) : property.modalidade === "AMBOS" ? (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow">
+                  Venda & Aluguel
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-connect-blue text-white shadow">
+                  Venda
+                </span>
+              )}
             </div>
 
             {/* Pílula de publicação na Landing Page */}

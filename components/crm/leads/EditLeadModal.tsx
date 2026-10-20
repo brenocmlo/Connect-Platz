@@ -271,6 +271,8 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
                 </label>
                 <textarea
                   rows={3}
+                  value={formData.observacoes || ""}
+                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                   placeholder="Informações adicionais sobre perfil, condições de pagamento ou preferências..."
                   className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-connect-blue resize-none"
                 />

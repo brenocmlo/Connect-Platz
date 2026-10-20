@@ -144,7 +144,26 @@ export function LeadDetailsSections({
         </div>
       </div>
 
-      {/* 4. REGISTRO DE ABORDAGEM & INTERAÇÕES COM O LEAD */}
+      {/* 4. OBSERVAÇÕES DO LEAD */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-foreground font-semibold">
+          <FileText className="w-4 h-4 text-connect-blue" />
+          <span>Observações do Lead</span>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-3.5 shadow-xs">
+          {lead.observacoes ? (
+            <p className="text-foreground text-xs leading-relaxed whitespace-pre-wrap">
+              {lead.observacoes}
+            </p>
+          ) : (
+            <p className="text-muted-foreground italic text-xs">
+              Nenhuma observação registrada para este lead ainda. Clique em "Editar Lead" para registrar anotações e preferências.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* 5. REGISTRO DE ABORDAGEM & INTERAÇÕES COM O LEAD */}
       <LeadAbordagemSection lead={lead} />
 
       {/* 5. COMPROMISSOS AGENDADOS (Seção 5.5: follow-up âmbar claro, etc.) */}

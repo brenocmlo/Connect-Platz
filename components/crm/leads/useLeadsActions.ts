@@ -115,9 +115,14 @@ export function useLeadsActions({
     origem?: string;
     rendaDeclarada?: number;
     stageId?: string;
+    funil?: string;
+    observacoes?: string;
   }) => {
+    const leadId = `lead-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+
     const newManualLead: LeadDetail = {
-      id: `lead-${Date.now()}`,
+      id: leadId,
       nome: leadData.nome,
       telefone: leadData.telefone,
       email: leadData.email,
@@ -127,15 +132,36 @@ export function useLeadsActions({
       rendaDeclarada: leadData.rendaDeclarada || null,
       stageId: leadData.stageId || stages[0]?.id || "stage-1",
       score: leadData.temperatura === "QUENTE" ? 85 : leadData.temperatura === "MORNO" ? 60 : 38,
+      observacoes: leadData.observacoes || null,
       tags: [
         leadData.temperatura === "QUENTE" ? "Cliente Quente" : "Potencial",
         leadData.origem || "Manual",
       ],
-      createdAt: "Agora",
+      createdAt: nowIso,
     };
 
     setLeads((prev) => [newManualLead, ...prev]);
     setToastMessage("Lead cadastrado com sucesso!");
+
+    // Se informou observações iniciais, grava no histórico de abordagens local
+    if (leadData.observacoes && typeof window !== "undefined") {
+      try {
+        const storageKey = `connect_platz_lead_abordagens_${leadId}`;
+        const now = new Date();
+        const timeStr = `Hoje às ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+        const initialObs = [
+          {
+            id: `obs-init-${Date.now()}`,
+            canal: "anotacao",
+            desfecho: "respondeu",
+            conteudo: leadData.observacoes,
+            corretorNome: "Corretor Responsável",
+            dataHora: timeStr,
+          },
+        ];
+        localStorage.setItem(storageKey, JSON.stringify(initialObs));
+      } catch {}
+    }
 
     if (token) {
       try {

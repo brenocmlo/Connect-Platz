@@ -38,12 +38,27 @@ export function PropertyListSection({
 }: PropertyListSectionProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<
-    "TODOS" | "EMPREENDIMENTO" | "AVULSO" | "LANDING" | "LANCAMENTO" | "PRONTO"
+    "TODOS" | "TEMPORADA" | "VENDA" | "EMPREENDIMENTO" | "AVULSO" | "LANDING" | "LANCAMENTO" | "PRONTO"
   >("TODOS");
 
   const filteredProperties = useMemo(() => {
     return properties.filter((p) => {
-      // 1. Filtro por tipo/status
+      // 1. Filtro por tipo/status/modalidade
+      if (selectedFilter === "TEMPORADA") {
+        const isVeraneio =
+          p.modalidade === "VERANEIO_TEMPORADA" ||
+          p.modalidade === "AMBOS" ||
+          p.modalidade === "VERANEIO" ||
+          Boolean(p.valorDiaria);
+        if (!isVeraneio) return false;
+      }
+      if (selectedFilter === "VENDA") {
+        const isVenda =
+          p.modalidade === "VENDA" ||
+          p.modalidade === "AMBOS" ||
+          (!p.modalidade && Boolean(p.valorVenda));
+        if (!isVenda) return false;
+      }
       if (selectedFilter === "EMPREENDIMENTO" && p.tipoCadastro === "AVULSO")
         return false;
       if (selectedFilter === "AVULSO" && p.tipoCadastro !== "AVULSO")
@@ -118,6 +133,29 @@ export function PropertyListSection({
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
         {[
           { id: "TODOS", label: `Todos (${properties.length})` },
+          {
+            id: "TEMPORADA",
+            label: `🏖️ Aluguel / Temporada (${
+              properties.filter(
+                (p) =>
+                  p.modalidade === "VERANEIO_TEMPORADA" ||
+                  p.modalidade === "AMBOS" ||
+                  p.modalidade === "VERANEIO" ||
+                  Boolean(p.valorDiaria)
+              ).length
+            })`,
+          },
+          {
+            id: "VENDA",
+            label: `🏢 Vendas (${
+              properties.filter(
+                (p) =>
+                  p.modalidade === "VENDA" ||
+                  p.modalidade === "AMBOS" ||
+                  (!p.modalidade && Boolean(p.valorVenda))
+              ).length
+            })`,
+          },
           {
             id: "EMPREENDIMENTO",
             label: `Empreendimentos (${
