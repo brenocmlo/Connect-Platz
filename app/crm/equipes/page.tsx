@@ -79,18 +79,17 @@ export default function EquipesPage() {
     setTimeout(() => setActionMessage(null), 3000);
   };
 
-  const handleSimulateDistribution = (corretorNome: string) => {
+  const handleSimulateDistribution = (corretorNome: string, modality: "VENDA" | "ALUGUEL" = "VENDA") => {
     setTeam((prev) => {
       const idx = prev.findIndex((m) => m.nome === corretorNome);
       if (idx === -1) return prev;
       const updated = [...prev];
       const broker = updated[idx];
       updated[idx] = { ...broker, leadsAtivos: broker.leadsAtivos + 1 };
-      const [item] = updated.splice(idx, 1);
-      updated.push(item);
       return updated;
     });
-    setActionMessage(`Lead distribuído com sucesso para ${corretorNome}!`);
+    const label = modality === "ALUGUEL" ? "Aluguel de Temporada" : "Venda";
+    setActionMessage(`Lead de ${label} distribuído na roleta para ${corretorNome}!`);
     setTimeout(() => setActionMessage(null), 4000);
   };
 

@@ -41,7 +41,8 @@ export class DistributeLeadUseCase {
   async execute(
     organizationId: string,
     operatingStart: string = "09:00",
-    operatingEnd: string = "22:00"
+    operatingEnd: string = "22:00",
+    modality?: "VENDA" | "ALUGUEL"
   ): Promise<DistributionResult> {
     // 1. Checagem de Janela Operacional
     const isOperating = this.isWithinOperatingHours(operatingStart, operatingEnd);
@@ -53,7 +54,7 @@ export class DistributeLeadUseCase {
       };
     }
 
-    // 2. Buscar corretores ativos com Check-in diário
+    // 2. Buscar corretores ativos com Check-in diário (todos os corretores atendem ambos os públicos)
     const candidates = await this.userRepo.findEligibleCorretores(organizationId, new Date());
     if (candidates.length === 0) {
       return {
@@ -63,8 +64,8 @@ export class DistributeLeadUseCase {
       };
     }
 
-    // 3. Aplicação da estratégia injetada (OCP/LSP)
-    const selected = this.strategy.selectCorretor(candidates);
+    // 3. Aplicação da estratégia injetada (OCP/LSP) considerando a modalidade
+    const selected = this.strategy.selectCorretor(candidates, modality);
     if (!selected) {
       return {
         assignedCorretor: null,
@@ -76,10 +77,11 @@ export class DistributeLeadUseCase {
     // 4. Atualização atômica do timestamp do corretor selecionado
     await this.userRepo.updateLastLeadAssignedAt(selected.id, new Date());
 
+    const modalidadeLabel = modality === "ALUGUEL" ? "Aluguel de Temporada" : "Vendas";
     return {
       assignedCorretor: selected,
       isNightQueue: false,
-      reason: `Lead atribuído a ${selected.nome} via ${this.strategy.name}`,
+      reason: `Lead de ${modalidadeLabel} atribuído a ${selected.nome} via ${this.strategy.name}`,
     };
   }
 }

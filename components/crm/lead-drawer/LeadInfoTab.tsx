@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ShieldCheck, FileCheck } from "lucide-react";
 import { LeadDetail } from "../LeadDrawer";
+import { LeadFinancingConveyor } from "./LeadFinancingConveyor";
 
 interface LeadInfoTabProps {
   lead: LeadDetail;
@@ -15,12 +16,12 @@ export function LeadInfoTab({ lead }: LeadInfoTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* ESTEIRA DE CRÉDITO IMOBILIÁRIO COM REGRAS CONTRATUAIS */}
+      {/* 1. QUALIFICAÇÃO INICIAL DE CRÉDITO COM REGRAS CONTRATUAIS */}
       <div className="bg-[#0F1624] border border-[#1C2537] rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-[#D9BB4C] flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#D9BB4C]" />
-            Esteira de Qualificação de Crédito Bancário
+            Qualificação Inicial de Crédito Bancário
           </h3>
           <span className="text-[10px] text-slate-400 font-semibold">Exigência Bancária Connect Platz</span>
         </div>
@@ -92,7 +93,10 @@ export function LeadInfoTab({ lead }: LeadInfoTabProps) {
         )}
       </div>
 
-      {/* DADOS PESSOAIS */}
+      {/* 2. SUB-ESTEIRA DE DOSSIÊ BANCÁRIO & CORRESPONDENTE (CAIXA / BANCOS) */}
+      <LeadFinancingConveyor lead={lead} />
+
+      {/* 3. DADOS PESSOAIS */}
       <div className="bg-[#0F1624] border border-[#1C2537] rounded-2xl p-5 space-y-3 text-xs">
         <h3 className="font-bold uppercase tracking-wider text-slate-400">Dados Pessoais do Titular</h3>
         <div className="grid grid-cols-2 gap-3">
