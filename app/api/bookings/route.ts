@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken } from "@/lib/auth/jwt";
+import { getRequestSession } from "@/lib/auth/session";
 import { RLSUserContext } from "@/lib/db/rls";
 import { PaymentMethod } from "@prisma/client";
 import { container } from "@/lib/container";
 import { z } from "zod";
 
 function getSessionContext(req: NextRequest): RLSUserContext | null {
-  const authHeader = req.headers.get("authorization");
-  const cookieToken = req.cookies.get("connect_platz_token")?.value;
-  const token = authHeader?.replace("Bearer ", "") || cookieToken;
-
-  if (!token) return null;
-  const session = verifySessionToken(token);
+  const session = getRequestSession(req);
   if (!session) return null;
-
   return {
     userId: session.userId,
     organizationId: session.organizationId,

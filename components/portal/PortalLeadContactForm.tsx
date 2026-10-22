@@ -6,12 +6,12 @@ import { AlertCircle, CheckCircle2, MessageCircle } from "lucide-react";
 interface PortalLeadContactFormProps {
   propertyId: string;
   propertyNome: string;
-  whatsAppDirectUrl: string;
+  whatsAppDirectUrl: string | null;
   onClose: () => void;
 }
 
 const inputClass =
-  "h-11 w-full rounded-xl border border-portal-field bg-portal-surface px-3 text-sm text-portal-ink placeholder:text-slate-500 focus:border-connect-blue focus:outline-none focus:ring-2 focus:ring-connect-blue/30";
+  "h-11 w-full rounded-xl border border-portal-field bg-portal-surface px-3 text-sm text-portal-ink placeholder:text-portal-slate focus:border-connect-blue focus:outline-none focus:ring-2 focus:ring-connect-blue/30";
 
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
@@ -117,6 +117,7 @@ export function PortalLeadContactForm({
             >
               {enviando ? "Enviando..." : "Enviar Interesse"}
             </button>
+            {whatsAppDirectUrl && (
             <a
               href={whatsAppDirectUrl}
               target="_blank"
@@ -127,6 +128,7 @@ export function PortalLeadContactForm({
               <MessageCircle className="w-4 h-4" />
               <span className="hidden sm:inline">WhatsApp</span>
             </a>
+            )}
           </div>
         </form>
       )}

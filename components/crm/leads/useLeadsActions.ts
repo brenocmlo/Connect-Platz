@@ -1,181 +1,198 @@
 "use client";
 
+// Ações do módulo de Leads persistidas via API. Atualizações otimistas são desfeitas em caso de falha,
+// e o toast de sucesso só aparece depois da confirmação do servidor.
+
 import { Dispatch, SetStateAction } from "react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { FunnelColumn } from "@/components/crm/leads/KanbanBoard";
+import { NewLeadFormData } from "@/components/crm/leads/NewLeadModal";
 import { findLeadStageIndex } from "@/components/crm/leads/leadCalculations";
+import { createLead, patchLead, deleteLead, addTimelineEntry } from "./leadsApi";
+
+export type NotifyFn = (message: string, type?: "success" | "error" | "info") => void;
 
 interface UseLeadsActionsParams {
   leads: LeadDetail[];
   setLeads: Dispatch<SetStateAction<LeadDetail[]>>;
   stages: FunnelColumn[];
+  funnelId: string | null;
   selectedLead: LeadDetail | null;
   setSelectedLead: Dispatch<SetStateAction<LeadDetail | null>>;
-  token: string | null;
-  setToastMessage: (msg: string | null) => void;
+  replaceLead: (lead: LeadDetail) => void;
+  notify: NotifyFn;
   setDiscardLeadTarget?: (lead: LeadDetail | null) => void;
 }
+
+const errorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error && err.message ? err.message : fallback;
 
 export function useLeadsActions({
   leads,
   setLeads,
   stages,
+  funnelId,
   selectedLead,
   setSelectedLead,
-  token,
-  setToastMessage,
+  replaceLead,
+  notify,
   setDiscardLeadTarget,
 }: UseLeadsActionsParams) {
-  const handleDropLead = async (leadId: string, targetStageId: string) => {
+  /** Aplica um patch local (otimista) e devolve a função que desfaz. */
+  const applyLocal = (leadId: string, patch: Partial<LeadDetail>) => {
+    const previous = leads.find((l) => l.id === leadId);
+    replaceLead({ ...(previous as LeadDetail), ...patch, id: leadId });
+    return () => previous && replaceLead(previous);
+  };
+
+  const moveToStage = async (leadId: string, targetStageId: string, successMessage: string) => {
+    const lead = leads.find((l) => l.id === leadId);
     const targetStage = stages.find((s) => s.id === targetStageId);
-    const isClosing = targetStage?.nome?.toLowerCase().includes("encerrado");
+    if (!lead || !targetStage || lead.stageId === targetStageId) return false;
 
-    if (isClosing && setDiscardLeadTarget) {
-      const targetLead = leads.find((l) => l.id === leadId);
-      if (targetLead) {
-        setDiscardLeadTarget(targetLead);
+    const undo = applyLocal(leadId, {
+      stageId: targetStageId,
+      stage: { id: targetStage.id, nome: targetStage.nome, cor: targetStage.cor },
+    });
+    try {
+      const updated = await patchLead(leadId, { stageId: targetStageId });
+      replaceLead(updated);
+      notify(successMessage);
+      if (targetStage.nome.toLowerCase().includes("encerrado") && setDiscardLeadTarget) {
+        setDiscardLeadTarget(updated);
       }
-    }
-
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, stageId: targetStageId } : l))
-    );
-    if (selectedLead?.id === leadId) {
-      setSelectedLead((prev) => (prev ? { ...prev, stageId: targetStageId } : null));
-    }
-
-    if (token) {
-      try {
-        const resolvedStageId = targetStage?.id || targetStageId;
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedStageId);
-
-        if (isUuid) {
-          await fetch(`/api/leads/${leadId}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ stageId: resolvedStageId }),
-          });
-        }
-      } catch (err) {
-        console.error("Erro ao mover lead:", err);
-      }
+      return true;
+    } catch (err) {
+      undo();
+      notify(errorMessage(err, "Não foi possível mover o lead."), "error");
+      return false;
     }
   };
+
+  const handleDropLead = (leadId: string, targetStageId: string) =>
+    moveToStage(leadId, targetStageId, "Lead atualizado com sucesso!");
 
   const handleAdvanceStage = (leadId: string) => {
     const lead = leads.find((l) => l.id === leadId);
     if (!lead) return;
     const currentIdx = findLeadStageIndex(lead, stages);
-    if (currentIdx < stages.length - 1) {
-      const nextStage = stages[currentIdx + 1];
-      handleDropLead(leadId, nextStage.id);
-      setToastMessage(`Lead avançado para "${nextStage.nome}"!`);
-    } else {
-      setToastMessage("Lead já está na última etapa do funil!");
+    if (currentIdx >= stages.length - 1) {
+      notify("Lead já está na última etapa do funil!", "info");
+      return;
     }
+    const nextStage = stages[currentIdx + 1];
+    moveToStage(leadId, nextStage.id, `Lead avançado para "${nextStage.nome}"!`);
   };
 
   const handleChangeStage = (leadId: string, targetStageId: string) => {
-    handleDropLead(leadId, targetStageId);
     const targetStage = stages.find((s) => s.id === targetStageId);
-    setToastMessage(`Etapa alterada para "${targetStage?.nome || "Nova etapa"}"!`);
+    moveToStage(leadId, targetStageId, `Etapa alterada para "${targetStage?.nome || "nova etapa"}"!`);
   };
 
-  const handleMoveToBolsao = (leadId: string) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, isBolsao: true } : l))
-    );
-    if (selectedLead?.id === leadId) {
-      setSelectedLead((prev) => (prev ? { ...prev, isBolsao: true } : null));
+  const runAction = async (leadId: string, body: Record<string, unknown>, success: string, fallback: string) => {
+    try {
+      const updated = await patchLead(leadId, body);
+      replaceLead(updated);
+      notify(success);
+      return true;
+    } catch (err) {
+      notify(errorMessage(err, fallback), "error");
+      return false;
     }
-    setToastMessage("Lead transferido para o Bolsão de Oportunidades!");
   };
 
-  const handleDeleteLead = (leadId: string) => {
-    setLeads((prev) => prev.filter((l) => l.id !== leadId));
-    setToastMessage("Lead excluído com sucesso.");
-  };
+  const handleMoveToBolsao = (leadId: string) =>
+    runAction(leadId, { action: "MOVER_BOLSAO" }, "Lead transferido para o Bolsão de Oportunidades!", "Não foi possível mover o lead para o bolsão.");
 
-  const handleUpdateTags = (leadId: string, tags: string[]) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, tags } : l))
-    );
-    setToastMessage("Etiquetas atualizadas!");
-  };
+  const handleTakeoverBolsao = (leadId: string) =>
+    runAction(leadId, { action: "ASSUMIR_BOLSAO" }, "Lead assumido com sucesso! SLA de 20 minutos iniciado.", "Não foi possível assumir o lead.");
 
-  const handleCreateManualLead = async (leadData: {
-    nome: string;
-    telefone: string;
-    email?: string;
-    empreendimentoInteresse?: string;
-    temperatura?: "FRIO" | "MORNO" | "QUENTE";
-    origem?: string;
-    rendaDeclarada?: number;
-    stageId?: string;
-    funil?: string;
-    observacoes?: string;
-  }) => {
-    const leadId = `lead-${Date.now()}`;
-    const nowIso = new Date().toISOString();
-
-    const newManualLead: LeadDetail = {
-      id: leadId,
-      nome: leadData.nome,
-      telefone: leadData.telefone,
-      email: leadData.email,
-      empreendimentoInteresse: leadData.empreendimentoInteresse || "Reserva Imperial",
-      temperatura: leadData.temperatura || "MORNO",
-      source: leadData.origem || "Manual / Corretor",
-      rendaDeclarada: leadData.rendaDeclarada || null,
-      stageId: leadData.stageId || stages[0]?.id || "stage-1",
-      score: leadData.temperatura === "QUENTE" ? 85 : leadData.temperatura === "MORNO" ? 60 : 38,
-      observacoes: leadData.observacoes || null,
-      tags: [
-        leadData.temperatura === "QUENTE" ? "Cliente Quente" : "Potencial",
-        leadData.origem || "Manual",
-      ],
-      createdAt: nowIso,
-    };
-
-    setLeads((prev) => [newManualLead, ...prev]);
-    setToastMessage("Lead cadastrado com sucesso!");
-
-    // Se informou observações iniciais, grava no histórico de abordagens local
-    if (leadData.observacoes && typeof window !== "undefined") {
-      try {
-        const storageKey = `connect_platz_lead_abordagens_${leadId}`;
-        const now = new Date();
-        const timeStr = `Hoje às ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-        const initialObs = [
-          {
-            id: `obs-init-${Date.now()}`,
-            canal: "anotacao",
-            desfecho: "respondeu",
-            conteudo: leadData.observacoes,
-            corretorNome: "Corretor Responsável",
-            dataHora: timeStr,
-          },
-        ];
-        localStorage.setItem(storageKey, JSON.stringify(initialObs));
-      } catch {}
+  const handleDeleteLead = async (leadId: string) => {
+    const lead = leads.find((l) => l.id === leadId);
+    if (typeof window !== "undefined" && !window.confirm(`Excluir definitivamente o lead "${lead?.nome || ""}"?`)) return;
+    try {
+      await deleteLead(leadId);
+      setLeads((prev) => prev.filter((l) => l.id !== leadId));
+      if (selectedLead?.id === leadId) setSelectedLead(null);
+      notify("Lead excluído com sucesso.");
+    } catch (err) {
+      notify(errorMessage(err, "Não foi possível excluir o lead."), "error");
     }
+  };
 
-    if (token) {
-      try {
-        await fetch("/api/leads", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(leadData),
-        });
-      } catch (err) {
-        console.error("Erro ao persistir lead:", err);
-      }
+  const handleUpdateTags = async (leadId: string, tags: string[]) => {
+    const undo = applyLocal(leadId, { tags });
+    try {
+      replaceLead(await patchLead(leadId, { tags }));
+      notify("Etiquetas atualizadas!");
+    } catch (err) {
+      undo();
+      notify(errorMessage(err, "Não foi possível salvar as etiquetas."), "error");
+    }
+  };
+
+  const handleCreateManualLead = async (form: NewLeadFormData): Promise<boolean> => {
+    try {
+      const created = await createLead({
+        nome: form.nome,
+        telefone: form.telefone,
+        email: form.email,
+        cpf: form.cpf,
+        bairro: form.bairro,
+        cidade: form.cidade,
+        empreendimentoInteresse: form.empreendimentoInteresse,
+        origem: form.origem,
+        renda: form.rendaDeclarada,
+        etapaId: form.stageId,
+        funnelId,
+        observacoes: form.observacoes,
+      });
+      setLeads((prev) => [created, ...prev]);
+      notify("Lead cadastrado com sucesso!");
+      return true;
+    } catch (err) {
+      notify(errorMessage(err, "Não foi possível cadastrar o lead."), "error");
+      return false;
+    }
+  };
+
+  const handleSaveEditLead = async (original: LeadDetail, updated: LeadDetail): Promise<boolean> => {
+    try {
+      const saved = await patchLead(updated.id, {
+        nome: updated.nome,
+        telefone: updated.telefone,
+        email: updated.email || "",
+        cpf: updated.cpf || "",
+        rg: updated.rg || "",
+        estadoCivil: updated.estadoCivil || "",
+        profissao: updated.profissao || "",
+        rendaDeclarada: updated.rendaDeclarada ?? undefined,
+        origem: updated.source !== original.source ? updated.source : undefined,
+        observacoes: updated.observacoes || "",
+        bairrosInteresse: updated.bairrosInteresse,
+        ...(updated.stageId !== original.stageId ? { stageId: updated.stageId } : {}),
+      });
+      replaceLead(saved);
+      notify("Lead atualizado com sucesso!");
+      return true;
+    } catch (err) {
+      notify(errorMessage(err, "Não foi possível salvar o lead."), "error");
+      return false;
+    }
+  };
+
+  const handleConfirmDiscard = async (leadId: string, motivo: string, obs?: string) => {
+    try {
+      await addTimelineEntry(leadId, {
+        tipo: "descarte",
+        motivo,
+        conteudo: `Oportunidade encerrada. Motivo: ${motivo}${obs ? ` — ${obs}` : ""}`,
+      });
+      setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, statusLabel: `Encerrado: ${motivo}` } : l)));
+      setDiscardLeadTarget?.(null);
+      notify(`Oportunidade encerrada (${motivo}).`);
+    } catch (err) {
+      notify(errorMessage(err, "Não foi possível registrar o motivo do encerramento."), "error");
     }
   };
 
@@ -184,8 +201,11 @@ export function useLeadsActions({
     handleAdvanceStage,
     handleChangeStage,
     handleMoveToBolsao,
+    handleTakeoverBolsao,
     handleDeleteLead,
     handleUpdateTags,
     handleCreateManualLead,
+    handleSaveEditLead,
+    handleConfirmDiscard,
   };
 }

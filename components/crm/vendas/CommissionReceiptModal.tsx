@@ -23,29 +23,41 @@ export function CommissionReceiptModal({
   sale,
   onClose,
 }: CommissionReceiptModalProps) {
+  // Hooks antes de qualquer retorno antecipado (regras de hooks)
+  const [selectedParticipantIdx, setSelectedParticipantIdx] = useState(0);
+
   if (!sale) return null;
 
-  // Participantes elegíveis para recibo (Corretores, Gerente, Gestor, Captador)
-  const participants = sale.splits && sale.splits.length > 0
-    ? sale.splits.map((s) => ({
-        categoria: s.categoria,
-        nome: s.beneficiario,
-        valor: s.valor,
-        percentual: s.percentual,
-        pix: s.pix || "Chave PIX Cadastrada no Sistema",
-      }))
-    : [
-        {
-          categoria: "Corretor Titular",
-          nome: sale.corretorTitular || "Corretor Responsável",
-          valor: sale.comissaoTotal * 0.45,
-          percentual: 45,
-          pix: "Chave PIX Cadastrada no Sistema",
-        },
-      ];
+  // Participantes elegíveis para recibo: apenas splits reais da venda (sem valores estimados)
+  const participants = (sale.splits || [])
+    .filter((s) => s.tipo !== "IMOBILIARIA")
+    .map((s) => ({
+      categoria: s.categoria,
+      nome: s.beneficiario,
+      valor: s.valor,
+      percentual: s.percentual,
+      pix: s.pix || "Chave PIX não informada",
+      dataPagamento: s.dataPagamento || null,
+    }));
 
-  const [selectedParticipantIdx, setSelectedParticipantIdx] = useState(0);
   const currentParticipant = participants[selectedParticipantIdx] || participants[0];
+
+  if (!currentParticipant) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+        <div className="bg-card border border-border w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center space-y-3">
+          <FileText className="w-6 h-6 mx-auto text-muted-foreground" />
+          <p className="text-sm font-semibold text-foreground">Nenhum participante com comissão nesta venda.</p>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-muted text-foreground text-xs font-semibold hover:bg-muted/70"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const formatCurrency = (val: number) =>
     val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -59,9 +71,9 @@ export function CommissionReceiptModal({
       valor: currentParticipant.valor,
       parcelaNumero: 1,
       totalParcelas: 1,
-      dataPagamento: sale.dataVenda,
+      dataPagamento: currentParticipant.dataPagamento || "Pendente",
       imovelNome: sale.imovelNome,
-      unidadeNumero: sale.unidadeNumero || "Unidade Padrão",
+      unidadeNumero: sale.unidadeNumero || "—",
       compradorNome: sale.compradorNome,
     });
   };
@@ -148,9 +160,6 @@ export function CommissionReceiptModal({
               </h2>
               <p className="text-[11px] font-bold text-amber-600 tracking-wider uppercase">
                 Recibo de Liquidação de Honorários e Comissões
-              </p>
-              <p className="text-[10px] text-slate-500 mt-0.5">
-                CRECI 12345-J • CNPJ: 00.000.000/0001-00 • Sede Fortaleza/CE
               </p>
             </div>
 

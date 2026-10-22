@@ -29,6 +29,7 @@ export function ImageUploadZone({
       for (let i = 0; i < files.length; i++) {
         formData.append("files", files[i]);
       }
+      formData.append("folder", "properties");
 
       const res = await fetch("/api/upload", {
         method: "POST",
@@ -69,10 +70,10 @@ export function ImageUploadZone({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="block text-slate-300 font-bold text-xs uppercase tracking-wider">
+        <label className="block text-foreground font-bold text-xs uppercase tracking-wider">
           {label}
         </label>
-        <span className="text-[11px] text-slate-400">
+        <span className="text-[11px] text-muted-foreground">
           {images.length} de {maxImages} fotos anexadas
         </span>
       </div>
@@ -89,7 +90,7 @@ export function ImageUploadZone({
         className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
           dragOver
             ? "border-connect-blue bg-connect-blue/10 scale-[1.01]"
-            : "border-[#1C2537] hover:border-connect-blue/50 bg-[#080C14] hover:bg-[#0A0E17]"
+            : "border-border hover:border-connect-blue/50 bg-muted/40 hover:bg-muted/60"
         }`}
       >
         <input
@@ -112,10 +113,10 @@ export function ImageUploadZone({
               <div className="w-12 h-12 rounded-xl bg-connect-blue/15 flex items-center justify-center text-connect-blue mb-1">
                 <UploadCloud className="w-6 h-6" />
               </div>
-              <p className="text-xs font-extrabold text-white">
+              <p className="text-xs font-extrabold text-foreground">
                 Clique para anexar imagens ou arraste para cá
               </p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-muted-foreground">
                 Suporta PNG, JPG, JPEG e WebP (até 10MB por foto)
               </p>
             </>
@@ -129,7 +130,7 @@ export function ImageUploadZone({
           {images.map((url, idx) => (
             <div
               key={idx}
-              className="relative group rounded-xl overflow-hidden border border-[#1C2537] bg-[#0A0E17] aspect-video"
+              className="relative group rounded-xl overflow-hidden border border-border bg-card aspect-video"
             >
               <img src={url} alt={`Anexo ${idx + 1}`} className="w-full h-full object-cover" />
 
@@ -149,7 +150,7 @@ export function ImageUploadZone({
                       e.stopPropagation();
                       handleSetPrimary(idx);
                     }}
-                    className="p-1 rounded bg-[#111827] text-[#D9BB4C] hover:bg-[#D9BB4C] hover:text-black transition-colors"
+                    className="p-1 rounded bg-muted text-platz-gold hover:bg-platz-gold hover:text-black transition-colors"
                     title="Definir como foto de capa"
                   >
                     <Star className="w-3.5 h-3.5 fill-current" />
@@ -161,7 +162,7 @@ export function ImageUploadZone({
                     e.stopPropagation();
                     handleRemove(idx);
                   }}
-                  className="p-1 rounded bg-red-950 text-red-400 hover:bg-red-800 hover:text-white transition-colors"
+                  className="p-1 rounded bg-red-500/15 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-colors"
                   title="Remover foto"
                 >
                   <X className="w-3.5 h-3.5" />

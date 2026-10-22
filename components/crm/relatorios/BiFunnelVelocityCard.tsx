@@ -1,14 +1,22 @@
 "use client";
 
 import React from "react";
-import { Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { FUNNEL_EFFICIENCY_DATA } from "./biData";
+import { Clock, AlertTriangle, CheckCircle2, Filter } from "lucide-react";
+import { EmptyState } from "@/components/crm/primitives/EmptyState";
+import type { BiFunnelStageMetric } from "./types";
 
-export function BiFunnelVelocityCard() {
-  const totalHorasCiclo = FUNNEL_EFFICIENCY_DATA.reduce(
-    (acc, stage) => acc + stage.tempoHoras,
-    0
-  );
+interface BiFunnelVelocityCardProps {
+  funil: string | null;
+  stages: BiFunnelStageMetric[];
+}
+
+/** Velocidade do funil (dados reais de /api/relatorios): tempo médio na etapa x SLA e taxa de passagem. */
+export function BiFunnelVelocityCard({ funil, stages }: BiFunnelVelocityCardProps) {
+  const totalHorasCiclo = stages.reduce((acc, stage) => acc + stage.tempoHoras, 0);
+  // Pior gargalo = etapa com maior excesso sobre o SLA configurado
+  const bottleneck = stages
+    .filter((s) => s.status === "critico" && s.slaHoras)
+    .sort((a, b) => b.tempoHoras - (b.slaHoras || 0) - (a.tempoHoras - (a.slaHoras || 0)))[0];
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between h-full space-y-4">
@@ -23,7 +31,7 @@ export function BiFunnelVelocityCard() {
               Velocidade de Funil & Gargalos de SLA
             </h3>
             <p className="text-[11px] text-muted-foreground">
-              Tempo médio de permanência e taxa de avanço
+              {funil ? `${funil} • tempo médio de permanência e taxa de avanço` : "Tempo médio de permanência e taxa de avanço"}
             </p>
           </div>
         </div>
@@ -36,9 +44,18 @@ export function BiFunnelVelocityCard() {
         </div>
       </div>
 
+      {stages.length === 0 && (
+        <EmptyState
+          icon={Filter}
+          title="Nenhum funil com leads no período"
+          description="Cadastre etapas e capte leads para medir o tempo de permanência por etapa."
+          className="flex-1"
+        />
+      )}
+
       {/* Grid 3x2: 3 colunas x 2 linhas para garantir leitura total sem truncamento */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 flex-1">
-        {FUNNEL_EFFICIENCY_DATA.map((stage, idx) => {
+        {stages.map((stage, idx) => {
           const isBottleneck = stage.status === "critico";
           const isWarning = stage.status === "alerta";
 
@@ -55,8 +72,9 @@ export function BiFunnelVelocityCard() {
             >
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-mono font-bold text-muted-foreground">
-                    0{idx + 1}
+                  <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-muted-foreground">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.cor }} />
+                    {String(idx + 1).padStart(2, "0")}
                   </span>
                   {isBottleneck ? (
                     <span className="flex items-center gap-1 text-[9px] font-extrabold text-red-500 uppercase bg-red-500/10 px-1.5 py-0.5 rounded-full border border-red-500/20 animate-pulse">
@@ -84,8 +102,11 @@ export function BiFunnelVelocityCard() {
                     {stage.tempoHoras}h
                   </span>
                   <span className="text-[10px] text-muted-foreground">
-                    / SLA {stage.slaHoras}h
+                    {stage.slaHoras ? `/ SLA ${stage.slaHoras}h` : "/ sem SLA"}
                   </span>
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  {stage.leadsAbertos} {stage.leadsAbertos === 1 ? "lead aberto" : "leads abertos"}
                 </div>
               </div>
 
@@ -95,12 +116,14 @@ export function BiFunnelVelocityCard() {
                     className={`h-full rounded-full ${
                       isBottleneck ? "bg-red-500" : isWarning ? "bg-amber-500" : "bg-connect-blue"
                     }`}
-                    style={{ width: `${stage.taxaPassagem}%` }}
+                    style={{ width: `${Math.min(100, stage.taxaPassagem ?? 0)}%` }}
                   />
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                   <span>Passagem</span>
-                  <span className="font-semibold text-foreground font-mono">{stage.taxaPassagem}%</span>
+                  <span className="font-semibold text-foreground font-mono">
+                    {stage.taxaPassagem === null ? "—" : `${stage.taxaPassagem}%`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -108,13 +131,21 @@ export function BiFunnelVelocityCard() {
         })}
       </div>
 
-      {/* Alerta de Diagnóstico Compacto */}
-      <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2.5 text-xs text-red-700 dark:text-red-300">
-        <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
-        <div className="leading-tight">
-          <strong>Gargalo Operacional:</strong> A etapa de <strong>Análise de Crédito</strong> excede o SLA em +18h devido a pendências de comprovação de renda.
+      {/* Diagnóstico calculado (sem texto fixo) */}
+      {bottleneck ? (
+        <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2.5 text-xs text-red-700 dark:text-red-300">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+          <div className="leading-tight">
+            <strong>Gargalo Operacional:</strong> a etapa <strong>{bottleneck.etapa}</strong> excede o SLA em +
+            {(bottleneck.tempoHoras - (bottleneck.slaHoras || 0)).toFixed(1)}h (média dos leads abertos).
+          </div>
         </div>
-      </div>
+      ) : stages.length > 0 ? (
+        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2.5 text-xs text-emerald-700 dark:text-emerald-300">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+          <div className="leading-tight">Nenhuma etapa acima do SLA configurado.</div>
+        </div>
+      ) : null}
     </div>
   );
 }

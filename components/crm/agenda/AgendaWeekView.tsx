@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Clock, User, Plus } from "lucide-react";
-import { AppointmentItem, getTypeConfig } from "./types";
+import { AppointmentItem, getTypeConfig, localDateKey } from "./types";
 
 interface AgendaWeekViewProps {
   appointments: AppointmentItem[];
@@ -34,25 +34,25 @@ export function AgendaWeekView({
     return day;
   });
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateKey(new Date());
   const [selectedMobileDate, setSelectedMobileDate] = React.useState<string>(() => {
-    const todayInWeek = weekDays.find((d) => d.toISOString().slice(0, 10) === todayStr);
-    return todayInWeek ? todayStr : weekDays[0].toISOString().slice(0, 10);
+    const todayInWeek = weekDays.find((d) => localDateKey(d) === todayStr);
+    return todayInWeek ? todayStr : localDateKey(weekDays[0]);
   });
 
   // Atualiza data selecionada se currentDate mudar
   React.useEffect(() => {
-    const currentStr = currentDate.toISOString().slice(0, 10);
-    const exists = weekDays.some((d) => d.toISOString().slice(0, 10) === currentStr);
+    const currentStr = localDateKey(currentDate);
+    const exists = weekDays.some((d) => localDateKey(d) === currentStr);
     if (exists) {
       setSelectedMobileDate(currentStr);
     } else {
-      setSelectedMobileDate(weekDays[0].toISOString().slice(0, 10));
+      setSelectedMobileDate(localDateKey(weekDays[0]));
     }
   }, [currentDate]);
 
   const selectedMobileApps = appointments.filter((a) =>
-    a.dataInicio.startsWith(selectedMobileDate)
+    localDateKey(a.dataInicio) === selectedMobileDate
   );
   selectedMobileApps.sort(
     (a, b) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime()
@@ -65,10 +65,10 @@ export function AgendaWeekView({
         {/* Carrossel dos dias da semana */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none px-1">
           {weekDays.map((dayDate) => {
-            const dateStr = dayDate.toISOString().slice(0, 10);
+            const dateStr = localDateKey(dayDate);
             const isSelected = dateStr === selectedMobileDate;
             const isToday = dateStr === todayStr;
-            const dayApps = appointments.filter((a) => a.dataInicio.startsWith(dateStr));
+            const dayApps = appointments.filter((a) => localDateKey(a.dataInicio) === dateStr);
             const weekdayName = dayDate.toLocaleDateString("pt-BR", { weekday: "short" });
             const dayNum = dayDate.getDate();
 
@@ -82,7 +82,7 @@ export function AgendaWeekView({
                     ? "bg-connect-blue text-white border-connect-blue shadow-md scale-[1.03]"
                     : isToday
                     ? "bg-connect-blue/10 border-connect-blue/40 text-connect-blue"
-                    : "bg-white dark:bg-[#0A0E17] border-slate-200 dark:border-[#1C2537] text-slate-700 dark:text-slate-300"
+                    : "bg-card border-border text-slate-700 dark:text-slate-300"
                 }`}
               >
                 <span className="text-[10px] font-bold uppercase tracking-wider block opacity-80">
@@ -95,7 +95,7 @@ export function AgendaWeekView({
                   className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full mt-0.5 ${
                     isSelected
                       ? "bg-white/25 text-white"
-                      : "bg-slate-100 dark:bg-[#161F30] text-slate-500 dark:text-slate-400"
+                      : "bg-muted text-slate-500 dark:text-slate-400"
                   }`}
                 >
                   {dayApps.length}
@@ -106,8 +106,8 @@ export function AgendaWeekView({
         </div>
 
         {/* Lista de compromissos do dia selecionado */}
-        <div className="bg-white dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1C2537] rounded-2xl p-4 shadow-sm space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-[#1C2537]">
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
             <span className="text-xs font-bold text-slate-800 dark:text-white capitalize">
               {new Date(`${selectedMobileDate}T12:00:00Z`).toLocaleDateString("pt-BR", {
                 weekday: "long",
@@ -150,7 +150,8 @@ export function AgendaWeekView({
                   <div
                     key={app.id}
                     onClick={() => onOpenOutcomeModal(app)}
-                    className={`p-3 rounded-xl border border-slate-200 dark:border-[#1C2537] ${config.bgTint} border-l-4 ${config.border} space-y-1.5 cursor-pointer shadow-xs active:scale-[0.99] transition-transform`}
+                    style={{ borderLeftColor: config.rawHex }}
+                    className={`p-3 rounded-xl border border-border border-l-[3px] ${config.bgTint} space-y-1.5 cursor-pointer shadow-xs active:scale-[0.99] transition-transform`}
                   >
                     <div className="flex items-center justify-between">
                       <span
@@ -187,10 +188,10 @@ export function AgendaWeekView({
       <div className="hidden md:block overflow-x-auto pb-4">
         <div className="grid grid-cols-7 gap-3 min-w-[850px]">
         {weekDays.map((dayDate) => {
-          const dateStr = dayDate.toISOString().slice(0, 10);
+          const dateStr = localDateKey(dayDate);
           const isToday = dateStr === todayStr;
 
-          const dayApps = appointments.filter((a) => a.dataInicio.startsWith(dateStr));
+          const dayApps = appointments.filter((a) => localDateKey(a.dataInicio) === dateStr);
           dayApps.sort((a, b) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime());
 
           const weekdayName = dayDate.toLocaleDateString("pt-BR", { weekday: "short" });
@@ -201,12 +202,12 @@ export function AgendaWeekView({
               key={dateStr}
               className={`flex flex-col rounded-2xl border transition-colors ${
                 isToday
-                  ? "bg-connect-blue/5 dark:bg-[#0E1726] border-connect-blue/40 shadow-sm"
-                  : "bg-white dark:bg-[#0A0E17] border-slate-200 dark:border-[#1C2537]"
+                  ? "bg-connect-blue/5 dark:bg-connect-blue/10 border-connect-blue/40 shadow-sm"
+                  : "bg-card border-border"
               }`}
             >
               {/* Day Column Header */}
-              <div className="p-3 border-b border-slate-200 dark:border-[#1C2537] flex items-center justify-between">
+              <div className="p-3 border-b border-border flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                     {weekdayName}
@@ -221,7 +222,7 @@ export function AgendaWeekView({
                     {dayNum}
                   </span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#161F30] text-slate-600 dark:text-slate-400">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-slate-600 dark:text-slate-400">
                   {dayApps.length}
                 </span>
               </div>
@@ -246,7 +247,8 @@ export function AgendaWeekView({
                       <div
                         key={app.id}
                         onClick={() => onOpenOutcomeModal(app)}
-                        className={`p-2.5 rounded-xl border border-slate-200/80 dark:border-[#1C2537] ${config.bgTint} hover:border-connect-blue/40 dark:hover:border-connect-blue/60 transition-all cursor-pointer shadow-xs space-y-1.5`}
+                        style={{ borderLeftColor: config.rawHex }}
+                        className={`p-2.5 rounded-xl border border-border border-l-[3px] ${config.bgTint} hover:border-connect-blue/40 transition-all cursor-pointer shadow-xs space-y-1.5`}
                       >
                         <div className="flex items-center justify-between">
                           <span

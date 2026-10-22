@@ -9,28 +9,36 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Share2, ArrowUpRight } from "lucide-react";
-import { CAMPAIGN_ROI_DATA } from "./biData";
+import { EmptyState } from "@/components/crm/primitives/EmptyState";
 import { useCrm } from "@/components/crm/CrmContext";
+import { formatCompactBRL } from "@/components/crm/dashboard/format";
+import type { BiChannelRoiMetric } from "./types";
 
-export function BiChannelDistributionCard() {
+const pct = (part: number, total: number) => (total > 0 ? ((part / total) * 100).toFixed(1) : "0.0");
+
+/** Distribuição de leads/VGV por origem (dados reais de /api/relatorios). */
+export function BiChannelDistributionCard({ channels }: { channels: BiChannelRoiMetric[] }) {
   const { hideValues } = useCrm();
   const [metricMode, setMetricMode] = useState<"vgv" | "leads">("vgv");
 
-  const totalVgv = CAMPAIGN_ROI_DATA.reduce((acc, c) => acc + c.vgv, 0);
-  const totalLeads = CAMPAIGN_ROI_DATA.reduce((acc, c) => acc + c.leads, 0);
+  const totalVgv = channels.reduce((acc, c) => acc + c.vgv, 0);
+  const totalLeads = channels.reduce((acc, c) => acc + c.leads, 0);
+  const totalActive = metricMode === "vgv" ? totalVgv : totalLeads;
 
-  const pieData = CAMPAIGN_ROI_DATA.map((c) => ({
-    name: c.canal.split(" ")[0],
-    fullName: c.canal,
-    value: metricMode === "vgv" ? c.vgv : c.leads,
-    percent:
-      metricMode === "vgv"
-        ? ((c.vgv / totalVgv) * 100).toFixed(1)
-        : ((c.leads / totalLeads) * 100).toFixed(1),
-    color: c.cor,
-    vgv: c.vgv,
-    leads: c.leads,
-  }));
+  const pieData = channels
+    .map((c) => ({
+      name: c.canal,
+      fullName: c.canal,
+      value: metricMode === "vgv" ? c.vgv : c.leads,
+      percent: metricMode === "vgv" ? pct(c.vgv, totalVgv) : pct(c.leads, totalLeads),
+      color: c.cor,
+      vgv: c.vgv,
+      leads: c.leads,
+      roi: c.roiMultiplicador,
+    }))
+    .filter((c) => c.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const leader = pieData[0];
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between h-full space-y-4">
@@ -71,7 +79,17 @@ export function BiChannelDistributionCard() {
         </div>
       </div>
 
+      {totalActive === 0 && (
+        <EmptyState
+          icon={Share2}
+          title={metricMode === "vgv" ? "Sem vendas no período" : "Sem leads captados no período"}
+          description="A distribuição por origem aparece assim que houver captações ou vendas registradas."
+          className="flex-1"
+        />
+      )}
+
       {/* Grid: Gráfico de Rosca à esquerda, lista de canais à direita */}
+      {totalActive > 0 && (
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center flex-1">
         <div className="md:col-span-5 h-48 relative flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
@@ -124,7 +142,7 @@ export function BiChannelDistributionCard() {
               {metricMode === "vgv"
                 ? hideValues
                   ? "••••"
-                  : `R$ ${(totalVgv / 1000000).toFixed(1)}M`
+                  : formatCompactBRL(totalVgv)
                 : `${totalLeads} contatos`}
             </span>
           </div>
@@ -149,7 +167,7 @@ export function BiChannelDistributionCard() {
                     {metricMode === "vgv"
                       ? hideValues
                         ? "••••"
-                        : `R$ ${(channel.vgv / 1000000).toFixed(1)}M`
+                        : formatCompactBRL(channel.vgv)
                       : `${channel.leads} un`}
                   </span>
                   <span className="text-muted-foreground text-[11px]">({channel.percent}%)</span>
@@ -170,17 +188,25 @@ export function BiChannelDistributionCard() {
           ))}
         </div>
       </div>
+      )}
 
-      {/* Resumo Rodapé: Canal Líder */}
-      <div className="p-2.5 rounded-xl bg-connect-blue/10 border border-connect-blue/20 flex items-center justify-between text-xs text-connect-blue dark:text-blue-300">
-        <div className="flex items-center gap-1.5">
-          <ArrowUpRight className="w-3.5 h-3.5" />
-          <span>
-            <strong>Canal Líder:</strong> Meta Ads responde por <strong>41.9%</strong> do VGV comercial.
-          </span>
+      {/* Resumo Rodapé: Canal Líder (calculado) */}
+      {leader && (
+        <div className="p-2.5 rounded-xl bg-connect-blue/10 border border-connect-blue/20 flex items-center justify-between gap-2 text-xs text-connect-blue dark:text-blue-300">
+          <div className="flex items-center gap-1.5">
+            <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              <strong>Canal Líder:</strong> {leader.fullName} responde por <strong>{leader.percent}%</strong>{" "}
+              {metricMode === "vgv" ? "do VGV do período." : "dos leads do período."}
+            </span>
+          </div>
+          {leader.roi !== null && (
+            <span className="font-bold font-mono text-[11px] hidden sm:inline-block">
+              ROI {leader.roi.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}x
+            </span>
+          )}
         </div>
-        <span className="font-bold font-mono text-[11px] hidden sm:inline-block">ROI 12.4x</span>
-      </div>
+      )}
     </div>
   );
 }

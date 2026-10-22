@@ -3,6 +3,8 @@
 import React from "react";
 import { MessageSquare, Phone } from "lucide-react";
 import { SlaBadge } from "@/components/crm/SlaBadge";
+import { buildWhatsAppUrl, defaultLeadGreeting, normalizeBrPhone } from "@/lib/utils/phone";
+import { registerFirstContact } from "./leadsApi";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { FunnelColumn } from "./KanbanBoard";
 import { ScoreBadge, LeadTag } from "@/components/crm/primitives";
@@ -41,7 +43,7 @@ export function LeadsTable({ leads, stages, onSelectLead }: LeadsTableProps) {
                 const scoreValue =
                   lead.score ??
                   (lead.temperatura === "QUENTE" ? 85 : lead.temperatura === "MORNO" ? 60 : 38);
-                const rawPhone = lead.telefone.replace(/\D/g, "");
+                const rawPhone = normalizeBrPhone(lead.telefone);
 
                 return (
                   <tr
@@ -74,6 +76,7 @@ export function LeadsTable({ leads, stages, onSelectLead }: LeadsTableProps) {
                       <div className="flex items-center justify-end gap-1.5">
                         <a
                           href={`tel:${rawPhone}`}
+                          onClick={() => registerFirstContact(lead, "ligacao")}
                           className="p-1 rounded-md text-connect-blue hover:bg-connect-blue/10 transition-colors"
                           title="Ligar"
                           aria-label="Ligar para lead"
@@ -81,7 +84,8 @@ export function LeadsTable({ leads, stages, onSelectLead }: LeadsTableProps) {
                           <Phone className="w-3.5 h-3.5" />
                         </a>
                         <a
-                          href={`https://wa.me/55${rawPhone}`}
+                          href={buildWhatsAppUrl(lead.telefone, defaultLeadGreeting(lead.nome))}
+                          onClick={() => registerFirstContact(lead, "whatsapp")}
                           target="_blank"
                           rel="noreferrer"
                           className="bg-[#22C55E]/15 hover:bg-[#22C55E]/25 border border-[#22C55E]/30 text-[#22C55E] text-[10px] font-bold py-1 px-2.5 rounded-lg inline-flex items-center gap-1 transition-colors"

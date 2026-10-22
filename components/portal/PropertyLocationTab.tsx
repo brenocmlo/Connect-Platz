@@ -16,7 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import type { PropertyItem } from "./types";
-import { formatCep } from "@/lib/services/location";
+import { formatCep, getGoogleMapsNavigationUrl, getWazeNavigationUrl } from "@/lib/services/location";
 
 interface PropertyLocationTabProps {
   property: PropertyItem;
@@ -28,9 +28,9 @@ interface LocationPayload {
   bairro: string;
   cidade: string;
   uf: string;
-  latitude: number;
-  longitude: number;
-  service: string;
+  latitude?: number;
+  longitude?: number;
+  service?: string;
   addressFormatted: string;
   wazeUrl: string;
   googleMapsUrl: string;
@@ -48,19 +48,27 @@ export function PropertyLocationTab({ property }: PropertyLocationTabProps) {
     async function fetchLocation() {
       setLoading(true);
       try {
-        const query = new URLSearchParams({
-          slug: property.slug || "",
-          bairro: property.bairro || "",
-          cidade: property.cidade || "",
-          estado: property.estado || "CE",
-          endereco: property.endereco || "",
-        });
+        // Somente parâmetros preenchidos: sem dados de localização a API responde 400
+        const query = new URLSearchParams();
+        const params: Record<string, unknown> = {
+          slug: property.slug,
+          cep: property.cep,
+          bairro: property.bairro,
+          cidade: property.cidade,
+          estado: property.estado,
+          endereco: property.endereco,
+          latitude: property.latitude,
+          longitude: property.longitude,
+        };
+        for (const [k, v] of Object.entries(params)) {
+          if (v !== null && v !== undefined && v !== "") query.set(k, String(v));
+        }
         const res = await fetch(`/api/location/property?${query.toString()}`);
         if (res.ok) {
           const json = await res.json();
-          if (mounted && json.data) {
-            setData(json.data);
-          }
+          if (mounted && json.data) setData(json.data);
+        } else if (mounted) {
+          setData(null);
         }
       } catch (err) {
         console.error("Erro ao carregar dados de localização:", err);
@@ -76,7 +84,9 @@ export function PropertyLocationTab({ property }: PropertyLocationTabProps) {
   }, [property]);
 
   const handleCopy = () => {
-    const textToCopy = data?.addressFormatted || `${property.endereco || property.nome}, ${property.bairro}, ${property.cidade} - ${property.estado}`;
+    const textToCopy =
+      data?.addressFormatted ||
+      [property.endereco, property.bairro, [property.cidade, property.estado].filter(Boolean).join(" - ")].filter(Boolean).join(", ");
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -99,14 +109,34 @@ export function PropertyLocationTab({ property }: PropertyLocationTabProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-3 text-portal-slate">
         <Loader2 className="w-6 h-6 animate-spin text-connect-blue" />
-        <span className="text-xs font-semibold">Consultando API de Localização (BrasilAPI / ViaCEP)...</span>
+        <span className="text-xs font-semibold">Consultando localização do imóvel...</span>
       </div>
     );
   }
 
-  const lat = data?.latitude || -3.7280;
-  const lng = data?.longitude || -38.4968;
-  const serviceName = data?.service === "brasilapi" ? "BrasilAPI v2 (Georreferenciada)" : "ViaCEP / OpenStreetMap";
+  const lat = data?.latitude;
+  const lng = data?.longitude;
+  const hasCoords = typeof lat === "number" && typeof lng === "number";
+  const serviceName =
+    data?.service === "informado"
+      ? "Coordenadas cadastradas do imóvel"
+      : data?.service === "nominatim"
+      ? "OpenStreetMap (endereço geocodificado)"
+      : data?.service === "brasilapi-centroide"
+      ? "BrasilAPI (aproximado pelo município)"
+      : "Endereço sem coordenadas";
+  const enderecoFallback = [property.endereco, property.bairro, [property.cidade, property.estado].filter(Boolean).join(" - ")]
+    .filter(Boolean)
+    .join(", ");
+
+  if (!data && !enderecoFallback) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-portal-slate">
+        <MapPin className="h-6 w-6 text-connect-blue" />
+        <span className="text-xs font-semibold">Localização não informada para este imóvel.</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 text-xs">
@@ -162,16 +192,19 @@ export function PropertyLocationTab({ property }: PropertyLocationTabProps) {
               Coordenadas de Satélite (GPS)
             </span>
             <p className="font-mono font-bold text-portal-ink text-xs">
-              {lat.toFixed(5)}, {lng.toFixed(5)}
+              {hasCoords ? `${lat!.toFixed(5)}, ${lng!.toFixed(5)}` : "Não disponível"}
             </p>
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-              <Compass className="w-3 h-3" /> Ponto Georreferenciado Oficial
-            </p>
+            {hasCoords && (
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                <Compass className="w-3 h-3" /> {data?.service === "brasilapi-centroide" ? "Ponto aproximado" : "Ponto georreferenciado"}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       {/* 3. Mapa Interativo (Maptech com tiles otimizados) */}
+      {hasCoords && (
       <div className="relative rounded-xl overflow-hidden border border-portal-line bg-portal-navy/5 shadow-inner">
         <div className="h-44 w-full relative">
           <iframe
@@ -182,7 +215,7 @@ export function PropertyLocationTab({ property }: PropertyLocationTabProps) {
             scrolling="no"
             marginHeight={0}
             marginWidth={0}
-            src={data?.osmEmbedUrl || `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005}%2C${lat - 0.005}%2C${lng + 0.005}%2C${lat + 0.005}&layer=mapnik&marker=${lat}%2C${lng}`}
+            src={data?.osmEmbedUrl}
             className="w-full h-full filter saturate-150 contrast-105"
           />
           {/* Card Flutuante com Nome do Imóvel */}
@@ -192,6 +225,7 @@ export function PropertyLocationTab({ property }: PropertyLocationTabProps) {
           </div>
         </div>
       </div>
+      )}
 
       {/* 4. Pontos de Interesse e Mobilidade da Região */}
       {data?.pois && data.pois.length > 0 && (
@@ -216,7 +250,7 @@ export function PropertyLocationTab({ property }: PropertyLocationTabProps) {
       {/* 5. Ações Rápidas de Navegação (Waze & Google Maps) */}
       <div className="pt-2 border-t border-portal-line flex flex-col sm:flex-row gap-2">
         <a
-          href={data?.wazeUrl || `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`}
+          href={data?.wazeUrl || getWazeNavigationUrl({ address: enderecoFallback })}
           target="_blank"
           rel="noreferrer"
           className="flex-1 h-10 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all hover:scale-[1.01]"
@@ -226,7 +260,7 @@ export function PropertyLocationTab({ property }: PropertyLocationTabProps) {
         </a>
 
         <a
-          href={data?.googleMapsUrl || `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
+          href={data?.googleMapsUrl || getGoogleMapsNavigationUrl({ address: enderecoFallback })}
           target="_blank"
           rel="noreferrer"
           className="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all hover:scale-[1.01]"

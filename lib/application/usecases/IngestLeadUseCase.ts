@@ -1,6 +1,8 @@
 import { ILeadRepository } from "@/lib/core/interfaces/ILeadRepository";
 import { DistributeLeadUseCase } from "./DistributeLeadUseCase";
 import { LeadSource, LeadTemperature } from "@prisma/client";
+import { normalizeBrPhone } from "@/lib/utils/phone";
+import { refreshLeadScore } from "@/lib/services/lead-score";
 
 export interface IngestLeadDto {
   organizationId: string;
@@ -19,6 +21,8 @@ export interface IngestLeadDto {
   utmCampaign?: string;
   utmContent?: string;
   slaMinutes?: number;
+  mensagem?: string; // mensagem livre enviada pelo cliente (registrada na timeline)
+  allowMissingContact?: boolean; // ex.: Meta sem acesso à Graph API — lead entra como "contato pendente"
 }
 
 export interface IngestLeadResult {
@@ -38,7 +42,10 @@ export class IngestLeadUseCase {
   ) {}
 
   async execute(dto: IngestLeadDto): Promise<IngestLeadResult> {
-    const cleanPhone = dto.telefone.replace(/\D/g, "");
+    const cleanPhone = normalizeBrPhone(dto.telefone);
+    if (!cleanPhone && !dto.email && !dto.allowMissingContact) {
+      throw new Error("Informe ao menos telefone ou e-mail do lead.");
+    }
 
     // 1. DEDUPLICAÇÃO VIA REPOSITÓRIO
     const existing = await this.leadRepo.findDuplicate(
@@ -51,7 +58,7 @@ export class IngestLeadUseCase {
       await this.leadRepo.addTimeline({
         leadId: existing.id,
         tipo: "nota",
-        conteudo: `RECAPTURA: Lead reincidente pela campanha "${dto.campaignName || "Origem Externa"}".`,
+        conteudo: `RECAPTURA: Lead reincidente pela campanha "${dto.campaignName || "Origem Externa"}".${dto.mensagem ? ` Mensagem: "${dto.mensagem}"` : ""}`,
       });
 
       return {
@@ -106,8 +113,19 @@ export class IngestLeadUseCase {
       },
     });
 
+    if (dto.mensagem) {
+      await this.leadRepo.addTimeline({
+        leadId: createdLead.id,
+        tipo: "nota",
+        conteudo: `MENSAGEM DO CLIENTE: "${dto.mensagem}"`,
+      });
+    }
+
+    // 5. SCORE DETERMINÍSTICO INICIAL
+    const scored = await refreshLeadScore(createdLead.id);
+
     return {
-      lead: createdLead,
+      lead: scored ? { ...createdLead, score: scored.score, temperatura: scored.temperatura } : createdLead,
       isDuplicate: false,
       message: roletaResult.reason,
     };

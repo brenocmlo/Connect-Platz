@@ -1,245 +1,360 @@
+// app/api/vendas/route.ts
+// Vendas e Comissões: listagem com RBAC e registro de venda com split determinístico,
+// lançamentos no Fluxo de Caixa e auditoria.
+
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken } from "@/lib/auth/jwt";
-import { prisma } from "@/lib/db/prisma";
+import { z } from "zod";
 import {
+  Prisma,
   PaymentMethod,
   PaymentStatus,
+  CashFlowType,
   CommissionBeneficiaryType,
   LeadSource,
   LeadTemperature,
 } from "@prisma/client";
-import { z } from "zod";
+import { prisma } from "@/lib/db/prisma";
+import { requireSession, isManager } from "@/lib/auth/session";
+import { recordAudit } from "@/lib/services/audit-server";
+import { normalizeBrPhone } from "@/lib/utils/phone";
+import {
+  calculateSaleValues,
+  ROLE_TO_BENEFICIARY,
+  ParticipantRole,
+} from "@/components/crm/vendas/saleSplitHelper";
+import { saleInclude, serializeSale, splitCashFlowDescription } from "./serialize";
 
 export const dynamic = "force-dynamic";
 
-const CreateSaleSchema = z.object({
-  codigoVenda: z.string().min(3),
-  imovelNome: z.string().min(2),
-  construtora: z.string().optional().default("Platz Empreendimentos"),
-  unidadeNumero: z.string().optional().default("101"),
-  compradorNome: z.string().min(2),
-  corretorTitular: z.string().min(2),
-  segundoCorretor: z.string().optional(),
-  gerente: z.string().optional().default("Mariana Oliveira"),
-  gestor: z.string().optional().default("Diretoria Platz"),
-  captador: z.string().optional().default("Rafael Mendes"),
-  dataVenda: z.string(),
-  vgv: z.number().positive(),
-  valorAvaliacao: z.number().optional(),
-  comissaoTotal: z.number().positive(),
-  impostoValor: z.number().optional().default(0),
-  impostoPercentual: z.number().optional().default(6),
-  proximoPagamento: z.string().optional(),
-  meioPagamento: z.string().optional().default("TED"),
-  status: z.string().optional().default("APROVADA"),
-  splits: z
-    .array(
-      z.object({
-        beneficiario: z.string(),
-        categoria: z.string(),
-        percentual: z.number().optional(),
-        valor: z.number().positive(),
-        status: z.enum(["PAGO", "PENDENTE"]).default("PENDENTE"),
-        pix: z.string().optional(),
-      })
-    )
-    .optional(),
-});
-
-function getSessionContext(req: NextRequest) {
-  const cookieToken = req.cookies.get("connect_platz_token")?.value;
-  const authHeader = req.headers.get("authorization");
-  const token = cookieToken || authHeader?.replace("Bearer ", "");
-  if (!token) return null;
-  return verifySessionToken(token);
-}
-
 export async function GET(req: NextRequest) {
+  const auth = requireSession(req);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+
   try {
-    const session = getSessionContext(req);
-    if (!session) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
+    const sales = await prisma.sale.findMany({
+      where: {
+        organizationId: session.organizationId,
+        // Corretor vê apenas vendas em que é titular ou participante do split
+        ...(isManager(session.role)
+          ? {}
+          : {
+              OR: [
+                { corretorId: session.userId },
+                { commissionSplits: { some: { userId: session.userId } } },
+              ],
+            }),
+      },
+      include: saleInclude,
+      orderBy: { dataVenda: "desc" },
+    });
 
-    const orgId = session.organizationId;
-
-    try {
-      const sales = await prisma.sale.findMany({
-        where: { organizationId: orgId },
-        include: {
-          corretorTitular: { select: { id: true, nome: true, email: true } },
-          property: { select: { id: true, nome: true } },
-          lead: { select: { id: true, nome: true, telefone: true } },
-          commissionSplits: true,
-        },
-        orderBy: { dataVenda: "desc" },
-      });
-
-      if (sales && sales.length > 0) {
-        const formatted = sales.map((s) => ({
-          id: s.id,
-          codigoVenda: s.codigoVenda,
-          imovelNome: s.property?.nome || "Imóvel Connect Platz",
-          construtora: "Platz Empreendimentos",
-          unidadeNumero: "Unidade Principal",
-          compradorNome: s.lead?.nome || "Cliente Venda",
-          corretorTitular: s.corretorTitular?.nome || "Corretor",
-          dataVenda: s.dataVenda.toLocaleDateString("pt-BR"),
-          vgv: Number(s.valorVendaVGV),
-          valorAvaliacao: s.valorAvaliacao ? Number(s.valorAvaliacao) : Number(s.valorVendaVGV),
-          comissaoTotal: Number(s.valorComissaoTotal),
-          impostoValor: Number(s.valorComissaoTotal) * 0.06,
-          impostoPercentual: 6,
-          proximoPagamento: s.commissionSplits[0]?.dataVencimento
-            ? s.commissionSplits[0].dataVencimento.toLocaleDateString("pt-BR")
-            : "10/10/2026",
-          meioPagamento: s.meioPagamento,
-          status: s.status,
-          splits: s.commissionSplits.map((sp) => ({
-            id: sp.id,
-            beneficiario: sp.nomeBeneficiario,
-            categoria: sp.beneficiarioTipo,
-            percentual: sp.percentual ? Number(sp.percentual) : 0,
-            valor: Number(sp.valor),
-            status: sp.status === PaymentStatus.PAGO ? "PAGO" : "PENDENTE",
-            pix: sp.documentoPix || undefined,
-          })),
-        }));
-
-        return NextResponse.json({ sales: formatted }, { status: 200 });
-      }
-    } catch {
-      // Fallback para desenvolvimento local
-    }
-
-    return NextResponse.json({ sales: [] }, { status: 200 });
+    return NextResponse.json({ sales: sales.map(serializeSale) }, { status: 200 });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || "Erro ao listar vendas." },
-      { status: 500 }
-    );
+    console.error("[VENDAS] Erro ao listar vendas:", err?.message);
+    return NextResponse.json({ error: "Erro ao listar vendas." }, { status: 500 });
   }
 }
 
+const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use AAAA-MM-DD).");
+
+const ParticipantSchema = z.object({
+  role: z.enum(["CORRETOR_1", "CORRETOR_2", "GERENTE", "GESTOR", "CAPTADOR"]),
+  userId: z.string().uuid("Participante inválido."),
+  percentual: z.number().min(0).max(100),
+  desconto: z.number().nonnegative().optional().default(0),
+  bonus: z.number().nonnegative().optional().default(0),
+  documentoPix: z.string().trim().max(140).optional(),
+});
+
+const CreateSaleSchema = z
+  .object({
+    leadId: z.string().uuid().optional(),
+    novoComprador: z
+      .object({
+        nome: z.string().trim().min(2, "Informe o nome do comprador."),
+        telefone: z.string().trim().min(8, "Informe o telefone do comprador."),
+        email: z.string().trim().email("E-mail inválido.").optional().or(z.literal("")),
+      })
+      .optional(),
+    propertyId: z.string().uuid("Selecione um empreendimento."),
+    unidadeNumero: z.string().trim().max(40).optional(),
+    dataVenda: dateOnly,
+    dataPrevistaPagamento: dateOnly.optional(),
+    vgv: z.number().positive("O VGV deve ser maior que zero."),
+    valorAvaliacao: z.number().nonnegative().optional(),
+    percentualComissao: z.number().positive("Informe a % de comissão.").max(100),
+    impostoPercentual: z.number().min(0).max(100).default(6),
+    meioPagamento: z.nativeEnum(PaymentMethod).default(PaymentMethod.TED),
+    participants: z.array(ParticipantSchema).min(1, "Informe o corretor titular."),
+  })
+  .refine((d) => Boolean(d.leadId) !== Boolean(d.novoComprador), {
+    message: "Selecione um cliente cadastrado ou informe os dados do novo comprador.",
+    path: ["leadId"],
+  })
+  .refine((d) => d.participants.some((p) => p.role === "CORRETOR_1"), {
+    message: "O Corretor 1 (titular) é obrigatório.",
+    path: ["participants"],
+  })
+  .refine((d) => new Set(d.participants.map((p) => p.role)).size === d.participants.length, {
+    message: "Cada papel do split só pode aparecer uma vez.",
+    path: ["participants"],
+  });
+
+class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+async function nextSaleCode(tx: Prisma.TransactionClient, year: number) {
+  const prefix = `CP-${year}-`;
+  const count = await tx.sale.count({ where: { codigoVenda: { startsWith: prefix } } });
+  return `${prefix}${String(count + 1).padStart(3, "0")}`;
+}
+
 export async function POST(req: NextRequest) {
+  const auth = requireSession(req);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+  const orgId = session.organizationId;
+  const manager = isManager(session.role);
+
+  const body = await req.json().catch(() => null);
+  const parsed = CreateSaleSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message || "Dados da venda inválidos." },
+      { status: 400 }
+    );
+  }
+  const input = parsed.data;
+
   try {
-    const session = getSessionContext(req);
-    if (!session) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    const titular = input.participants.find((p) => p.role === "CORRETOR_1")!;
+    if (!manager && titular.userId !== session.userId) {
+      throw new HttpError(403, "Corretores só podem registrar vendas próprias.");
     }
 
-    const body = await req.json();
-    const validated = CreateSaleSchema.parse(body);
+    // Participantes precisam ser usuários ativos da organização
+    const userIds = Array.from(new Set(input.participants.map((p) => p.userId)));
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds }, organizationId: orgId, isActive: true },
+      select: { id: true, nome: true },
+    });
+    if (users.length !== userIds.length) {
+      throw new HttpError(400, "Um ou mais participantes não pertencem à organização.");
+    }
+    const nameById = new Map(users.map((u) => [u.id, u.nome]));
 
-    const orgId = session.organizationId;
+    const property = await prisma.property.findFirst({
+      where: { id: input.propertyId, organizationId: orgId },
+      include: { units: { select: { id: true, numeroUnidade: true } } },
+    });
+    if (!property) throw new HttpError(404, "Empreendimento não encontrado.");
 
-    try {
-      // 1. Localiza ou cria Lead e Property para integridade referencial
-      let property = await prisma.property.findFirst({
-        where: { organizationId: orgId, nome: validated.imovelNome },
-      });
+    // Cálculo determinístico (o servidor recalcula; não confia nos valores do cliente)
+    const calc = calculateSaleValues({
+      vgvValue: input.vgv,
+      percentualComissao: input.percentualComissao,
+      impostoPercentual: input.impostoPercentual,
+      participants: input.participants.map((p) => ({
+        role: p.role as ParticipantRole,
+        userId: p.userId,
+        nome: nameById.get(p.userId) || "",
+        percentual: p.percentual,
+        desconto: p.desconto,
+        bonus: p.bonus,
+      })),
+    });
+    if (calc.isOverAllocated) {
+      throw new HttpError(
+        400,
+        `A soma dos participantes excede a comissão líquida em R$ ${calc.excedente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.`
+      );
+    }
 
-      if (!property) {
-        property = await prisma.property.create({
-          data: {
-            organizationId: orgId,
-            nome: validated.imovelNome,
-            slug: `imovel-${Date.now()}`,
-            valorVenda: validated.vgv,
-          },
+    const dataVenda = new Date(`${input.dataVenda}T00:00:00Z`);
+    const dataPrevista = input.dataPrevistaPagamento
+      ? new Date(`${input.dataPrevistaPagamento}T00:00:00Z`)
+      : new Date(dataVenda.getTime() + 30 * 86400000);
+    const unit = input.unidadeNumero
+      ? property.units.find((u) => u.numeroUnidade.toLowerCase() === input.unidadeNumero!.toLowerCase())
+      : undefined;
+
+    const sale = await prisma.$transaction(async (tx) => {
+      // 1. Comprador: lead real existente ou novo lead com os dados informados
+      let leadId = input.leadId;
+      if (leadId) {
+        const lead = await tx.lead.findFirst({
+          where: { id: leadId, organizationId: orgId },
+          select: { id: true, corretorId: true },
         });
-      }
+        if (!lead) throw new HttpError(404, "Cliente/lead não encontrado.");
+        if (!manager && lead.corretorId !== session.userId) {
+          throw new HttpError(403, "Você só pode registrar vendas para os seus leads.");
+        }
+      } else {
+        const comprador = input.novoComprador!;
+        const telefone = normalizeBrPhone(comprador.telefone);
+        if (telefone.length < 10) throw new HttpError(400, "Telefone do comprador inválido.");
 
-      let lead = await prisma.lead.findFirst({
-        where: { organizationId: orgId, nome: validated.compradorNome },
-      });
-
-      if (!lead) {
-        const funnel = await prisma.funnel.findFirst({
-          where: { organizationId: orgId },
-          include: { stages: { orderBy: { posicao: "asc" }, take: 1 } },
+        const existing = await tx.lead.findFirst({
+          where: { organizationId: orgId, telefone },
+          select: { id: true, corretorId: true },
         });
-
-        if (funnel && funnel.stages.length > 0) {
-          lead = await prisma.lead.create({
+        if (existing) {
+          if (!manager && existing.corretorId && existing.corretorId !== session.userId) {
+            throw new HttpError(409, "Já existe um lead com este telefone em outra carteira.");
+          }
+          leadId = existing.id;
+        } else {
+          const funnel = await tx.funnel.findFirst({
+            where: { organizationId: orgId, isActive: true },
+            include: { stages: { orderBy: { posicao: "asc" } } },
+            orderBy: { isDefault: "desc" },
+          });
+          if (!funnel || funnel.stages.length === 0) {
+            throw new HttpError(400, "Nenhum funil ativo configurado para cadastrar o comprador.");
+          }
+          const created = await tx.lead.create({
             data: {
               organizationId: orgId,
               funnelId: funnel.id,
-              stageId: funnel.stages[0].id,
-              nome: validated.compradorNome,
-              telefone: "85999990000",
+              // Etapa de venda/fechamento quando existir; senão a primeira etapa do funil
+              stageId: (
+                funnel.stages.find((st) => /vend|fechad|ganh/i.test(st.nome)) || funnel.stages[0]
+              ).id,
+              corretorId: titular.userId,
+              nome: comprador.nome,
+              telefone,
+              email: comprador.email || null,
               source: LeadSource.MANUAL_CORRETOR,
               temperatura: LeadTemperature.QUENTE,
-              isClosed: true,
             },
           });
-        } else {
-          lead = await prisma.lead.findFirst({
-            where: { organizationId: orgId },
-          });
+          leadId = created.id;
         }
       }
 
-      if (!lead) {
-        throw new Error("Não foi possível vincular a venda a um Lead ativo da organização.");
-      }
-
-      // 2. Cria a Venda de forma transacional com os Splits
-      const newSale = await prisma.$transaction(async (tx) => {
-        const sale = await tx.sale.create({
-          data: {
-            organizationId: orgId,
-            codigoVenda: validated.codigoVenda,
-            leadId: lead.id,
-            propertyId: property.id,
-            corretorId: session.userId,
-            valorVendaVGV: validated.vgv,
-            valorAvaliacao: validated.valorAvaliacao || validated.vgv,
-            valorComissaoTotal: validated.comissaoTotal,
-            percentualComissao: (validated.comissaoTotal / validated.vgv) * 100,
-            dataVenda: new Date(),
-            status: validated.status,
-            meioPagamento: (validated.meioPagamento as PaymentMethod) || PaymentMethod.TED,
-          },
-        });
-
-        if (validated.splits && validated.splits.length > 0) {
-          for (const split of validated.splits) {
-            await tx.commissionSplit.create({
-              data: {
-                saleId: sale.id,
-                nomeBeneficiario: split.beneficiario,
-                beneficiarioTipo: CommissionBeneficiaryType.IMOBILIARIA,
-                valor: split.valor,
-                percentual: split.percentual || 0,
-                documentoPix: split.pix || null,
-                dataVencimento: new Date(),
-                status: split.status === "PAGO" ? PaymentStatus.PAGO : PaymentStatus.PENDENTE,
-              },
-            });
-          }
-        }
-
-        return sale;
+      // 2. Venda
+      const codigoVenda = await nextSaleCode(tx, dataVenda.getUTCFullYear());
+      const created = await tx.sale.create({
+        data: {
+          organizationId: orgId,
+          codigoVenda,
+          leadId: leadId!,
+          propertyId: property.id,
+          unitId: unit?.id || null,
+          corretorId: titular.userId,
+          valorVendaVGV: input.vgv,
+          valorAvaliacao: input.valorAvaliacao ?? null,
+          valorComissaoTotal: calc.comissaoTotalBruta,
+          percentualComissao: input.percentualComissao,
+          meioPagamento: input.meioPagamento,
+          status: "ativa",
+          statusComissao: "pendente",
+          dataVenda,
+        },
       });
 
-      return NextResponse.json({ success: true, sale: newSale }, { status: 201 });
-    } catch (dbErr: any) {
-      console.warn("[VENDAS] Erro na gravação direta no banco:", dbErr?.message);
-      // Retorna sucesso com identificador resiliente
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Venda registrada com sucesso.",
-          sale: { id: `sale-${Date.now()}`, ...validated },
+      // 3. Splits (somente valores > 0) + parcela da imobiliária (restante)
+      const pixByRole = new Map(input.participants.map((p) => [p.role, p.documentoPix]));
+      const payouts = calc.participants.filter((p) => p.valor > 0);
+      for (const p of payouts) {
+        const tipo = ROLE_TO_BENEFICIARY[p.role] as CommissionBeneficiaryType;
+        await tx.commissionSplit.create({
+          data: {
+            saleId: created.id,
+            beneficiarioTipo: tipo,
+            userId: p.userId || null,
+            nomeBeneficiario: p.nome,
+            documentoPix: pixByRole.get(p.role) || null,
+            valor: p.valor,
+            percentual: p.percentual,
+            dataVencimento: dataPrevista,
+          },
+        });
+        // Repasse previsto no Fluxo de Caixa (DRE: Custo Variável)
+        await tx.cashFlow.create({
+          data: {
+            organizationId: orgId,
+            tipo: CashFlowType.DESPESA,
+            categoria: "Split Comissão",
+            descricao: splitCashFlowDescription(tipo, p.nome, codigoVenda),
+            valor: p.valor,
+            dataVencimento: dataPrevista,
+            status: PaymentStatus.PENDENTE,
+            saleId: created.id,
+          },
+        });
+      }
+
+      if (calc.receitaImobiliaria > 0) {
+        const org = await tx.organization.findUnique({ where: { id: orgId }, select: { nome: true } });
+        await tx.commissionSplit.create({
+          data: {
+            saleId: created.id,
+            beneficiarioTipo: CommissionBeneficiaryType.IMOBILIARIA,
+            nomeBeneficiario: org?.nome || "Imobiliária",
+            valor: calc.receitaImobiliaria,
+            percentual: calc.percentualImobiliaria,
+            dataVencimento: dataPrevista,
+          },
+        });
+      }
+
+      // 4. Receita da comissão bruta a receber da construtora/vendedor
+      await tx.cashFlow.create({
+        data: {
+          organizationId: orgId,
+          tipo: CashFlowType.RECEITA,
+          categoria: "Comissão Venda",
+          descricao: `Comissão ${codigoVenda} • ${property.nome}`,
+          valor: calc.comissaoTotalBruta,
+          dataVencimento: dataPrevista,
+          status: PaymentStatus.PENDENTE,
+          meioPagamento: input.meioPagamento,
+          saleId: created.id,
         },
-        { status: 201 }
+      });
+
+      return tx.sale.findUniqueOrThrow({ where: { id: created.id }, include: saleInclude });
+    });
+
+    await recordAudit({
+      req,
+      organizationId: orgId,
+      userId: session.userId,
+      acao: "Venda registrada",
+      tipoAcao: "CREATE",
+      modulo: "VENDAS",
+      entidade: "Sale",
+      entidadeId: sale.id,
+      entidadeNome: sale.codigoVenda,
+      descricao: `Venda ${sale.codigoVenda} (${property.nome}) registrada por ${session.nome}.`,
+      dadosDepois: {
+        vgv: input.vgv,
+        comissaoBruta: calc.comissaoTotalBruta,
+        imposto: calc.impostoEstimado,
+        baseLiquida: calc.baseLiquida,
+        receitaImobiliaria: calc.receitaImobiliaria,
+        participantes: calc.participants.map((p) => ({ papel: p.role, nome: p.nome, valor: p.valor })),
+      },
+    });
+
+    return NextResponse.json({ success: true, sale: serializeSale(sale) }, { status: 201 });
+  } catch (err: any) {
+    if (err instanceof HttpError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return NextResponse.json(
+        { error: "Conflito ao gerar o código da venda. Tente novamente." },
+        { status: 409 }
       );
     }
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || "Erro ao registrar venda." },
-      { status: 400 }
-    );
+    console.error("[VENDAS] Erro ao registrar venda:", err);
+    return NextResponse.json({ error: "Erro interno ao registrar a venda." }, { status: 500 });
   }
 }

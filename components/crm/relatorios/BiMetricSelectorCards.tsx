@@ -84,7 +84,7 @@ export function BiMetricSelectorCards({
                   <Icon className="w-4 h-4" />
                 </div>
 
-                {!isActive && (
+                {!isActive && metric.changePercent !== null && (
                   <div
                     className={`inline-flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full ${
                       metric.changePositive
@@ -97,7 +97,10 @@ export function BiMetricSelectorCards({
                     ) : (
                       <ArrowDownRight className="w-3 h-3" />
                     )}
-                    <span>{Math.abs(metric.changePercent)}%</span>
+                    <span>
+                      {Math.abs(metric.changePercent).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                      {metric.changeSuffix ?? "%"}
+                    </span>
                   </div>
                 )}
               </div>
@@ -109,7 +112,9 @@ export function BiMetricSelectorCards({
 
               {/* Valor Numérico Grande com CountUp */}
               <div className="text-xl font-bold text-foreground tracking-tight">
-                {isMonetary && hideValues ? (
+                {metric.value === null ? (
+                  <span className="text-muted-foreground" title="Sem base de cálculo no período">—</span>
+                ) : isMonetary && hideValues ? (
                   <span className="text-muted-foreground font-mono">••••••</span>
                 ) : (
                   <CountUpNumber

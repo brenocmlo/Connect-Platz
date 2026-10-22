@@ -24,7 +24,7 @@ export async function GET(
     const address = await fetchAddressByCep(cleanCep);
     if (!address) {
       return NextResponse.json(
-        { error: "CEP não localizado nas bases da BrasilAPI e ViaCEP." },
+        { error: "CEP não encontrado na base dos Correios (ViaCEP)." },
         { status: 404 }
       );
     }

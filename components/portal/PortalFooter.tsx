@@ -3,7 +3,8 @@
 import React from "react";
 import { Facebook, Instagram, Linkedin, Mail, MapPin, MessageCircle, ShieldCheck, Youtube } from "lucide-react";
 import { PortalLogo } from "./PortalUI";
-import { scrollToId, waLink } from "./portalUtils";
+import { scrollToId } from "./portalUtils";
+import { usePortalSettings, useWaLink } from "./PortalSettingsContext";
 
 interface PortalFooterProps {
   onNavigateVitrine: (modalidade: "VENDA" | "VERANEIO") => void;
@@ -28,6 +29,8 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
 }
 
 export function PortalFooter({ onNavigateVitrine }: PortalFooterProps) {
+  const waLink = useWaLink();
+  const contato = usePortalSettings();
   return (
     <footer>
       <div className="border-t border-white/5 bg-portal-navy text-white">
@@ -71,10 +74,13 @@ export function PortalFooter({ onNavigateVitrine }: PortalFooterProps) {
               <br />
               Seg. a sáb., das 8h às 20h
             </span>
-            <a href="mailto:contato@connectplatz.com.br" className={`${linkClass} flex items-center gap-2`}>
+            {contato.email && (
+            <a href={`mailto:${contato.email}`} className={`${linkClass} flex items-center gap-2`}>
               <Mail className="h-4 w-4 text-platz-gold" />
-              contato@connectplatz.com.br
+              {contato.email}
             </a>
+            )}
+            {waLink && (
             <a
               href={waLink("Olá! Gostaria de falar com a Connect Platz.")}
               target="_blank"
@@ -84,6 +90,7 @@ export function PortalFooter({ onNavigateVitrine }: PortalFooterProps) {
               <MessageCircle className="h-4 w-4 text-platz-gold" />
               WhatsApp
             </a>
+            )}
           </FooterColumn>
 
           <FooterColumn title="Siga a Connect Platz">

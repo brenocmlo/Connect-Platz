@@ -42,7 +42,7 @@ export function PublishLandingModal({
   if (!isOpen || !property) return null;
 
   const isNaLanding = property.exibirNaLandingPage !== false;
-  const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/espelho/${property.slug || property.id}`;
+  const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/#imoveis`;
 
   const handleToggle = async () => {
     try {

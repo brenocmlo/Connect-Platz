@@ -1,325 +1,151 @@
 "use client";
 
-import React, { useState } from "react";
-import {
-  Users2,
-  UserPlus,
-  Mail,
-  CheckCircle2,
-  Crown,
-  UserCheck,
-  Clock,
-  Zap,
-} from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { Users2, Zap, AlertCircle } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
-import { CountUpNumber } from "@/components/crm/CountUpNumber";
 import { AccessDeniedCard } from "@/components/crm/AccessDeniedCard";
 import { RoletaDistributionPanel } from "@/components/crm/equipes/RoletaDistributionPanel";
 import { InviteCollaboratorModal, InviteCollaboratorData } from "@/components/crm/equipes/InviteCollaboratorModal";
-import { logAuditEvent } from "@/lib/services/auditLogger";
-
-interface TeamMember {
-  id: string;
-  nome: string;
-  email: string;
-  telefone: string;
-  role: "DIRETOR" | "GERENTE" | "CORRETOR";
-  equipe: string;
-  leadsAtivos: number;
-  status: "DISPONIVEL" | "EM_VISITA" | "PAUSA";
-}
-
-const mockTeam: TeamMember[] = [
-  { id: "m-1", nome: "Pietro Costa", email: "pietro@connectplatz.com.br", telefone: "85999990001", role: "DIRETOR", equipe: "Diretoria Geral", leadsAtivos: 18, status: "DISPONIVEL" },
-  { id: "m-2", nome: "Mariana Oliveira", email: "mariana.gerente@connectplatz.com.br", telefone: "85999990002", role: "GERENTE", equipe: "Equipe Litoral & Alto Padrão", leadsAtivos: 24, status: "DISPONIVEL" },
-  { id: "m-3", nome: "Lucas Santos", email: "lucas@connectplatz.com.br", telefone: "85999990003", role: "CORRETOR", equipe: "Equipe Litoral & Alto Padrão", leadsAtivos: 14, status: "DISPONIVEL" },
-  { id: "m-4", nome: "Rafael Mendes", email: "rafael@connectplatz.com.br", telefone: "85999990004", role: "CORRETOR", equipe: "Equipe Litoral & Alto Padrão", leadsAtivos: 9, status: "EM_VISITA" },
-  { id: "m-5", nome: "Patrícia Dantas", email: "patricia@connectplatz.com.br", telefone: "85999990005", role: "CORRETOR", equipe: "Equipe Fortaleza Urbana", leadsAtivos: 11, status: "DISPONIVEL" },
-];
+import { TeamStatCards } from "@/components/crm/equipes/TeamStatCards";
+import { TeamMembersTable } from "@/components/crm/equipes/TeamMembersTable";
+import { TeamMember, MemberStatus, STATUS_META } from "@/components/crm/equipes/types";
 
 export default function EquipesPage() {
   const { user, setActionMessage } = useCrm();
+  const isManager = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR" || user?.role === "GERENTE";
+  const isDirector = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR";
 
-  if (user && user.role === "CORRETOR") {
-    return <AccessDeniedCard moduleName="a Gestão de Equipes e Corretores" />;
-  }
-
-  const [team, setTeam] = useState<TeamMember[]>(mockTeam);
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"membros" | "roleta">("membros");
 
-  React.useEffect(() => {
-    async function loadTeam() {
-      try {
-        const res = await fetch("/api/equipes");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.members && data.members.length > 0) {
-            setTeam(data.members);
-          }
-        }
-      } catch (e) {
-        // Fallback gracioso
-      }
+  const flash = (msg: string) => {
+    setActionMessage(msg);
+    setTimeout(() => setActionMessage(null), 3500);
+  };
+
+  const loadTeam = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/equipes", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Não foi possível carregar a equipe.");
+      setTeam(Array.isArray(data.members) ? data.members : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível carregar a equipe.");
+    } finally {
+      setLoading(false);
     }
-    loadTeam();
   }, []);
 
-  const totalAtivos = team.filter((m) => m.status === "DISPONIVEL").length;
-  const totalVisitas = team.filter((m) => m.status === "EM_VISITA").length;
-  const totalGerentes = team.filter((m) => m.role === "GERENTE" || m.role === "DIRETOR").length;
+  useEffect(() => {
+    if (user && isManager) loadTeam();
+  }, [user, isManager, loadTeam]);
 
-  const handleStatusChange = (id: string, newStatus: "DISPONIVEL" | "EM_VISITA" | "PAUSA") => {
-    setTeam((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, status: newStatus } : m))
-    );
-    setActionMessage("Status do corretor atualizado na Roleta!");
-    setTimeout(() => setActionMessage(null), 3000);
-  };
-
-  const handleSimulateDistribution = (corretorNome: string, modality: "VENDA" | "ALUGUEL" = "VENDA") => {
-    setTeam((prev) => {
-      const idx = prev.findIndex((m) => m.nome === corretorNome);
-      if (idx === -1) return prev;
-      const updated = [...prev];
-      const broker = updated[idx];
-      updated[idx] = { ...broker, leadsAtivos: broker.leadsAtivos + 1 };
-      return updated;
-    });
-    const label = modality === "ALUGUEL" ? "Aluguel de Temporada" : "Venda";
-    setActionMessage(`Lead de ${label} distribuído na roleta para ${corretorNome}!`);
-    setTimeout(() => setActionMessage(null), 4000);
-  };
-
-  const handleSendInvite = async (data: InviteCollaboratorData) => {
-    const newMember: TeamMember = {
-      id: `m-${Date.now()}`,
-      nome: data.nome,
-      email: data.email,
-      telefone: data.telefone || "85988880000",
-      role: data.role,
-      equipe: "Equipe Litoral & Alto Padrão",
-      leadsAtivos: 0,
-      status: "DISPONIVEL",
-    };
-    setTeam([...team, newMember]);
-    setIsInviteModalOpen(false);
-    setActionMessage(`Convite enviado para ${data.email} com senha temporária configurada!`);
-
+  const handleStatusChange = async (id: string, newStatus: MemberStatus) => {
+    const previous = team;
+    setPendingId(id);
+    // Atualização otimista com rollback em caso de falha
+    setTeam((prev) => prev.map((m) => (m.id === id ? { ...m, status: newStatus } : m)));
     try {
-      await fetch("/api/equipes", {
-        method: "POST",
+      const res = await fetch("/api/equipes", {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ userId: id, status: newStatus }),
       });
-    } catch (e) {
-      console.warn("Falha ao salvar convite no backend:", e);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Falha ao alterar o status.");
+      flash(`Status atualizado para ${STATUS_META[newStatus].label}.`);
+    } catch (err) {
+      setTeam(previous);
+      flash(err instanceof Error ? err.message : "Falha ao alterar o status.");
+    } finally {
+      setPendingId(null);
     }
-
-    logAuditEvent({
-      usuario: {
-        id: user?.id || "u-1",
-        nome: user?.nome || "Administrador",
-        email: user?.email || "admin@connectplatz.com.br",
-        role: user?.role || "ADMINISTRADOR",
-      },
-      acao: "Convite de Colaborador",
-      tipoAcao: "INVITE",
-      modulo: "EQUIPES",
-      detalhes: `Convite enviado para ${data.nome} (${data.email}) com perfil ${data.role}. Senha temporária configurada (troca no primeiro login: ${data.exigirTrocaPrimeiroAcesso ? "Sim" : "Não"}).`,
-      entidadeAfetada: {
-        tipo: "Colaborador",
-        nome: data.nome,
-      },
-    });
-
-    setTimeout(() => setActionMessage(null), 4000);
   };
+
+  const handleInvite = async (data: InviteCollaboratorData) => {
+    const res = await fetch("/api/equipes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body?.error || "Não foi possível cadastrar o colaborador.");
+    setTeam((prev) => [...prev, body.member as TeamMember].sort((a, b) => a.nome.localeCompare(b.nome)));
+    flash(`${data.nome} cadastrado(a). Compartilhe a senha provisória com o profissional.`);
+  };
+
+  if (user && !isManager) {
+    return (
+      <AccessDeniedCard
+        moduleName="a Gestão de Equipes e Corretores"
+        allowedLabel="Administradores, Diretores e Gerentes"
+      />
+    );
+  }
+
+  const tabClass = (active: boolean) =>
+    `flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+      active ? "bg-card text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
+    }`;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* 1. CABEÇALHO PADRÃO SEÇÃO 5.2 */}
       <PageHeader
         title="Equipe & Roleta Comercial"
         subtitle="Hierarquia de corretores, gerentes e disponibilidade de atendimento em tempo real."
         actionLabel="Convidar Colaborador"
         onActionClick={() => setIsInviteModalOpen(true)}
         showPeriodSelector={false}
-        showExportButton={true}
+        showExportButton={false}
       />
 
-      {/* 2. STATCARDS DA EQUIPE */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Total de Membros
-            </span>
-            <span className="text-2xl font-black text-foreground mt-1 block">
-              <CountUpNumber value={team.length} />
-            </span>
-          </div>
-          <div className="p-2.5 rounded-xl bg-connect-blue/10 text-connect-blue">
-            <Users2 className="w-5 h-5" />
-          </div>
+      {error && (
+        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {error}
+          </span>
+          <button onClick={loadTeam} className="font-bold underline underline-offset-2">
+            Tentar novamente
+          </button>
         </div>
+      )}
 
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Ativos na Roleta
-            </span>
-            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
-              <CountUpNumber value={totalAtivos} />
-            </span>
-          </div>
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500">
-            <UserCheck className="w-5 h-5" />
-          </div>
-        </div>
+      <TeamStatCards team={team} loading={loading && team.length === 0} />
 
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Em Visita Externa
-            </span>
-            <span className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 block">
-              <CountUpNumber value={totalVisitas} />
-            </span>
-          </div>
-          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Liderança / Gestão
-            </span>
-            <span className="text-2xl font-black text-slate-900 dark:text-white mt-1 block">
-              <CountUpNumber value={totalGerentes} />
-            </span>
-          </div>
-          <div className="p-2.5 rounded-xl bg-platz-gold/15 text-platz-gold">
-            <Crown className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* 3. TABS SHADCN STYLE: MEMBROS vs ROLETA */}
       <div className="flex bg-muted p-1 rounded-xl gap-1 text-xs font-semibold overflow-x-auto w-fit">
-        <button
-          type="button"
-          onClick={() => setActiveTab("membros")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-            activeTab === "membros"
-              ? "bg-card text-foreground shadow-xs font-bold"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
+        <button type="button" onClick={() => setActiveTab("membros")} className={tabClass(activeTab === "membros")}>
           <Users2 className="w-4 h-4 text-connect-blue" />
           <span>Quadro de Colaboradores</span>
         </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("roleta")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-            activeTab === "roleta"
-              ? "bg-card text-foreground shadow-xs font-bold"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
+        <button type="button" onClick={() => setActiveTab("roleta")} className={tabClass(activeTab === "roleta")}>
           <Zap className="w-4 h-4 text-connect-blue" />
           <span>Roleta de Distribuição & Fila</span>
         </button>
       </div>
 
       {activeTab === "roleta" ? (
-        <RoletaDistributionPanel
-          members={team}
-          onStatusChange={handleStatusChange}
-          onSimulateDistribution={handleSimulateDistribution}
-        />
+        <RoletaDistributionPanel members={team} pendingId={pendingId} onStatusChange={handleStatusChange} />
       ) : (
         <div className="space-y-3">
           <SectionTitle>Quadro de Colaboradores</SectionTitle>
-
-          <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-muted/60 text-[10px] text-muted-foreground font-bold uppercase tracking-wider border-b border-border">
-                  <tr>
-                    <th className="py-3 px-4">Nome do Profissional</th>
-                    <th className="py-3 px-4">Cargo / Nível</th>
-                    <th className="py-3 px-4">Equipe Vinculada</th>
-                    <th className="py-3 px-4 text-center">Leads em Carteira</th>
-                    <th className="py-3 px-4 text-center">Status Roleta</th>
-                    <th className="py-3 px-4 text-right">E-mail Corporativo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {team.map((member) => (
-                    <tr
-                      key={member.id}
-                      className="hover:bg-connect-blue/5 transition-colors"
-                    >
-                      <td className="py-3.5 px-4 font-bold text-foreground flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-connect-blue text-white flex items-center justify-center font-bold text-xs">
-                          {member.nome.charAt(0)}
-                        </div>
-                        <span>{member.nome}</span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            member.role === "DIRETOR"
-                              ? "bg-platz-gold/20 text-amber-700 dark:text-[#F8DA56] border border-platz-gold/40"
-                              : member.role === "GERENTE"
-                              ? "bg-connect-blue/15 text-connect-blue border border-connect-blue/30"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {member.role}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-muted-foreground">{member.equipe}</td>
-                      <td className="py-3.5 px-4 text-center font-bold text-foreground">
-                        {member.leadsAtivos}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span
-                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                            member.status === "DISPONIVEL"
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800"
-                              : member.status === "EM_VISITA"
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400 border border-amber-300 dark:border-amber-800"
-                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
-                          }`}
-                        >
-                          {member.status === "DISPONIVEL" ? "Disponível (Na Roleta)" : "Em Visita"}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">
-                        {member.email}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <TeamMembersTable team={team} loading={loading} />
         </div>
       )}
 
-      {/* 4. MODAL DE CONVITE */}
       <InviteCollaboratorModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
-        onInvite={handleSendInvite}
+        onInvite={handleInvite}
+        canInviteManagers={isDirector}
       />
     </div>
   );

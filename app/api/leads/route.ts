@@ -1,203 +1,202 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken } from "@/lib/auth/jwt";
-import { prisma } from "@/lib/db/prisma";
-import { buildLeadRLSWhere, maskLeadSensitiveData, RLSUserContext } from "@/lib/db/rls";
-import { LeadSource, LeadTemperature } from "@prisma/client";
 import { z } from "zod";
-import { initialSampleLeads } from "@/components/crm/leads/sampleLeads";
-import { defaultStages } from "@/components/crm/leads/leadCalculations";
+import { prisma } from "@/lib/db/prisma";
+import { buildLeadRLSWhere } from "@/lib/db/rls";
+import { requireSession, isManager } from "@/lib/auth/session";
+import { recordAudit } from "@/lib/services/audit-server";
+import { refreshLeadScore } from "@/lib/services/lead-score";
+import { resolveLeadSource, sourceLabel } from "@/components/crm/leads/leadSource";
+import {
+  leadInclude,
+  serializeLead,
+  toRlsContext,
+  loadSerializedLead,
+  isUuid,
+  badRequest,
+  INTERESSE_PREFIX,
+} from "./_lib/leadAccess";
+import { CreateLeadSchema, parsePhone, parseDate, zodMessage, mergeBairros } from "./_lib/leadPayload";
 
 export const dynamic = "force-dynamic";
 
-const ManualLeadSchema = z.object({
-  nome: z.string().min(2, "Nome é obrigatório"),
-  telefone: z.string().min(8, "Telefone é obrigatório"),
-  email: z.string().email().optional().or(z.literal("")),
-  rendaDeclarada: z.number().optional(),
-  faixaRenda: z.string().optional(),
-  tipoOcupacaoCredito: z.enum(["CLT", "AUTONOMO", "EMPRESARIO", "APOSENTADO_PENSIONISTA", "OUTRO"]).optional(),
-  rendaEspecificaAutonomo: z.number().optional(),
-  bairrosInteresse: z.array(z.string()).optional(),
-  observacoes: z.string().optional(),
-});
+const NO_FUNNEL_MESSAGE =
+  "Nenhum funil de vendas ativo com etapas configurado para a organização. Cadastre um funil antes de gerenciar leads.";
 
-function getSessionContext(req: NextRequest): RLSUserContext | null {
-  const authHeader = req.headers.get("authorization");
-  const cookieToken = req.cookies.get("connect_platz_token")?.value;
-  const token = authHeader?.replace("Bearer ", "") || cookieToken;
-
-  const session = verifySessionToken(token || "demo");
-  if (!session) {
-    return {
-      userId: "user-robson-1",
-      organizationId: "org-platz-1",
-      role: "ADMINISTRADOR",
-    };
-  }
-
-  return {
-    userId: session.userId,
-    organizationId: session.organizationId,
-    role: session.role,
-  };
+/** Funil ativo da organização (o informado, senão o padrão, senão o mais antigo). */
+async function findActiveFunnel(organizationId: string, funnelId?: string | null) {
+  return prisma.funnel.findFirst({
+    where: { organizationId, isActive: true, ...(funnelId && isUuid(funnelId) ? { id: funnelId } : {}) },
+    include: { stages: { orderBy: { posicao: "asc" } } },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+  });
 }
 
 /**
- * GET: Listagem de leads com aplicação rigorosa de Row Level Security (RLS)
- * e Mascaramento de Contatos LGPD
+ * GET: Listagem de leads com Row Level Security (corretor vê só os dele + bolsão)
+ * e mascaramento LGPD de contatos de terceiros.
  */
 export async function GET(req: NextRequest) {
-  try {
-    const context = getSessionContext(req);
-    if (!context) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
+  const auth = requireSession(req);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+  const ctx = toRlsContext(session);
 
+  try {
     const { searchParams } = new URL(req.url);
-    const funnelId = searchParams.get("funnelId");
     const isBolsao = searchParams.get("bolsao") === "true";
     const isClosed = searchParams.get("closed") === "true";
 
-    // Constrói filtro RLS estrito (corretores só enxergam seus próprios leads ou bolsão)
-    const rlsWhere = buildLeadRLSWhere(context);
+    const funnel = await findActiveFunnel(session.organizationId, searchParams.get("funnelId"));
+    if (!funnel || funnel.stages.length === 0) {
+      return NextResponse.json({ error: NO_FUNNEL_MESSAGE, code: "NO_FUNNEL" }, { status: 500 });
+    }
 
-    const leads = await prisma.lead.findMany({
-      where: {
-        ...rlsWhere,
-        ...(funnelId ? { funnelId } : {}),
-        ...(isBolsao ? { isBolsao: true, isClosed: false } : {}),
-        ...(isClosed ? { isClosed: true } : { isClosed: false }),
-      },
-      include: {
-        stage: true,
-        corretor: {
-          select: { id: true, nome: true, email: true, photoUrl: true },
+    const [leads, funnels] = await Promise.all([
+      prisma.lead.findMany({
+        where: {
+          ...buildLeadRLSWhere(ctx),
+          funnelId: funnel.id,
+          ...(isBolsao ? { isBolsao: true } : {}),
+          isClosed,
         },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 200, // Paginação até 200 por vez conforme especificação
-    });
-
-    // Busca funil ativo e suas etapas para sincronizar as colunas do Kanban
-    const activeFunnel = await prisma.funnel.findFirst({
-      where: {
-        organizationId: context.organizationId,
-        isActive: true,
-        ...(funnelId ? { id: funnelId } : {}),
-      },
-      include: {
-        stages: { orderBy: { posicao: "asc" } },
-      },
-    });
-
-    const stages = activeFunnel?.stages && activeFunnel.stages.length > 0
-      ? activeFunnel.stages
-      : defaultStages;
-
-    // Aplica máscara de privacidade para números de telefone (Regra de Ouro)
-    const protectedLeads = leads.length > 0
-      ? leads.map((lead) => maskLeadSensitiveData(lead, context))
-      : initialSampleLeads;
+        include: leadInclude,
+        orderBy: { createdAt: "desc" },
+        take: 200, // Paginação até 200 por vez conforme especificação
+      }),
+      prisma.funnel.findMany({
+        where: { organizationId: session.organizationId, isActive: true },
+        select: { id: true, nome: true },
+        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+      }),
+    ]);
 
     return NextResponse.json(
       {
-        leads: protectedLeads,
-        stages,
-        funnel: activeFunnel ? { id: activeFunnel.id, nome: activeFunnel.nome } : { id: "funnel-1", nome: "Funil Padrão" },
+        leads: leads.map((lead) => serializeLead(lead, ctx)),
+        stages: funnel.stages,
+        funnel: { id: funnel.id, nome: funnel.nome },
+        funnels,
       },
       { status: 200 }
     );
   } catch (error: any) {
-    console.warn("API /api/leads GET error, falling back to sample data:", error?.message);
-    return NextResponse.json(
-      {
-        leads: initialSampleLeads,
-        stages: defaultStages,
-        funnel: { id: "funnel-1", nome: "Funil Padrão" },
-      },
-      { status: 200 }
-    );
+    console.error("API /api/leads GET error:", error?.message);
+    return NextResponse.json({ error: "Erro ao carregar leads." }, { status: 500 });
   }
 }
 
 /**
- * POST: Cadastro manual de lead pelo próprio corretor (source: MANUAL_CORRETOR)
+ * POST: Cadastro manual de lead. Aceita os aliases do plano de testes
+ * (renda, origem, etapaId, corretorId, observacoes, tags, empreendimentoInteresse).
  */
 export async function POST(req: NextRequest) {
+  const auth = requireSession(req);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+  const ctx = toRlsContext(session);
+
+  let data;
   try {
-    const context = getSessionContext(req);
-    if (!context) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    data = CreateLeadSchema.parse(await req.json());
+  } catch (err) {
+    return badRequest(err instanceof z.ZodError ? zodMessage(err) : "JSON inválido.");
+  }
+
+  try {
+    const telefone = parsePhone(data.telefone);
+    if (!telefone) return badRequest("Telefone inválido. Informe DDD + número (10 ou 11 dígitos).");
+
+    const funnel = await findActiveFunnel(session.organizationId, data.funnelId);
+    if (!funnel || funnel.stages.length === 0) {
+      return NextResponse.json({ error: NO_FUNNEL_MESSAGE, code: "NO_FUNNEL" }, { status: 500 });
     }
 
-    const body = await req.json();
-    const data = ManualLeadSchema.parse(body);
+    // Etapa informada só vale se pertencer ao funil da organização; senão, 1ª etapa
+    const requestedStageId = data.etapaId || data.stageId;
+    const stage = funnel.stages.find((s) => s.id === requestedStageId) || funnel.stages[0];
 
-    // Buscar funil padrão e primeira etapa
-    const defaultFunnel = await prisma.funnel.findFirst({
-      where: { organizationId: context.organizationId, isActive: true },
-      include: { stages: { orderBy: { posicao: "asc" }, take: 1 } },
-    });
-
-    if (!defaultFunnel || defaultFunnel.stages.length === 0) {
-      // Fallback gracioso se não houver funil criado no banco
-      const fallbackLead = {
-        id: `lead-${Date.now()}`,
-        nome: data.nome,
-        telefone: data.telefone,
-        email: data.email || null,
-        source: "MANUAL_CORRETOR",
-        temperatura: "MORNO",
-        stageId: "stage-1",
-        createdAt: new Date().toISOString(),
-      };
-      return NextResponse.json({ lead: fallbackLead }, { status: 201 });
+    // Atribuição: gestor pode atribuir a outro usuário ativo da org; corretor sempre a si mesmo
+    let corretorId = session.userId;
+    if (data.corretorId && data.corretorId !== session.userId && isManager(session.role)) {
+      const target = isUuid(data.corretorId)
+        ? await prisma.user.findFirst({
+            where: { id: data.corretorId, organizationId: session.organizationId, isActive: true },
+            select: { id: true },
+          })
+        : null;
+      if (!target) return badRequest("Corretor informado não pertence à sua organização.");
+      corretorId = target.id;
     }
 
-    const stage = defaultFunnel.stages[0];
-    const cleanPhone = data.telefone.replace(/\D/g, "");
+    const { source, utmSource } = resolveLeadSource(data.origem || data.source);
+    const renda = data.rendaDeclarada ?? data.renda;
+    const observacoes = data.observacoes?.trim() || null;
 
-    const newLead = await prisma.lead.create({
+    const created = await prisma.lead.create({
       data: {
-        organizationId: context.organizationId,
-        funnelId: defaultFunnel.id,
+        organizationId: session.organizationId,
+        funnelId: funnel.id,
         stageId: stage.id,
-        corretorId: context.userId, // Atribuído diretamente ao corretor criador
+        corretorId,
         nome: data.nome,
-        telefone: cleanPhone,
+        telefone,
         email: data.email || null,
-        source: LeadSource.MANUAL_CORRETOR,
-        temperatura: LeadTemperature.MORNO,
-        rendaDeclarada: data.rendaDeclarada,
-        faixaRenda: data.faixaRenda,
-        tipoOcupacaoCredito: data.tipoOcupacaoCredito,
+        cpf: data.cpf || null,
+        rg: data.rg || null,
+        profissao: data.profissao || null,
+        estadoCivil: data.estadoCivil || null,
+        dataNascimento: parseDate(data.dataNascimento) ?? null,
+        source,
+        utmSource,
+        campaignName: data.campaignName || null,
+        adName: data.empreendimentoInteresse ? `${INTERESSE_PREFIX}${data.empreendimentoInteresse}` : null,
+        rendaDeclarada: renda,
+        rendaInformal: data.rendaInformal,
+        faixaRenda: data.faixaRenda || null,
+        tipoOcupacaoCredito: data.tipoOcupacaoCredito || null,
         rendaEspecificaAutonomo: data.rendaEspecificaAutonomo,
-        bairrosInteresse: data.bairrosInteresse || [],
-        slaDueAt: new Date(Date.now() + 120 * 60 * 1000), // SLA de contato próprio
-      },
-      include: {
-        stage: true,
-        corretor: true,
+        bairrosInteresse: mergeBairros(data.bairrosInteresse, data.bairro, data.cidade) || [],
+        tags: data.tags || [],
+        observacoes,
+        slaDueAt: new Date(Date.now() + (stage.slaMinutes || 120) * 60 * 1000),
       },
     });
 
-    // Registra na timeline
+    const label = sourceLabel(source, utmSource);
     await prisma.leadTimeline.create({
       data: {
-        leadId: newLead.id,
-        userId: context.userId,
-        tipo: "nota",
-        conteudo: `Lead cadastrado manualmente pelo corretor com origem MANUAL_CORRETOR. ${data.observacoes || ""}`,
+        leadId: created.id,
+        userId: session.userId,
+        tipo: "created",
+        conteudo: `Lead cadastrado manualmente por ${session.nome} (origem: ${label}) na etapa "${stage.nome}".`,
       },
     });
+    if (observacoes) {
+      await prisma.leadTimeline.create({
+        data: { leadId: created.id, userId: session.userId, tipo: "nota", conteudo: observacoes },
+      });
+    }
 
-    return NextResponse.json({ lead: newLead }, { status: 201 });
+    await refreshLeadScore(created.id);
+
+    await recordAudit({
+      req,
+      organizationId: session.organizationId,
+      userId: session.userId,
+      acao: "LEAD_CRIADO",
+      tipoAcao: "CREATE",
+      modulo: "LEADS",
+      entidade: "Lead",
+      entidadeId: created.id,
+      entidadeNome: created.nome,
+      descricao: `Lead "${created.nome}" cadastrado manualmente (origem: ${label}).`,
+      dadosDepois: { nome: created.nome, telefone, etapa: stage.nome, corretorId, source, tags: created.tags },
+    });
+
+    const lead = await loadSerializedLead(created.id, ctx);
+    return NextResponse.json({ lead }, { status: 201 });
   } catch (error: any) {
-    console.warn("API /api/leads POST error, returning fallback response:", error?.message);
-    return NextResponse.json(
-      { error: error.message || "Erro ao cadastrar lead." },
-      { status: 400 }
-    );
+    console.error("API /api/leads POST error:", error?.message);
+    return NextResponse.json({ error: "Erro ao cadastrar lead." }, { status: 500 });
   }
 }
-

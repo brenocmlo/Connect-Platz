@@ -1,21 +1,13 @@
-export type IntegrationStatus = "Conectado" | "Disponível" | "Plugin Oficial" | "Avançado";
+import { ChannelId } from "./channels";
+
+/** Status derivado de dados reais: leads recebidos e chave configurada no servidor. */
+export type IntegrationStatus = "Conectado" | "Aguardando leads" | "Chave pendente";
 
 export interface IntegrationItem {
-  id: string;
+  id: ChannelId;
   nome: string;
   descricao: string;
   categoria: string;
-  status: IntegrationStatus;
-  statusColor?: string;
-  logo: string; // Lucide or icon name
-  ativo: boolean;
-  contaConectada?: string;
-  ultimaSincronizacao?: string;
-  leadsRecebidos?: number;
-  acaoPendente?: string;
-  regras?: {
-    distribuicao: "roleta" | "fila_geral" | "gestor";
-    etapaInicial: string;
-  };
-  instrucoes?: string[];
+  /** Rótulo opcional de classificação do canal (ex.: "Plugin Oficial", "Avançado"). */
+  selo?: string;
 }

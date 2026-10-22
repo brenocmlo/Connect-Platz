@@ -1,190 +1,186 @@
 "use client";
 
-import React, { useState } from "react";
-import { Copy, Check, Code, ExternalLink, ShieldCheck } from "lucide-react";
+import React from "react";
+import { KeyRound, Eye, ShieldCheck, AlertTriangle } from "lucide-react";
+import { ChannelDef } from "./channels";
+import { CopyField } from "./CopyField";
 
 interface IntegrationInstructionsTabProps {
-  itemId: string;
+  channel: ChannelDef;
   webhookUrl: string;
-  verifyToken: string;
+  /** undefined = não carregada; null = não configurada no servidor. */
+  channelKey?: string | null;
+  canRevealKeys: boolean;
+  keysError?: string | null;
+  signatureConfigured?: boolean;
+  onRevealKeys: () => void;
 }
 
+const PLACEHOLDER = "SUA_CHAVE";
+
+const PORTAL_STEPS: Record<string, React.ReactNode> = {
+  "grupo-olx": (
+    <>
+      No <strong>Portal do Anunciante (ZAP / Viva Real / OLX)</strong>, abra as configurações de integração de leads e
+      cole a URL com <code>?token=</code> abaixo, com envio em JSON.
+    </>
+  ),
+  "dream-casa": (
+    <>
+      Em <strong>Painel Dream Casa &gt; Integrações &gt; Webhook de Leads</strong>, cole a URL com <code>?token=</code> abaixo.
+    </>
+  ),
+  "chaves-na-mao": (
+    <>
+      No menu <strong>Repasse de Leads / Webhook</strong> da conta anunciante Chaves na Mão, cadastre a URL com{" "}
+      <code>?token=</code> abaixo.
+    </>
+  ),
+  "landing-page": (
+    <>
+      No Elementor, selecione o formulário, vá em <strong>Actions After Submit &gt; Webhook</strong> e cole a URL com{" "}
+      <code>?token=</code> abaixo. Campos nome, telefone e e-mail são mapeados automaticamente.
+    </>
+  ),
+};
+
+const SAMPLE_PAYLOAD = JSON.stringify(
+  {
+    nome: "Nome do Cliente",
+    telefone: "DDD + número",
+    email: "cliente@dominio.com",
+    campanha: "Nome da campanha",
+    codigoImovel: "REF do imóvel",
+    mensagem: "Mensagem enviada pelo cliente",
+  },
+  null,
+  2
+);
+
 export function IntegrationInstructionsTab({
-  itemId,
+  channel,
   webhookUrl,
-  verifyToken,
+  channelKey,
+  canRevealKeys,
+  keysError,
+  signatureConfigured,
+  onRevealKeys,
 }: IntegrationInstructionsTabProps) {
-  const [copiedWebhook, setCopiedWebhook] = useState(false);
-  const [copiedToken, setCopiedToken] = useState(false);
-  const [copiedPayload, setCopiedPayload] = useState(false);
+  const keyValue = typeof channelKey === "string" ? channelKey : PLACEHOLDER;
+  const isMeta = channel.auth === "meta";
 
-  const copyToClipboard = (text: string, setFn: (v: boolean) => void) => {
-    navigator.clipboard.writeText(text);
-    setFn(true);
-    setTimeout(() => setFn(false), 3000);
-  };
-
-  const sampleJson = JSON.stringify(
-    {
-      nome: "Dr. Roberto Medeiros",
-      telefone: "85991234567",
-      email: "roberto.medeiros@exemplo.com.br",
-      campanha: "Lançamento Connect Platz Tower",
-      codigoImovel: "REF-204",
-      mensagem: "Gostaria de agendar visita na unidade decorada.",
-    },
-    null,
-    2
+  const keyBlock = (
+    <div className="space-y-2">
+      <p className="font-semibold text-foreground flex items-center gap-1.5">
+        <KeyRound className="w-3.5 h-3.5 text-platz-gold" />
+        {isMeta ? "Token de verificação (Verify Token)" : "Chave de autenticação"}
+        <span className="font-mono text-[10px] text-muted-foreground">({channel.keyEnv})</span>
+      </p>
+      {typeof channelKey === "string" ? (
+        <CopyField value={channelKey} tone="gold" title="Copiar chave" />
+      ) : channelKey === null ? (
+        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            Chave não configurada. Defina a variável <code className="font-mono">{channel.keyEnv}</code> no servidor;
+            em produção as requisições sem chave são bloqueadas.
+          </span>
+        </div>
+      ) : canRevealKeys ? (
+        <button
+          type="button"
+          onClick={onRevealKeys}
+          className="px-3 py-1.5 rounded-lg border border-border hover:bg-muted text-foreground font-semibold flex items-center gap-1.5 transition-colors"
+        >
+          <Eye className="w-3.5 h-3.5 text-connect-blue" />
+          Exibir chave (acesso auditado)
+        </button>
+      ) : (
+        <p className="text-muted-foreground">
+          Solicite a chave à Diretoria. Nos exemplos abaixo ela aparece como <code className="font-mono">{PLACEHOLDER}</code>.
+        </p>
+      )}
+      {keysError && <p className="text-rose-600 dark:text-rose-400">{keysError}</p>}
+    </div>
   );
 
   return (
-    <div className="space-y-3.5 text-xs">
-      <div className="space-y-2.5 text-slate-600 dark:text-slate-300">
-        <p className="font-semibold text-slate-800 dark:text-white">
-          1. URL Oficial de Recebimento de Leads (Webhook Endpoint):
-        </p>
-        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-100 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937]">
-          <code className="text-xs font-mono text-connect-blue flex-1 truncate font-semibold">
-            {webhookUrl}
-          </code>
-          <button
-            type="button"
-            onClick={() => copyToClipboard(webhookUrl, setCopiedWebhook)}
-            className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-[#161F30] text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
-            title="Copiar URL do Webhook"
-          >
-            {copiedWebhook ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-          </button>
+    <div className="space-y-4 text-xs text-muted-foreground">
+      <div className="space-y-2">
+        <p className="font-semibold text-foreground">1. URL do webhook</p>
+        <CopyField value={webhookUrl} title="Copiar URL" />
+      </div>
+
+      {keyBlock}
+
+      {isMeta && (
+        <div className="space-y-2">
+          <p className="font-semibold text-foreground">2. Configuração no Facebook Developers</p>
+          <ol className="list-decimal pl-4 space-y-1">
+            <li>
+              Em <strong>Webhooks &gt; Page</strong>, informe a URL acima como <em>Callback URL</em> e o Verify Token acima.
+            </li>
+            <li>
+              Assine o campo <code className="px-1.5 py-0.5 rounded bg-muted font-bold text-foreground">leadgen</code>.
+            </li>
+            <li>
+              Cada entrega é validada pela assinatura <code className="font-mono">X-Hub-Signature-256</code> com o App
+              Secret do aplicativo (variável <code className="font-mono">META_APP_SECRET</code> no servidor).
+            </li>
+          </ol>
+          {signatureConfigured === false && (
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>META_APP_SECRET não configurado: a assinatura das entregas não pode ser validada.</span>
+            </div>
+          )}
         </div>
-        {copiedWebhook && (
-          <span className="text-[11px] text-emerald-600 font-semibold block">
-            ✓ URL copiada para a área de transferência!
-          </span>
-        )}
+      )}
 
-        {/* Instruções Específicas por Canal */}
-        {itemId === "meta-ads" && (
-          <div className="space-y-2.5 pt-1">
-            <p className="font-semibold text-slate-800 dark:text-white">
-              2. Token de Verificação (Verify Token) exigido pela Meta:
-            </p>
-            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-100 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937]">
-              <code className="text-xs font-mono text-amber-600 dark:text-platz-gold flex-1 truncate font-semibold">
-                {verifyToken}
-              </code>
-              <button
-                type="button"
-                onClick={() => copyToClipboard(verifyToken, setCopiedToken)}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-[#161F30] text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
-                title="Copiar Verify Token"
-              >
-                {copiedToken ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-              </button>
-            </div>
-            {copiedToken && (
-              <span className="text-[11px] text-emerald-600 font-semibold block">
-                ✓ Token de verificação copiado!
-              </span>
-            )}
-            <p>
-              3. No painel do <strong>Facebook Developers &gt; Webhooks</strong>, assine o evento:{" "}
-              <code className="px-1.5 py-0.5 rounded bg-muted font-bold text-foreground">leadgen</code>.
-            </p>
-          </div>
-        )}
+      {channel.auth === "google" && (
+        <div className="space-y-2">
+          <p className="font-semibold text-foreground">2. Configuração no Google Ads</p>
+          <p>
+            No formulário de lead da campanha, abra <strong>Integração de dados de leads &gt; Webhook</strong>, cole a URL
+            acima no campo <em>URL do webhook</em> e a chave no campo <em>Chave</em> (enviada como{" "}
+            <code className="font-mono">google_key</code>). Depois clique em <em>Enviar dados de teste</em>.
+          </p>
+        </div>
+      )}
 
-        {itemId === "google-ads" && (
-          <div className="space-y-2.5 pt-1">
-            <p className="font-semibold text-slate-800 dark:text-white">
-              2. Chave de Validação da Empresa (Google Key):
-            </p>
-            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-100 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937]">
-              <code className="text-xs font-mono text-amber-600 dark:text-platz-gold flex-1 truncate font-semibold">
-                connect_platz_google_ads_key
-              </code>
-              <button
-                type="button"
-                onClick={() => copyToClipboard("connect_platz_google_ads_key", setCopiedToken)}
-                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-[#161F30] text-slate-500 hover:text-slate-800 dark:hover:text-white"
-              >
-                {copiedToken ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-              </button>
-            </div>
-            <p>
-              3. No Google Ads, acesse <strong>Recursos &gt; Extensão de Formulário de Lead &gt; Webhook</strong>, cole a URL e a Google Key acima e clique em <em>Enviar dados de teste</em>.
-            </p>
-          </div>
-        )}
+      {channel.auth === "url-token" && (
+        <div className="space-y-2">
+          <p className="font-semibold text-foreground">2. Configuração no canal</p>
+          <p>{PORTAL_STEPS[channel.id]}</p>
+          <p className="font-semibold text-foreground pt-1">URL com chave (para portais que só aceitam URL)</p>
+          <CopyField value={`${webhookUrl}?token=${encodeURIComponent(keyValue)}`} title="Copiar URL com chave" />
+          <p className="text-[11px]">
+            Se a ferramenta permitir cabeçalhos, prefira enviar a chave em <code className="font-mono">x-api-key</code>.
+          </p>
+        </div>
+      )}
 
-        {itemId === "grupo-olx" && (
-          <div className="space-y-2 pt-1">
-            <p className="font-semibold text-slate-800 dark:text-white">
-              2. Integração Portal do Anunciante (ZAP / Viva Real / OLX):
-            </p>
-            <p>
-              Cole a URL do Webhook nas configurações de <strong>Notificação em Tempo Real (LeadZap)</strong> no Portal do Anunciante com formato de carga JSON ativado.
-            </p>
-          </div>
-        )}
+      {channel.auth === "header" && (
+        <div className="space-y-2">
+          <p className="font-semibold text-foreground">2. Envio autenticado (n8n, Make, Zapier, cURL)</p>
+          <p>
+            Envie <code className="font-mono">POST</code> em JSON com o cabeçalho{" "}
+            <code className="font-mono">x-api-key: {keyValue}</code> ou{" "}
+            <code className="font-mono">Authorization: Bearer {keyValue}</code>.
+          </p>
+          <pre className="p-3 rounded-xl bg-muted text-foreground border border-border text-[11px] font-mono overflow-x-auto">
+            {SAMPLE_PAYLOAD}
+          </pre>
+          <p className="text-[11px]">Campos obrigatórios: nome e telefone ou e-mail.</p>
+        </div>
+      )}
 
-        {itemId === "dream-casa" && (
-          <div className="space-y-2 pt-1">
-            <p className="font-semibold text-slate-800 dark:text-white">
-              2. Painel Imobiliária Dream Casa:
-            </p>
-            <p>
-              Acesse <strong>Painel Dream Casa &gt; Integrações &gt; Webhook de Leads</strong> e cole a URL oficial do seu Connect Platz.
-            </p>
-          </div>
-        )}
-
-        {itemId === "chaves-na-mao" && (
-          <div className="space-y-2 pt-1">
-            <p className="font-semibold text-slate-800 dark:text-white">
-              2. Notificações Chaves na Mão:
-            </p>
-            <p>
-              Cadastre a URL no menu de <strong>Repasse de Leads / Webhook</strong> da sua conta anunciante Chaves na Mão.
-            </p>
-          </div>
-        )}
-
-        {itemId === "landing-page" && (
-          <div className="space-y-2.5 pt-1">
-            <p className="font-semibold text-slate-800 dark:text-white">
-              2. Configuração no Elementor PRO (WordPress) ou Formulários Customizados:
-            </p>
-            <ol className="list-decimal pl-4 space-y-1">
-              <li>No Elementor, selecione o formulário da página de captura.</li>
-              <li>Vá em <strong>Actions After Submit</strong> e adicione <strong>Webhook</strong>.</li>
-              <li>No bloco Webhook que aparecer, cole a URL acima. Os campos Nome, Telefone e E-mail serão mapeados automaticamente.</li>
-            </ol>
-          </div>
-        )}
-
-        {itemId === "api-webhooks" && (
-          <div className="space-y-2.5 pt-1">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-800 dark:text-white">
-                2. Exemplo de Payload JSON (n8n, Make, Zapier, Python, cURL):
-              </span>
-              <button
-                type="button"
-                onClick={() => copyToClipboard(sampleJson, setCopiedPayload)}
-                className="text-[11px] font-bold text-connect-blue hover:text-connect-deep-blue flex items-center gap-1"
-              >
-                {copiedPayload ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                Copiar JSON
-              </button>
-            </div>
-            <pre className="p-3 rounded-xl bg-slate-950 text-slate-200 border border-slate-800 text-[11px] font-mono overflow-x-auto">
-              {sampleJson}
-            </pre>
-            <p className="text-[11px] text-muted-foreground">
-              Cabeçalho opcional em produção: <code>Authorization: Bearer connect_platz_custom_api_token</code>.
-            </p>
-          </div>
-        )}
+      <div className="p-2.5 rounded-xl bg-connect-blue/5 border border-connect-blue/20 flex items-start gap-2">
+        <ShieldCheck className="w-4 h-4 text-connect-blue shrink-0 mt-0.5" />
+        <span>
+          Requisições sem chave válida recebem <strong>401</strong>. O status passa a &quot;Conectado&quot; assim que o
+          primeiro lead deste canal for recebido.
+        </span>
       </div>
     </div>
   );

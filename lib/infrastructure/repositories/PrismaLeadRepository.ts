@@ -29,14 +29,18 @@ export class PrismaLeadRepository implements ILeadRepository {
     cleanPhone: string,
     email?: string | null
   ): Promise<any> {
+    // Sem telefone e sem e-mail não há critério de deduplicação
+    const criteria = [
+      ...(cleanPhone.length >= 8 ? [{ telefone: { endsWith: cleanPhone.slice(-8) } }] : []),
+      ...(email ? [{ email: email.toLowerCase().trim() }] : []),
+    ];
+    if (criteria.length === 0) return null;
+
     return this.prisma.lead.findFirst({
       where: {
         organizationId,
         isClosed: false,
-        OR: [
-          { telefone: { contains: cleanPhone.slice(-8) } },
-          ...(email ? [{ email: email.toLowerCase().trim() }] : []),
-        ],
+        OR: criteria,
       },
       include: {
         corretor: true,

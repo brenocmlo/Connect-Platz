@@ -1,7 +1,5 @@
 import type { PortalFilters, PropertyItem } from "./types";
 
-export const WHATSAPP_NUMBER = "5585999990001";
-
 export const FALLBACK_PHOTO =
   "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80";
 
@@ -53,10 +51,6 @@ export const ANCHOR_LINKS = [
 
 // "Aquiraz (Porto das Dunas)" -> "Aquiraz", usado como termo de busca.
 export const cityLabel = (cidade: string) => cidade.split(" (")[0];
-
-export function waLink(message: string) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-}
 
 export function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });

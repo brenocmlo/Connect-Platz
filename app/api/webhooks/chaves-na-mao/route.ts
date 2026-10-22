@@ -2,10 +2,11 @@
 // Endpoint para recepção de leads do portal Chaves na Mão
 
 import { NextRequest, NextResponse } from "next/server";
-import { WebhookIngestorService } from "@/lib/services/webhook-ingestor";
+import { WebhookIngestorService, pickString, webhookErrorStatus } from "@/lib/services/webhook-ingestor";
+import { verifyWebhookKey } from "@/lib/services/webhook-auth";
 import { LeadSource } from "@prisma/client";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   return NextResponse.json({
     status: "online",
     service: "Chaves na Mão Webhook Listener",
@@ -15,21 +16,20 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const denied = verifyWebhookKey(req, "PORTAL_WEBHOOK_KEY");
+    if (denied) return denied;
 
-    const nome = body.nome || body.name || "Interessado Chaves na Mão";
-    const telefone = body.telefone || body.phone || "85988880000";
-    const email = body.email || undefined;
-    const codigoImovel = body.codigoImovel || body.referencia || undefined;
+    const body = await req.json();
 
     const result = await WebhookIngestorService.ingestLead({
       channelId: "chaves-na-mao",
       source: LeadSource.PORTAL_IMOBILIARIO,
-      nome,
-      telefone,
-      email,
+      nome: pickString(body.nome, body.name) || "",
+      telefone: pickString(body.telefone, body.phone, body.celular),
+      email: pickString(body.email),
       campaignName: "Portal Chaves na Mão",
-      codigoImovel,
+      codigoImovel: pickString(body.codigoImovel, body.referencia),
+      mensagem: pickString(body.mensagem, body.message),
       utmSource: "chavesnamao",
       utmMedium: "portal",
     });
@@ -37,13 +37,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       leadId: result.lead?.id,
+      duplicate: result.isDuplicate,
       message: result.message,
     });
   } catch (error: any) {
     console.error("[Chaves na Mão Webhook Error]:", error);
     return NextResponse.json(
       { error: error.message || "Erro no processamento do webhook Chaves na Mão" },
-      { status: 500 }
+      { status: webhookErrorStatus(error) }
     );
   }
 }

@@ -24,7 +24,9 @@ export function AppointmentCard({ app, onOpenOutcomeModal }: AppointmentCardProp
 
   return (
     <div
-      className={`bg-white dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1C2537] hover:border-connect-blue/50 dark:hover:border-connect-blue/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between border-l-[3px] ${config.border}`}
+      // Cor do tipo via style: no dark mode a classe de borda do card não pode apagar a borda esquerda
+      style={{ borderLeftColor: config.rawHex }}
+      className="bg-card border border-border border-l-[3px] hover:border-connect-blue/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
     >
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -90,7 +92,7 @@ export function AppointmentCard({ app, onOpenOutcomeModal }: AppointmentCardProp
 
           {/* Atalhos Rápidos de GPS & Navegação para Visita */}
           {app.tipo === "VISITA" && (
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-[#1C2537]">
+            <div className="flex items-center gap-2 pt-2 border-t border-border">
               <a
                 href={wazeUrl}
                 target="_blank"
@@ -113,13 +115,13 @@ export function AppointmentCard({ app, onOpenOutcomeModal }: AppointmentCardProp
           )}
 
           {app.observacoes && (
-            <p className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-100 dark:border-[#1C2537]">
+            <p className="text-[11px] text-slate-500 italic pt-1 border-t border-border">
               "{app.observacoes}"
             </p>
           )}
 
           {app.resultadoVisita && (
-            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0F1624] border border-slate-200 dark:border-[#1C2537] mt-2">
+            <div className="p-2.5 rounded-xl bg-muted/50 border border-border mt-2">
               <span className="text-[10px] font-bold uppercase text-platz-gold block mb-0.5">
                 Desfecho Registrado:
               </span>
@@ -134,7 +136,7 @@ export function AppointmentCard({ app, onOpenOutcomeModal }: AppointmentCardProp
       {app.status === "AGENDADO" && (
         <button
           onClick={() => onOpenOutcomeModal(app)}
-          className="w-full bg-slate-100 dark:bg-[#111827] hover:bg-connect-blue hover:text-white border border-slate-200 dark:border-[#1F2937] text-slate-700 dark:text-slate-300 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all shadow-xs"
+          className="w-full bg-slate-100 dark:bg-[#111827] hover:bg-connect-blue hover:text-white border border-border text-slate-700 dark:text-slate-300 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all shadow-xs"
         >
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
           Registrar Desfecho da Visita

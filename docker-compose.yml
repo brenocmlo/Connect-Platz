@@ -36,11 +36,11 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-platz_secure_db_pass_2026}@postgres:5432/${POSTGRES_DB:-connect_platz_crm}?schema=public
       DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-platz_secure_db_pass_2026}@postgres:5432/${POSTGRES_DB:-connect_platz_crm}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-connect_platz_jwt_super_secret_key_change_in_production_2026}
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no .env}
       BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-12}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-connect_platz_meta_webhook_token}
-      META_APP_SECRET: ${META_APP_SECRET:-meta_app_secret_signature_validation}
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:?Defina META_VERIFY_TOKEN no .env}
+      META_APP_SECRET: ${META_APP_SECRET:?Defina META_APP_SECRET no .env}
     env_file:
       - .env
     networks:

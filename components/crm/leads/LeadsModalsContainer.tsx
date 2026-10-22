@@ -15,12 +15,13 @@ import { ToastFeedback } from "@/components/crm/primitives";
 interface LeadsModalsContainerProps {
   isNewLeadModalOpen: boolean;
   onCloseNewLeadModal: () => void;
-  onCreateManualLead: (formData: NewLeadFormData) => void;
+  onCreateManualLead: (formData: NewLeadFormData) => Promise<boolean>;
   availableStages: FunnelColumn[];
 
   isImportModalOpen: boolean;
   onCloseImportModal: () => void;
   onImportSuccess: (imported: LeadDetail[]) => void;
+  funnelId: string | null;
 
   discardLeadTarget: LeadDetail | null;
   onCloseDiscardModal: () => void;
@@ -42,16 +43,14 @@ interface LeadsModalsContainerProps {
 
   editingLead: LeadDetail | null;
   onCloseEditLead: () => void;
-  onSaveEditLead: (updated: LeadDetail) => void;
+  onSaveEditLead: (updated: LeadDetail) => Promise<boolean>;
 
   appointmentLead: LeadDetail | null;
   onCloseAppointmentModal: () => void;
-  onSubmitAppointment: (app: any) => void;
+  onSubmitAppointment: () => void;
 
   isFilterSheetOpen: boolean;
   onCloseFilterSheet: () => void;
-  selectedFunnel: string;
-  setSelectedFunnel: (f: string) => void;
   temperatureFilter: string;
   setTemperatureFilter: (t: string) => void;
   originFilter: string;
@@ -61,6 +60,7 @@ interface LeadsModalsContainerProps {
   onResetFilters: () => void;
 
   toastMessage: string | null;
+  toastType?: "success" | "error" | "info";
   onCloseToast: () => void;
 }
 
@@ -72,6 +72,7 @@ export function LeadsModalsContainer({
   isImportModalOpen,
   onCloseImportModal,
   onImportSuccess,
+  funnelId,
   discardLeadTarget,
   onCloseDiscardModal,
   onConfirmDiscard,
@@ -95,8 +96,6 @@ export function LeadsModalsContainer({
   onSubmitAppointment,
   isFilterSheetOpen,
   onCloseFilterSheet,
-  selectedFunnel,
-  setSelectedFunnel,
   temperatureFilter,
   setTemperatureFilter,
   originFilter,
@@ -105,6 +104,7 @@ export function LeadsModalsContainer({
   setSlaFilter,
   onResetFilters,
   toastMessage,
+  toastType = "success",
   onCloseToast,
 }: LeadsModalsContainerProps) {
   return (
@@ -114,7 +114,6 @@ export function LeadsModalsContainer({
         onClose={onCloseNewLeadModal}
         onSubmit={onCreateManualLead}
         availableStages={availableStages}
-        currentFunnel={selectedFunnel}
       />
 
       <ImportLeadsModal
@@ -122,6 +121,7 @@ export function LeadsModalsContainer({
         onClose={onCloseImportModal}
         onImportSuccess={onImportSuccess}
         availableStages={availableStages}
+        funnelId={funnelId}
       />
 
       <DiscardLeadModal
@@ -161,8 +161,9 @@ export function LeadsModalsContainer({
 
       <NewAppointmentModal
         isOpen={Boolean(appointmentLead)}
+        initialLeadId={appointmentLead?.id}
         initialLeadName={appointmentLead?.nome}
-        initialProperty={appointmentLead?.empreendimentoInteresse || "Reserva Imperial"}
+        initialProperty={appointmentLead?.empreendimentoInteresse || undefined}
         onClose={onCloseAppointmentModal}
         onSubmit={onSubmitAppointment}
       />
@@ -170,8 +171,6 @@ export function LeadsModalsContainer({
       <LeadFilterSheet
         isOpen={isFilterSheetOpen}
         onClose={onCloseFilterSheet}
-        selectedFunnel={selectedFunnel}
-        setSelectedFunnel={setSelectedFunnel}
         temperatureFilter={temperatureFilter}
         setTemperatureFilter={setTemperatureFilter}
         originFilter={originFilter}
@@ -183,7 +182,7 @@ export function LeadsModalsContainer({
 
       <ToastFeedback
         message={toastMessage}
-        type="success"
+        type={toastType}
         onClose={onCloseToast}
       />
     </>

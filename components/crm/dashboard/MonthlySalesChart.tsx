@@ -1,152 +1,147 @@
 "use client";
 
-import React, { useState } from "react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+import React, { useEffect, useState } from "react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { useReducedMotion } from "framer-motion";
+import { LineChart as LineChartIcon } from "lucide-react";
 import { SegmentedToggle, ToggleOption } from "@/components/crm/primitives/SegmentedToggle";
-import { useCrm } from "@/components/crm/CrmContext";
+import { EmptyState } from "@/components/crm/primitives/EmptyState";
+import { useCrm, PeriodFilter } from "@/components/crm/CrmContext";
+import type { DashboardData } from "./types";
+import { formatBRL, formatCompactBRL } from "./format";
 
-type SalesPeriod = "anual" | "mensal" | "semanal";
+type SalesGranularity = "anual" | "mensal" | "semanal";
 
-const salesPeriodOptions: ToggleOption<SalesPeriod>[] = [
+const granularityOptions: ToggleOption<SalesGranularity>[] = [
   { value: "anual", label: "Anual" },
   { value: "mensal", label: "Mensal" },
   { value: "semanal", label: "Semanal" },
 ];
 
-const annualData = [
-  { label: "Jan", vendas: 4200000, unidades: 6 },
-  { label: "Fev", vendas: 5100000, unidades: 7 },
-  { label: "Mar", vendas: 4800000, unidades: 6 },
-  { label: "Abr", vendas: 6200000, unidades: 9 },
-  { label: "Mai", vendas: 5900000, unidades: 8 },
-  { label: "Jun", vendas: 7400000, unidades: 11 },
-  { label: "Jul", vendas: 6800000, unidades: 10 },
-  { label: "Ago", vendas: 7900000, unidades: 12 },
-  { label: "Set", vendas: 8450000, unidades: 12 },
-  { label: "Out", vendas: 8900000, unidades: 13 },
-  { label: "Nov", vendas: 9200000, unidades: 14 },
-  { label: "Dez", vendas: 10500000, unidades: 16 },
-];
+const GRANULARITY_SUBTITLE: Record<SalesGranularity, string> = {
+  anual: "VGV por mês no ano corrente",
+  mensal: "VGV por semana do mês corrente",
+  semanal: "VGV por dia nos últimos 7 dias",
+};
 
-const monthlyData = [
-  { label: "Sem 1", vendas: 1850000, unidades: 3 },
-  { label: "Sem 2", vendas: 2400000, unidades: 4 },
-  { label: "Sem 3", vendas: 1980000, unidades: 3 },
-  { label: "Sem 4", vendas: 2220000, unidades: 2 },
-];
+/** Granularidade sugerida conforme o filtro global de período. */
+export function granularityForPeriod(period: PeriodFilter): SalesGranularity {
+  if (period === "hoje" || period === "7d") return "semanal";
+  if (period === "mes" || period === "30d") return "mensal";
+  return "anual";
+}
 
-const weeklyData = [
-  { label: "Seg", vendas: 450000, unidades: 1 },
-  { label: "Ter", vendas: 680000, unidades: 1 },
-  { label: "Qua", vendas: 0, unidades: 0 },
-  { label: "Qui", vendas: 920000, unidades: 1 },
-  { label: "Sex", vendas: 1100000, unidades: 2 },
-  { label: "Sáb", vendas: 540000, unidades: 1 },
-  { label: "Dom", vendas: 0, unidades: 0 },
-];
+interface MonthlySalesChartProps {
+  series: DashboardData["salesSeries"];
+}
 
-export function MonthlySalesChart() {
-  const [period, setPeriod] = useState<SalesPeriod>("anual");
-  const { hideValues } = useCrm();
+/** Vendas Mensais (5.3 item 5) — linha com pontos e área em gradiente translúcido. */
+export function MonthlySalesChart({ series }: MonthlySalesChartProps) {
+  const { hideValues, selectedPeriod } = useCrm();
+  const reduceMotion = useReducedMotion();
+  const [granularity, setGranularity] = useState<SalesGranularity>(granularityForPeriod(selectedPeriod));
 
-  const currentData =
-    period === "anual" ? annualData : period === "mensal" ? monthlyData : weeklyData;
+  // Acompanha o filtro global: ao trocar o período, a granularidade sugerida é aplicada
+  useEffect(() => {
+    setGranularity(granularityForPeriod(selectedPeriod));
+  }, [selectedPeriod]);
 
-  const totalVgv = currentData.reduce((acc, curr) => acc + curr.vendas, 0);
+  const data = series[granularity] || [];
+  const totalVgv = data.reduce((acc, p) => acc + p.vgv, 0);
+  const totalSales = data.reduce((acc, p) => acc + p.vendas, 0);
+  const isEmpty = totalSales === 0;
 
   return (
     <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-      {/* 1. CABEÇALHO DO GRÁFICO COM TOGGLE SEGMENTADO (5.3) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-sm font-bold text-foreground">Vendas Mensais (VGV)</h3>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-connect-blue/10 text-connect-blue border border-connect-blue/20">
-              {hideValues ? "••••" : `Total: R$ ${(totalVgv / 1000000).toFixed(1)}M`}
+              {hideValues ? "••••" : `Total: ${formatCompactBRL(totalVgv)}`}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Evolução do faturamento comercial no período selecionado
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">{GRANULARITY_SUBTITLE[granularity]}</p>
         </div>
 
-        {/* Toggle segmentado Anual | Mensal | Semanal com pílula ativa primária (5.3) */}
         <SegmentedToggle
-          options={salesPeriodOptions}
-          value={period}
-          onChange={setPeriod}
+          options={granularityOptions}
+          value={granularity}
+          onChange={setGranularity}
           variant="primary"
           size="sm"
         />
       </div>
 
-      {/* 2. GRÁFICO RECHARTS DE LINHA COM PONTOS (5.3) */}
       <div className="h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={currentData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="salesVgvGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#1266C7" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#1266C7" stopOpacity={0} />
-              </linearGradient>
-            </defs>
+        {isEmpty ? (
+          <EmptyState
+            icon={LineChartIcon}
+            title="Nenhuma venda nesta janela"
+            description="Assim que vendas forem registradas, a evolução do VGV aparecerá aqui."
+            className="h-full"
+          />
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="salesVgvGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1266C7" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#1266C7" stopOpacity={0} />
+                </linearGradient>
+              </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border/40" vertical={false} />
-            <XAxis
-              dataKey="label"
-              stroke="currentColor"
-              className="text-muted-foreground"
-              fontSize={11}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis
-              stroke="currentColor"
-              className="text-muted-foreground"
-              fontSize={11}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(v) => (hideValues ? "•••" : `R$ ${(v / 1000000).toFixed(0)}M`)}
-            />
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border/40" vertical={false} />
+              <XAxis
+                dataKey="label"
+                stroke="currentColor"
+                className="text-muted-foreground"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                stroke="currentColor"
+                className="text-muted-foreground"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                width={64}
+                tickFormatter={(v) => (hideValues ? "•••" : formatCompactBRL(Number(v)))}
+              />
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || !payload.length) return null;
+                  const point = payload[0].payload as { vgv: number; vendas: number };
                   return (
                     <div className="bg-card border border-border rounded-xl p-3 shadow-xl text-xs space-y-1">
                       <p className="font-bold text-foreground">{label}</p>
                       <p className="text-connect-blue font-extrabold">
-                        VGV: {hideValues ? "••••••••" : `R$ ${(data.vendas).toLocaleString("pt-BR")}`}
+                        VGV: {hideValues ? "••••••••" : formatBRL(point.vgv)}
                       </p>
                       <p className="text-muted-foreground text-[11px]">
-                        Unidades: {data.unidades}
+                        {point.vendas} {point.vendas === 1 ? "venda" : "vendas"}
                       </p>
                     </div>
                   );
-                }
-                return null;
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="vendas"
-              stroke="#1266C7"
-              strokeWidth={2.5}
-              fillOpacity={1}
-              fill="url(#salesVgvGradient)"
-              dot={{ r: 4, fill: "#1266C7", stroke: "#FFFFFF", strokeWidth: 2 }}
-              activeDot={{ r: 6, fill: "#D9BB4C", stroke: "#FFFFFF", strokeWidth: 2 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="vgv"
+                stroke="#1266C7"
+                strokeWidth={2.5}
+                fillOpacity={1}
+                fill="url(#salesVgvGradient)"
+                dot={{ r: 4, fill: "#1266C7", stroke: "hsl(var(--card))", strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: "#D9BB4C", stroke: "hsl(var(--card))", strokeWidth: 2 }}
+                isAnimationActive={!reduceMotion}
+                animationDuration={600}
+                animationEasing="ease-out"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

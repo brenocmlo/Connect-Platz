@@ -2,9 +2,12 @@
 
 import React from "react";
 import { MessageCircle } from "lucide-react";
-import { waLink } from "./portalUtils";
+import { useWaLink } from "./PortalSettingsContext";
 
 export function PortalFloatingWhatsApp() {
+  const waLink = useWaLink();
+  // Sem WhatsApp configurado no site, o botão flutuante não é exibido
+  if (!waLink) return null;
   return (
     <a
       href={waLink("Olá! Vim pelo site da Connect Platz e gostaria de atendimento.")}

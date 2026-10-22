@@ -1,91 +1,77 @@
 "use client";
 
 import React from "react";
-import {
-  Building2,
-  BadgePercent,
-  Calculator,
-  CheckCircle,
-  Clock,
-} from "lucide-react";
+import { Building2, BadgePercent, Calculator, CheckCircle, Clock } from "lucide-react";
 import { StatCard } from "@/components/crm/primitives/StatCard";
+import type { DashboardData, DashboardScope } from "./types";
 
 interface FinancialStatCardsProps {
-  totalSales?: number;
-  commissionReceived?: number;
-  averageTicket?: number;
-  commissionPaid?: number;
-  commissionPending?: number;
+  financial: DashboardData["financial"];
+  scope: DashboardScope;
+  /** Quantidade de vendas por janela do gráfico (mini-sparkline do 1º card) */
+  salesSparkline?: number[];
 }
 
-export function FinancialStatCards({
-  totalSales = 82,
-  commissionReceived = 248500,
-  averageTicket = 704166,
-  commissionPaid = 186000,
-  commissionPending = 62500,
-}: FinancialStatCardsProps) {
+const orUndefined = (v: number | null) => (v === null ? undefined : v);
+
+/** Linha de StatCards financeiros (5.3 item 3). Corretor vê apenas as próprias comissões. */
+export function FinancialStatCards({ financial, scope, salesSparkline }: FinancialStatCardsProps) {
+  const isBroker = scope === "corretor";
+  const { trends } = financial;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-      {/* 1. Total de Vendas (com mini-sparkline) */}
+    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3.5 ${isBroker ? "lg:grid-cols-4" : "lg:grid-cols-5"}`}>
       <StatCard
         label="Total de Vendas"
-        value={totalSales}
-        suffix=" vendas"
-        trendValue={14}
-        isPositiveTrend={true}
+        value={financial.totalSales}
+        suffix={financial.totalSales === 1 ? " venda" : " vendas"}
+        trendValue={orUndefined(trends.totalSales)}
         icon={Building2}
         iconColor="text-connect-blue bg-connect-blue/10"
-        legend="82 unidades no período"
-        sparklineData={[8, 12, 10, 16, 22, 18, 25]}
+        legend={isBroker ? "Vendas em que você é o titular" : "Vendas válidas no período"}
+        sparklineData={salesSparkline && salesSparkline.some((v) => v > 0) ? salesSparkline : undefined}
       />
 
-      {/* 2. Comissão Recebida */}
       <StatCard
         label="Comissão Recebida"
-        value={commissionReceived}
+        value={financial.commissionReceived}
         isCurrency={true}
-        trendValue={22.4}
-        isPositiveTrend={true}
+        trendValue={orUndefined(trends.commissionReceived)}
         icon={BadgePercent}
         iconColor="text-emerald-500 bg-emerald-500/10"
-        legend="Total creditado na conta"
+        legend={isBroker ? "Suas parcelas de comissão já pagas" : "Comissão bruta das vendas do período"}
       />
 
-      {/* 3. Ticket Médio VGV */}
       <StatCard
         label="Ticket Médio VGV"
-        value={averageTicket}
+        value={financial.averageTicket}
         isCurrency={true}
-        trendValue={5.8}
-        isPositiveTrend={true}
+        trendValue={orUndefined(trends.averageTicket)}
         icon={Calculator}
-        iconColor="text-[#D9BB4C] bg-[#D9BB4C]/10"
+        iconColor="text-platz-gold bg-platz-gold/10"
         legend="Média por imóvel vendido"
       />
 
-      {/* 4. Comissões Pagas */}
-      <StatCard
-        label="Comissões Pagas"
-        value={commissionPaid}
-        isCurrency={true}
-        trendValue={18}
-        isPositiveTrend={true}
-        icon={CheckCircle}
-        iconColor="text-sky-500 bg-sky-500/10"
-        legend="Repasses a corretores e gerentes"
-      />
+      {!isBroker && financial.commissionPaid !== null && (
+        <StatCard
+          label="Comissões Pagas"
+          value={financial.commissionPaid}
+          isCurrency={true}
+          trendValue={orUndefined(trends.commissionPaid)}
+          icon={CheckCircle}
+          iconColor="text-sky-500 bg-sky-500/10"
+          legend="Repasses a corretores e gerentes"
+        />
+      )}
 
-      {/* 5. Comissões Pendentes */}
       <StatCard
         label="Comissões Pendentes"
-        value={commissionPending}
+        value={financial.commissionPending}
         isCurrency={true}
-        trendValue={-8.5}
-        isPositiveTrend={false}
+        trendValue={orUndefined(trends.commissionPending)}
         icon={Clock}
         iconColor="text-amber-500 bg-amber-500/10"
-        legend="Aguardando liberação de repasse"
+        legend={isBroker ? "Suas parcelas aguardando pagamento" : "Aguardando liberação de repasse"}
       />
     </div>
   );

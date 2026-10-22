@@ -6,11 +6,16 @@ import { ShieldAlert, ArrowLeft } from "lucide-react";
 
 interface AccessDeniedCardProps {
   moduleName?: string;
+  /** Perfis com acesso, exibidos na mensagem (ex.: "Administradores, Diretores e Gerentes"). */
+  allowedLabel?: string;
 }
 
-export function AccessDeniedCard({ moduleName = "este módulo" }: AccessDeniedCardProps) {
+export function AccessDeniedCard({
+  moduleName = "este módulo",
+  allowedLabel = "Administradores e Diretores",
+}: AccessDeniedCardProps) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center animate-fade-in">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center animate-fade-in-up">
       <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/5">
         <ShieldAlert className="w-8 h-8" />
       </div>
@@ -18,9 +23,8 @@ export function AccessDeniedCard({ moduleName = "este módulo" }: AccessDeniedCa
       <h2 className="text-xl font-bold text-foreground mb-2">Acesso Restrito à Gestão</h2>
 
       <p className="text-xs text-muted-foreground max-w-md leading-relaxed mb-6">
-        Seu perfil de <span className="font-semibold text-foreground">Corretor</span> não possui
-        permissão para visualizar ou editar {moduleName}. Esta área é restrita a
-        Administradores e Diretores da imobiliária.
+        Seu perfil não possui permissão para visualizar ou editar {moduleName}. Esta área é restrita a{" "}
+        <span className="font-semibold text-foreground">{allowedLabel}</span> da imobiliária.
       </p>
 
       <Link

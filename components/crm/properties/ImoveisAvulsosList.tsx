@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Home, Globe, MapPin, Maximize, Bed, Bath, Car, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { buildWhatsAppUrl } from "@/lib/utils/phone";
 
 export interface ImovelAvulsoData {
   id: string;
@@ -48,11 +49,11 @@ export function ImoveisAvulsosList({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-black text-white flex items-center gap-2">
+          <h2 className="text-lg font-black text-foreground flex items-center gap-2">
             <Home className="w-5 h-5 text-[#D9BB4C]" />
             Imóveis Avulsos
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Casas, apartamentos prontos, coberturas e locações de temporada individuais.
           </p>
         </div>
@@ -67,10 +68,10 @@ export function ImoveisAvulsosList({
       </div>
 
       {imoveis.length === 0 ? (
-        <div className="bg-[#0A0E17] border border-[#1C2537] rounded-3xl p-12 text-center text-slate-400 space-y-4">
-          <Home className="w-12 h-12 text-slate-600 mx-auto" />
-          <h3 className="text-base font-bold text-white">Nenhum imóvel avulso cadastrado</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+        <div className="bg-card border border-border rounded-3xl p-12 text-center text-muted-foreground space-y-4">
+          <Home className="w-12 h-12 text-muted-foreground/60 mx-auto" />
+          <h3 className="text-base font-bold text-foreground">Nenhum imóvel avulso cadastrado</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             Cadastre imóveis prontos para venda ou temporada e selecione para exibir diretamente no site público.
           </p>
           <button
@@ -89,7 +90,7 @@ export function ImoveisAvulsosList({
             return (
               <div
                 key={imovel.id}
-                className="bg-[#0A0E17] border border-[#1C2537] hover:border-connect-blue/50 rounded-2xl overflow-hidden shadow-xl transition-all flex flex-col justify-between"
+                className="bg-card border border-border hover:border-connect-blue/50 rounded-2xl overflow-hidden shadow-xl transition-all flex flex-col justify-between"
               >
                 <div>
                   {/* Foto com Tags e Toggle */}
@@ -124,7 +125,7 @@ export function ImoveisAvulsosList({
                         className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all ${
                           isNaLanding
                             ? "bg-emerald-500/90 text-white border border-emerald-400/50"
-                            : "bg-slate-900/90 text-slate-400 border border-slate-700"
+                            : "bg-black/60 text-white/80 border border-white/20"
                         }`}
                         title="Clique para ativar/desativar este imóvel na Landing Page"
                       >
@@ -148,26 +149,26 @@ export function ImoveisAvulsosList({
                   {/* Informações */}
                   <div className="p-5 space-y-3">
                     <div>
-                      <h3 className="text-base font-black text-white">{imovel.nome}</h3>
+                      <h3 className="text-base font-black text-foreground">{imovel.nome}</h3>
                       <p className="text-lg font-black text-[#D9BB4C] mt-1">{formatPrice(imovel)}</p>
                     </div>
 
                     {/* Ficha Técnica */}
-                    <div className="grid grid-cols-4 gap-2 border-y border-[#1C2537] py-2.5 text-slate-300 text-xs text-center">
+                    <div className="grid grid-cols-4 gap-2 border-y border-border py-2.5 text-foreground text-xs text-center">
                       <div>
-                        <Maximize className="w-3 h-3 text-slate-500 mx-auto mb-1" />
+                        <Maximize className="w-3 h-3 text-muted-foreground mx-auto mb-1" />
                         <span>{imovel.caracteristicas?.area_m2 || 95} m²</span>
                       </div>
                       <div>
-                        <Bed className="w-3 h-3 text-slate-500 mx-auto mb-1" />
+                        <Bed className="w-3 h-3 text-muted-foreground mx-auto mb-1" />
                         <span>{imovel.caracteristicas?.quartos || 3} Qts</span>
                       </div>
                       <div>
-                        <Bath className="w-3 h-3 text-slate-500 mx-auto mb-1" />
+                        <Bath className="w-3 h-3 text-muted-foreground mx-auto mb-1" />
                         <span>{imovel.caracteristicas?.suites || 2} Stes</span>
                       </div>
                       <div>
-                        <Car className="w-3 h-3 text-slate-500 mx-auto mb-1" />
+                        <Car className="w-3 h-3 text-muted-foreground mx-auto mb-1" />
                         <span>{imovel.caracteristicas?.vagas || 2} Vgs</span>
                       </div>
                     </div>
@@ -177,7 +178,7 @@ export function ImoveisAvulsosList({
                       {(imovel.diferenciais || []).slice(0, 3).map((tag, idx) => (
                         <span
                           key={idx}
-                          className="text-[10px] bg-[#080C14] text-slate-400 px-2 py-0.5 rounded border border-[#1C2537]"
+                          className="text-[10px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded border border-border"
                         >
                           {tag}
                         </span>
@@ -189,12 +190,10 @@ export function ImoveisAvulsosList({
                 {/* Ações */}
                 <div className="p-5 pt-0 flex items-center gap-2">
                   <a
-                    href={`https://wa.me/5585999990001?text=Ol%C3%A1!%20Ficha%20do%20im%C3%B3vel%20"${encodeURIComponent(
-                      imovel.nome
-                    )}"%20(${formatPrice(imovel)})`}
+                    href={buildWhatsAppUrl(null, `Olá! Ficha do imóvel "${imovel.nome}" (${formatPrice(imovel)})`)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-1 bg-[#111827] hover:bg-[#1C2537] border border-[#1C2537] text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                    className="flex-1 bg-muted hover:bg-muted/70 border border-border text-foreground text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all"
                   >
                     <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
                     Enviar no WhatsApp
@@ -202,7 +201,7 @@ export function ImoveisAvulsosList({
 
                   <button
                     onClick={() => onDeleteImovel(imovel.id)}
-                    className="p-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/40 text-red-400 transition-all"
+                    className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 transition-all"
                     title="Excluir imóvel"
                   >
                     <Trash2 className="w-4 h-4" />

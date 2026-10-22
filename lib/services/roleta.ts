@@ -1,3 +1,4 @@
+import { businessDay } from "@/lib/utils/businessDay";
 import { prisma } from "../db/prisma";
 import { User, CorretorStatus, Lead } from "@prisma/client";
 
@@ -68,8 +69,7 @@ export class RoletaService {
     }
 
     // Obter data de hoje (00:00:00) para validação do Check-in diário
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = businessDay();
 
     // Execução da Roleta dentro de transação atômica serializável (proteção contra race conditions em Load Balancer)
     const selectedCorretor = await prisma.$transaction(

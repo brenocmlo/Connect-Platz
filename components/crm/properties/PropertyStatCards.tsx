@@ -25,8 +25,6 @@ export function PropertyStatCards({
         value={totalEmpreendimentos}
         icon={Building2}
         iconColor="text-connect-blue bg-connect-blue/10"
-        trendValue="+12%"
-        isPositiveTrend={true}
         legend="Cadastrados no catálogo"
       />
 
@@ -36,9 +34,7 @@ export function PropertyStatCards({
         value={totalAtivos}
         icon={CheckCircle2}
         iconColor="text-emerald-500 bg-emerald-500/10"
-        trendValue="100%"
-        isPositiveTrend={true}
-        legend="Disponíveis para comercialização"
+        legend="Publicados na vitrine pública"
       />
 
       {/* 3. Construtoras Cadastradas */}
@@ -47,9 +43,7 @@ export function PropertyStatCards({
         value={totalConstrutoras}
         icon={Briefcase}
         iconColor="text-amber-500 bg-amber-500/10"
-        trendValue="+4"
-        isPositiveTrend={true}
-        legend="Parcerias e incorporações"
+        legend="Construtoras distintas no catálogo"
       />
 
       {/* 4. VGV Total */}
@@ -60,10 +54,7 @@ export function PropertyStatCards({
         prefix="R$ "
         icon={DollarSign}
         iconColor="text-connect-blue bg-connect-blue/10"
-        trendValue="+15%"
-        isPositiveTrend={true}
-        legend="Volume geral em carteira"
-        sparklineData={[30, 45, 60, 50, 75, 90, 110]}
+        legend="Soma dos valores de venda cadastrados"
       />
     </div>
   );

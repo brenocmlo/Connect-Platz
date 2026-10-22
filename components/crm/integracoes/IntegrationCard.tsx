@@ -1,145 +1,117 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  ChevronDown,
-  ChevronUp,
-  RefreshCw,
-  Unlink,
-  CheckCircle2,
-  AlertTriangle,
-  Radio,
-  Copy,
-  ExternalLink,
-  Layers,
-  Sparkles,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, Layers, Inbox, KeyRound } from "lucide-react";
 import { IntegrationItem, IntegrationStatus } from "./types";
+import { ChannelStatus, CHANNELS } from "./channels";
 import { IntegrationInstructionsTab } from "./IntegrationInstructionsTab";
 
 interface IntegrationCardProps {
   item: IntegrationItem;
-  onToggleActive: (id: string, active: boolean) => void;
-  onSyncNow: (id: string) => void;
-  onDisconnect: (id: string) => void;
-  onSaveConfig?: (id: string, rule: string, active: boolean) => void;
-  onReconnect?: (id: string) => void;
+  status: ChannelStatus | null;
+  loading?: boolean;
+  canRevealKeys: boolean;
+  /** undefined = chaves ainda não carregadas; null = não configurada. */
+  channelKey?: string | null;
+  keysError?: string | null;
+  onRevealKeys: () => void;
 }
 
-export function IntegrationCard({
-  item,
-  onToggleActive,
-  onSyncNow,
-  onDisconnect,
-  onSaveConfig,
-  onReconnect,
-}: IntegrationCardProps) {
+const STATUS_BADGE: Record<IntegrationStatus, string> = {
+  Conectado: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  "Aguardando leads": "bg-connect-blue/10 text-connect-blue border-connect-blue/30",
+  "Chave pendente": "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30",
+};
+
+function deriveStatus(s: ChannelStatus | null): IntegrationStatus | null {
+  if (!s) return null;
+  if (s.leadsRecebidos > 0) return "Conectado";
+  return s.keyConfigured ? "Aguardando leads" : "Chave pendente";
+}
+
+function formatDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+export function IntegrationCard({ item, status, loading, canRevealKeys, channelKey, keysError, onRevealKeys }: IntegrationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [subTab, setSubTab] = useState<"integracao" | "leads" | "instrucoes">("integracao");
-  const [ruleDistribuicao, setRuleDistribuicao] = useState<string>(
-    item.regras?.distribuicao || "roleta"
-  );
-  const [autoReceive, setAutoReceive] = useState<boolean>(item.ativo);
-  const getWebhookUrl = () => {
-    const origin = typeof window !== "undefined" && window.location.hostname !== "localhost"
-      ? window.location.origin
-      : "https://connectplatz.com.br";
-    const endpoint = item.id === "meta-ads" ? "meta" : item.id;
-    return `${origin}/api/webhooks/${endpoint}`;
-  };
+  const [subTab, setSubTab] = useState<"leads" | "instrucoes">("instrucoes");
+  const def = CHANNELS.find((c) => c.id === item.id)!;
+  const label = deriveStatus(status);
 
-  const verifyToken = "connect_platz_meta_webhook_token";
-
-  const getStatusBadge = (status: IntegrationStatus) => {
-    switch (status) {
-      case "Conectado":
-        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800";
-      case "Plugin Oficial":
-        return "bg-connect-blue/15 text-connect-blue dark:text-blue-300 border-connect-blue/30";
-      case "Avançado":
-        return "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-400 border-amber-300 dark:border-amber-800";
-      default:
-        return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700";
-    }
-  };
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const webhookUrl = `${origin}${def.webhookPath}`;
 
   return (
     <div
-      className={`bg-white dark:bg-[#0A0E17] border rounded-2xl transition-all shadow-sm ${
-        isExpanded
-          ? "border-connect-blue/50 dark:border-connect-blue/50 shadow-md ring-1 ring-connect-blue/10"
-          : "border-slate-200 dark:border-[#1C2537] hover:border-connect-blue/30"
+      className={`bg-card border rounded-2xl transition-all shadow-sm ${
+        isExpanded ? "border-connect-blue/50 shadow-md ring-1 ring-connect-blue/10" : "border-border hover:border-connect-blue/40"
       }`}
     >
-      {/* Accordion Header */}
-      <div
+      <button
+        type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="p-5 flex items-start justify-between gap-4 cursor-pointer select-none"
+        className="w-full text-left p-5 flex items-start justify-between gap-4 select-none"
+        aria-expanded={isExpanded}
       >
         <div className="flex items-start gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-connect-blue/10 dark:bg-[#161F30] border border-connect-blue/20 dark:border-[#242C3D] flex items-center justify-center font-bold text-connect-blue shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-connect-blue/10 border border-connect-blue/20 flex items-center justify-center shrink-0">
             <Layers className="w-5 h-5 text-connect-blue" />
           </div>
-
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{item.nome}</h3>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(
-                  item.status
-                )}`}
-              >
-                {item.status}
-              </span>
+              <h3 className="text-sm font-bold text-foreground">{item.nome}</h3>
+              {label ? (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_BADGE[label]}`}>{label}</span>
+              ) : loading ? (
+                <span className="h-4 w-20 rounded-full bg-muted animate-pulse" />
+              ) : null}
+              {item.selo && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">
+                  {item.selo}
+                </span>
+              )}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-              {item.descricao}
-            </p>
+            <p className="text-xs text-muted-foreground line-clamp-2">{item.descricao}</p>
           </div>
         </div>
-
-        <button
-          type="button"
-          className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
-          aria-label={isExpanded ? "Recolher" : "Expandir"}
-        >
+        <span className="p-1 rounded-lg text-muted-foreground">
           {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-        </button>
-      </div>
+        </span>
+      </button>
 
-      {/* Accordion Expanded Body */}
       {isExpanded && (
-        <div className="border-t border-slate-100 dark:border-[#1C2537] p-5 space-y-4 text-xs animate-in slide-in-from-top-2 duration-200">
-          {/* Connection Meta Details */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] text-slate-600 dark:text-slate-400">
+        <div className="border-t border-border p-5 space-y-4 text-xs animate-in fade-in-0 slide-in-from-top-2 duration-200">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 rounded-xl bg-muted/40 border border-border text-muted-foreground">
             <div>
-              <span className="font-semibold text-slate-900 dark:text-white">Conta: </span>
-              <span>{item.contaConectada || "Não vinculada"}</span>
+              <span className="font-semibold text-foreground block">Leads recebidos</span>
+              <span className="font-bold text-connect-blue">{status?.leadsRecebidos ?? "—"}</span>
             </div>
             <div>
-              <span className="font-semibold text-slate-900 dark:text-white">Última Sincronização: </span>
-              <span>{item.ultimaSincronizacao || "Hoje às 18:42"}</span>
+              <span className="font-semibold text-foreground block">Último lead</span>
+              <span>{formatDateTime(status?.ultimoLeadEm ?? null)}</span>
             </div>
             <div>
-              <span className="font-semibold text-slate-900 dark:text-white">Leads Captados: </span>
-              <span className="font-bold text-connect-blue">{item.leadsRecebidos || 0}</span>
+              <span className="font-semibold text-foreground block">Chave no servidor</span>
+              <span className="flex items-center gap-1">
+                <KeyRound className="w-3 h-3" />
+                {status ? (status.keyConfigured ? "Configurada" : `Defina ${def.keyEnv}`) : "—"}
+              </span>
             </div>
           </div>
 
-          {/* Sub-tabs */}
-          <div className="flex border-b border-slate-200 dark:border-[#1C2537] gap-4">
+          <div className="flex border-b border-border gap-4">
             {[
-              { id: "integracao", label: "Integração" },
-              { id: "leads", label: "Leads em tempo real" },
-              { id: "instrucoes", label: "Instruções" },
+              { id: "instrucoes" as const, label: "Instruções" },
+              { id: "leads" as const, label: "Últimos leads" },
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setSubTab(tab.id as any)}
-                className={`pb-2 text-xs font-semibold capitalize border-b-2 transition-all ${
-                  subTab === tab.id
-                    ? "border-connect-blue text-connect-blue font-bold"
-                    : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white"
+                type="button"
+                onClick={() => setSubTab(tab.id)}
+                className={`pb-2 text-xs font-semibold border-b-2 transition-all ${
+                  subTab === tab.id ? "border-connect-blue text-connect-blue font-bold" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {tab.label}
@@ -147,173 +119,36 @@ export function IntegrationCard({
             ))}
           </div>
 
-          {/* Sub-tab 1: Integração */}
-          {subTab === "integracao" && (
-            <div className="space-y-4">
-              {/* Callout Âmbar de Ação Pendente */}
-              {item.acaoPendente && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block">Ação recomendada</span>
-                    <p className="text-[11px] opacity-90">{item.acaoPendente}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Radios de Regras de Distribuição */}
+          {subTab === "leads" &&
+            (status && status.recentes.length > 0 ? (
               <div className="space-y-2">
-                <label className="font-bold text-slate-800 dark:text-white block uppercase tracking-wider text-[11px]">
-                  Regra de Distribuição de Leads Recebidos
-                </label>
-                <div className="space-y-1.5">
-                  {[
-                    {
-                      id: "roleta",
-                      label: "Distribuir automaticamente pela Roleta de Corretores Ativos (SLA 20 min)",
-                    },
-                    {
-                      id: "fila_geral",
-                      label: "Enviar para o Bolsão Geral (Leads disponíveis para captura voluntária)",
-                    },
-                    {
-                      id: "gestor",
-                      label: "Atribuir diretamente à gerência comercial responsável",
-                    },
-                  ].map((r) => (
-                    <label
-                      key={r.id}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200/80 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#0E1624] cursor-pointer"
-                    >
-                      <input
-                        type="radio"
-                        name={`regra-${item.id}`}
-                        value={r.id}
-                        checked={ruleDistribuicao === r.id}
-                        onChange={() => setRuleDistribuicao(r.id)}
-                        className="text-connect-blue focus:ring-connect-blue"
-                      />
-                      <span className="text-slate-700 dark:text-slate-300 font-medium">
-                        {r.label}
+                {status.recentes.map((l) => (
+                  <div key={l.id} className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="font-bold text-foreground block truncate">{l.nome}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {formatDateTime(l.createdAt)} · {l.corretor || "Sem corretor (fila/bolsão)"}
                       </span>
-                    </label>
-                  ))}
-                </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              {/* Switch "Recebendo leads automaticamente" */}
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937]">
-                <div>
-                  <span className="font-bold text-slate-900 dark:text-white block">
-                    Recebendo leads automaticamente
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Novas conversões disparam notificações no CRM imediatamente.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !autoReceive;
-                    setAutoReceive(next);
-                    onToggleActive(item.id, next);
-                  }}
-                  className={`w-11 h-6 rounded-full transition-colors p-0.5 flex items-center ${
-                    autoReceive ? "bg-connect-blue justify-end" : "bg-slate-300 dark:bg-slate-700 justify-start"
-                  }`}
-                >
-                  <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
-                </button>
+            ) : (
+              <div className="p-6 rounded-xl border border-dashed border-border text-center text-muted-foreground flex flex-col items-center gap-2">
+                <Inbox className="w-5 h-5" />
+                Nenhum lead recebido por este canal ainda.
               </div>
+            ))}
 
-              {/* Botão Primário Full-Width */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (onSaveConfig) {
-                    onSaveConfig(item.id, ruleDistribuicao, autoReceive);
-                  } else {
-                    onSyncNow(item.id);
-                  }
-                }}
-                className="w-full bg-connect-blue hover:bg-connect-deep-blue text-white font-bold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Salvar Configurações da Integração
-              </button>
-
-              {/* Ações Secundárias */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-[#1C2537]">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onSyncNow(item.id)}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#1F2937] hover:bg-slate-100 dark:hover:bg-[#161F30] text-slate-700 dark:text-slate-300 font-semibold flex items-center gap-1.5"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 text-connect-blue" />
-                    Sincronizar agora
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onReconnect) onReconnect(item.id);
-                    }}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#1F2937] hover:bg-slate-100 dark:hover:bg-[#161F30] text-slate-700 dark:text-slate-300 font-semibold"
-                  >
-                    Reconectar
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => onDisconnect(item.id)}
-                  className="px-3 py-1.5 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 font-semibold flex items-center gap-1.5 transition-colors"
-                >
-                  <Unlink className="w-3.5 h-3.5" />
-                  Desconectar integração
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Sub-tab 2: Leads em tempo real */}
-          {subTab === "leads" && (
-            <div className="space-y-2">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-white block">
-                    Dr. Eduardo Siqueira
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    Origem: Formulário Instantâneo • há 14 minutos
-                  </span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 text-[10px] font-bold">
-                  Sincronizado
-                </span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-white block">
-                    Camila Barreto
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    Origem: Campanha Meireles • há 2 horas
-                  </span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 text-[10px] font-bold">
-                  Sincronizado
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Sub-tab 3: Instruções */}
           {subTab === "instrucoes" && (
             <IntegrationInstructionsTab
-              itemId={item.id}
-              webhookUrl={getWebhookUrl()}
-              verifyToken={verifyToken}
+              channel={def}
+              webhookUrl={webhookUrl}
+              channelKey={channelKey}
+              canRevealKeys={canRevealKeys}
+              keysError={keysError}
+              signatureConfigured={status?.signatureConfigured}
+              onRevealKeys={onRevealKeys}
             />
           )}
         </div>

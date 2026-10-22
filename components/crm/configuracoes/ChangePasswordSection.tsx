@@ -13,10 +13,9 @@ import {
 } from "lucide-react";
 import { SectionTitle } from "@/components/crm/SectionTitle";
 import { useCrm } from "@/components/crm/CrmContext";
-import { logAuditEvent } from "@/lib/services/auditLogger";
 
 export function ChangePasswordSection() {
-  const { user, setActionMessage } = useCrm();
+  const { setActionMessage } = useCrm();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -29,11 +28,12 @@ export function ChangePasswordSection() {
   const [error, setError] = useState<string | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [successNotice, setSuccessNotice] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Força da senha
   const getPasswordStrength = (pwd: string) => {
     if (!pwd) return { label: "", color: "bg-transparent", percent: 0 };
-    if (pwd.length < 6) return { label: "Muito Curta", color: "bg-rose-500", percent: 25 };
+    if (pwd.length < 8) return { label: "Muito Curta", color: "bg-rose-500", percent: 25 };
     const hasNum = /\d/.test(pwd);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
     const hasUpper = /[A-Z]/.test(pwd);
@@ -54,8 +54,8 @@ export function ChangePasswordSection() {
       setError("Por favor, digite sua senha atual.");
       return;
     }
-    if (newPassword.length < 6) {
-      setError("A nova senha deve ter no mínimo 6 caracteres.");
+    if (newPassword.length < 8) {
+      setError("A nova senha deve ter no mínimo 8 caracteres.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -70,35 +70,39 @@ export function ChangePasswordSection() {
     setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmChange = () => {
-    setIsConfirmModalOpen(false);
-
-    // Registra auditoria
-    logAuditEvent({
-      usuario: {
-        id: user?.id || "u-1",
-        nome: user?.nome || "Robson Carvalho",
-        email: user?.email || "robson@connectplatz.com.br",
-        role: user?.role || "ADMINISTRADOR",
-      },
-      acao: "Alteração de Senha",
-      tipoAcao: "PASSWORD_CHANGE",
-      modulo: "CONFIGURACOES",
-      detalhes: "Senha de acesso alterada com sucesso pelo próprio usuário com confirmação.",
-    });
-
-    // Reset fields
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+  const handleConfirmChange = async () => {
+    setSaving(true);
     setError(null);
-    setSuccessNotice(true);
-    setActionMessage("Senha alterada com sucesso!");
+    try {
+      const res = await fetch("/api/configuracoes/senha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senhaAtual: currentPassword, novaSenha: newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setIsConfirmModalOpen(false);
+        setError(data?.error || "Não foi possível alterar a senha.");
+        return;
+      }
 
-    setTimeout(() => {
-      setSuccessNotice(false);
-      setActionMessage(null);
-    }, 4000);
+      // Sucesso confirmado pelo servidor (auditoria gravada no backend)
+      setIsConfirmModalOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSuccessNotice(true);
+      setActionMessage("Senha alterada com sucesso!");
+      setTimeout(() => {
+        setSuccessNotice(false);
+        setActionMessage(null);
+      }, 4000);
+    } catch {
+      setIsConfirmModalOpen(false);
+      setError("Falha de conexão ao alterar a senha. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -168,7 +172,7 @@ export function ChangePasswordSection() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 placeholder="Mínimo 6 caracteres"
                 className="w-full bg-background border border-border rounded-lg pl-9 pr-9 py-2 text-foreground focus:ring-1 focus:ring-connect-blue focus:border-connect-blue font-mono transition-all"
               />
@@ -210,7 +214,7 @@ export function ChangePasswordSection() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 placeholder="Repita a nova senha"
                 className="w-full bg-background border border-border rounded-lg pl-9 pr-9 py-2 text-foreground focus:ring-1 focus:ring-connect-blue focus:border-connect-blue font-mono transition-all"
               />
@@ -238,7 +242,7 @@ export function ChangePasswordSection() {
 
       {/* Modal de Confirmação de Alteração */}
       {isConfirmModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -278,9 +282,10 @@ export function ChangePasswordSection() {
               <button
                 type="button"
                 onClick={handleConfirmChange}
-                className="px-5 py-2.5 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-bold text-xs shadow-md shadow-connect-blue/20 transition-all hover:scale-[1.01]"
+                disabled={saving}
+                className="disabled:opacity-60 px-5 py-2.5 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-bold text-xs shadow-md shadow-connect-blue/20 transition-all hover:scale-[1.01]"
               >
-                Confirmar Alteração
+                {saving ? "Alterando..." : "Confirmar Alteração"}
               </button>
             </div>
           </div>

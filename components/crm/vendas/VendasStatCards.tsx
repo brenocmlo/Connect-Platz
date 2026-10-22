@@ -4,104 +4,66 @@ import React from "react";
 import { BadgeDollarSign, TrendingUp, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { CountUpNumber } from "@/components/crm/CountUpNumber";
 import { TrendBadge } from "@/components/crm/primitives/TrendBadge";
+import { VendasTotals } from "./vendasMetrics";
 
 interface VendasStatCardsProps {
-  vgvTotal: number;
-  totalVendas: number;
-  comissaoRecebida: number;
-  comissoesPagas: number;
-  comissoesPendentes: number;
+  totals: VendasTotals;
+  /** Variação % vs. período anterior; ausente/null ⇒ badge omitido */
+  trends?: Partial<Record<keyof VendasTotals, number | null>>;
   hideValues?: boolean;
+  loading?: boolean;
 }
 
-export function VendasStatCards({
-  vgvTotal,
-  totalVendas,
-  comissaoRecebida,
-  comissoesPagas,
-  comissoesPendentes,
-  hideValues = false,
-}: VendasStatCardsProps) {
-  const cards = [
-    {
-      label: "VGV TOTAL",
-      value: vgvTotal,
-      isCurrency: true,
-      icon: BadgeDollarSign,
-      trend: 12.5,
-      isPositive: true,
-      color: "text-emerald-500 dark:text-emerald-400",
-      iconBg: "bg-emerald-500/10 text-emerald-500",
-    },
-    {
-      label: "TOTAL DE VENDAS",
-      value: totalVendas,
-      isCurrency: false,
-      icon: TrendingUp,
-      trend: 8,
-      isPositive: true,
-      color: "text-slate-900 dark:text-white",
-      iconBg: "bg-connect-blue/10 text-connect-blue",
-    },
-    {
-      label: "COMISSÃO RECEBIDA",
-      value: comissaoRecebida,
-      isCurrency: true,
-      icon: CheckCircle,
-      trend: 15,
-      isPositive: true,
-      color: "text-connect-blue dark:text-blue-400",
-      iconBg: "bg-connect-blue/10 text-connect-blue",
-    },
-    {
-      label: "COMISSÕES PAGAS",
-      value: comissoesPagas,
-      isCurrency: true,
-      icon: Clock,
-      trend: 5,
-      isPositive: true,
-      color: "text-slate-700 dark:text-slate-300",
-      iconBg: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
-    },
-    {
-      label: "COMISSÕES PENDENTES",
-      value: comissoesPendentes,
-      isCurrency: true,
-      icon: AlertCircle,
-      trend: 3,
-      isPositive: false,
-      color: "text-amber-500 dark:text-amber-400",
-      iconBg: "bg-amber-500/10 text-amber-500",
-    },
+export function VendasStatCards({ totals, trends = {}, hideValues = false, loading = false }: VendasStatCardsProps) {
+  const cards: {
+    key: keyof VendasTotals;
+    label: string;
+    isCurrency: boolean;
+    icon: React.ElementType;
+    color: string;
+    /** Para pendências, crescer é ruim */
+    invert?: boolean;
+  }[] = [
+    { key: "vgvTotal", label: "VGV Total", isCurrency: true, icon: BadgeDollarSign, color: "text-emerald-600 dark:text-emerald-400" },
+    { key: "totalVendas", label: "Total de Vendas", isCurrency: false, icon: TrendingUp, color: "text-foreground" },
+    { key: "comissaoRecebida", label: "Comissão Recebida", isCurrency: true, icon: CheckCircle, color: "text-connect-blue dark:text-blue-400" },
+    { key: "comissoesPagas", label: "Comissões Pagas", isCurrency: true, icon: Clock, color: "text-foreground" },
+    { key: "comissoesPendentes", label: "Comissões Pendentes", isCurrency: true, icon: AlertCircle, color: "text-amber-600 dark:text-amber-400", invert: true },
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
       {cards.map((card, idx) => {
         const Icon = card.icon;
+        const trend = trends[card.key];
         return (
           <div
-            key={idx}
-            className="bg-white dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1C2537] rounded-2xl p-4 shadow-sm hover:border-connect-blue/30 transition-all flex flex-col justify-between"
+            key={card.key}
+            style={{ animationDelay: `${idx * 60}ms` }}
+            className="bg-card border border-border rounded-2xl p-4 shadow-sm hover:border-connect-blue/40 transition-colors flex flex-col justify-between animate-in fade-in-0 slide-in-from-bottom-2 duration-300 fill-mode-both"
           >
             <div className="flex items-center justify-between mb-2">
-              <div className={`p-2 rounded-xl ${card.iconBg}`}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-connect-blue/10 text-connect-blue">
                 <Icon className="w-4 h-4" />
               </div>
-              <TrendBadge value={card.trend} isPositive={card.isPositive} />
+              {typeof trend === "number" && (
+                <TrendBadge value={trend} isPositive={card.invert ? trend <= 0 : trend >= 0} />
+              )}
             </div>
 
             <div>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
                 {card.label}
               </span>
-              <div className={`text-xl font-extrabold tracking-tight mt-0.5 ${card.color}`}>
-                {hideValues ? (
+              <div className={`text-xl font-bold tracking-tight mt-0.5 ${card.color}`}>
+                {loading ? (
+                  <span className="block h-6 w-24 rounded-md bg-muted animate-pulse" />
+                ) : hideValues && card.isCurrency ? (
                   "••••••"
                 ) : card.isCurrency ? (
-                  <CountUpNumber value={card.value} prefix="R$ " decimals={0} />
+                  <CountUpNumber value={totals[card.key]} prefix="R$ " decimals={0} />
                 ) : (
-                  <CountUpNumber value={card.value} />
+                  <CountUpNumber value={totals[card.key]} />
                 )}
               </div>
             </div>

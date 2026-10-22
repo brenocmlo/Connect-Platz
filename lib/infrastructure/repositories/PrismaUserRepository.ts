@@ -1,3 +1,4 @@
+import { businessDay } from "@/lib/utils/businessDay";
 import { PrismaClient, User, CheckIn, CorretorStatus, Role } from "@prisma/client";
 import { IUserRepository, CreateUserData } from "@/lib/core/interfaces/IUserRepository";
 
@@ -53,7 +54,7 @@ export class PrismaUserRepository implements IUserRepository {
         status: CorretorStatus.DISPONIVEL,
         checkIns: {
           some: {
-            date: today,
+            date: businessDay(today),
           },
         },
       },
@@ -65,8 +66,7 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async registerCheckIn(userId: string, date: Date, ip?: string): Promise<CheckIn> {
-    const today = new Date(date);
-    today.setHours(0, 0, 0, 0);
+    const today = businessDay(date);
 
     const checkIn = await this.prisma.checkIn.upsert({
       where: {
@@ -99,8 +99,7 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async hasCheckedInToday(userId: string, today: Date): Promise<boolean> {
-    const day = new Date(today);
-    day.setHours(0, 0, 0, 0);
+    const day = businessDay(today);
 
     const found = await this.prisma.checkIn.findFirst({
       where: {

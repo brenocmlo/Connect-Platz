@@ -1,6 +1,7 @@
-export type BiMetricType = "vgv" | "funil" | "roi" | "conversao" | "comissoes";
+// components/crm/relatorios/types.ts
+// Contrato de GET /api/relatorios?period= (compartilhado entre API e UI de Relatórios BI).
 
-export type BiPeriodType = "7d" | "30d" | "trimestre" | "ano";
+export type BiMetricType = "vgv" | "funil" | "roi" | "conversao" | "comissoes";
 
 export type BiGranularityType = "diario" | "semanal" | "mensal";
 
@@ -10,12 +11,16 @@ export interface BiMetricSummary {
   id: BiMetricType;
   title: string;
   shortLabel: string;
-  value: number;
-  formattedValue?: string;
+  /** null quando o indicador não pode ser calculado (ex.: ROI sem investimento lançado) */
+  value: number | null;
   prefix?: string;
   suffix?: string;
   decimals?: number;
-  changePercent: number;
+  /** Variação vs. período anterior (null = sem base de comparação) */
+  changePercent: number | null;
+  /** Sufixo da variação ("%" ou " p.p.") */
+  changeSuffix?: string;
+  /** true quando a variação é favorável (ex.: tempo de funil menor é positivo) */
   changePositive: boolean;
   sublabel: string;
   category: string;
@@ -26,28 +31,32 @@ export interface BiTimeSeriesPoint {
   label: string;
   realizado: number;
   anterior?: number;
-  meta?: number;
   auxiliar?: number;
 }
 
 export interface BiFunnelStageMetric {
   etapa: string;
+  cor: string;
+  /** Tempo médio (h) dos leads abertos na etapa atual */
   tempoHoras: number;
-  slaHoras: number;
+  slaHoras: number | null;
   status: "normal" | "alerta" | "critico";
+  leadsAbertos: number;
   leadsEntraram: number;
-  taxaPassagem: number; // %
+  /** % que avançou para a próxima etapa (null na última etapa) */
+  taxaPassagem: number | null;
 }
 
 export interface BiChannelRoiMetric {
   canal: string;
   leads: number;
-  investimento: number;
+  vendas: number;
+  /** Despesas de mídia lançadas no Fluxo de Caixa (null = não disponível/sem lançamento) */
+  investimento: number | null;
   vgv: number;
   ticketMedio: number;
-  roi: string;
-  roiMultiplicador: number;
-  cpl: number;
+  roiMultiplicador: number | null;
+  cpl: number | null;
   taxaConversao: number; // %
   cor: string;
 }
@@ -62,4 +71,19 @@ export interface BiLgpdClosedLead {
   interesse: string;
   corretorUltimo: string;
   diasInativo: number;
+}
+
+export interface BiReportData {
+  period: { key: string; label: string };
+  scope: "organizacao" | "corretor";
+  /** Investimento em mídia só é calculado para a Diretoria (dado financeiro corporativo) */
+  investmentAvailable: boolean;
+  summaries: BiMetricSummary[];
+  vgvSeries: Record<BiGranularityType, BiTimeSeriesPoint[]>;
+  conversionSeries: BiTimeSeriesPoint[];
+  commissionSeries: BiTimeSeriesPoint[];
+  funnelVelocity: { funil: string | null; stages: BiFunnelStageMetric[] };
+  channels: BiChannelRoiMetric[];
+  campaigns: BiChannelRoiMetric[];
+  closedLeads: BiLgpdClosedLead[];
 }

@@ -1,154 +1,182 @@
 "use client";
 
-import React, { useState } from "react";
-import {
-  TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
-  FileText,
-  BarChart3,
-  Layers,
-  Wallet,
-} from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { FileText, BarChart3, Layers, Loader2, AlertCircle } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
-import { CountUpNumber } from "@/components/crm/CountUpNumber";
-import { TrendBadge } from "@/components/crm/primitives/TrendBadge";
 import { DreTable } from "@/components/crm/financeiro/DreTable";
 import { CashFlowTable, CashFlowItem } from "@/components/crm/financeiro/CashFlowTable";
 import { CashFlowProjection } from "@/components/crm/financeiro/CashFlowProjection";
-import { NewCashFlowModal } from "@/components/crm/financeiro/NewCashFlowModal";
+import { CashFlowStatCards } from "@/components/crm/financeiro/CashFlowStatCards";
+import { NewCashFlowModal, NewCashFlowPayload } from "@/components/crm/financeiro/NewCashFlowModal";
+import { cashFlowFromApi, computeCashFlowSummary } from "@/components/crm/financeiro/cashFlowMetrics";
+import { formatDateBr } from "@/components/crm/financeiro/paymentMethods";
 import { AccessDeniedCard } from "@/components/crm/AccessDeniedCard";
 
-const initialCashFlows: CashFlowItem[] = [
-  { id: "cf-1", tipo: "RECEITA", categoria: "Comissão Venda", descricao: "Comissão Venda Apt 403 • Villa Platz Beach", valor: 52500, dataVencimento: "28/09/2026", status: "PAGO", meioPagamento: "TED" },
-  { id: "cf-2", tipo: "RECEITA", categoria: "Aluguel Veraneio", descricao: "Reserva #408 • Solarium Porto das Dunas (5 diárias)", valor: 6500, dataVencimento: "29/09/2026", status: "PAGO", meioPagamento: "PIX" },
-  { id: "cf-3", tipo: "DESPESA", categoria: "Split Comissão", descricao: "Repasse Corretor Titular (Lucas Santos)", valor: 21000, dataVencimento: "29/09/2026", status: "PAGO", meioPagamento: "PIX" },
-  { id: "cf-4", tipo: "DESPESA", categoria: "Tráfego Pago Meta Ads", descricao: "Fatura Anúncios Campanha Instagram/Facebook Lançamento", valor: 12500, dataVencimento: "05/10/2026", status: "PENDENTE", meioPagamento: "Cartão de Crédito" },
-  { id: "cf-5", tipo: "DESPESA", categoria: "Sede & Administrativo", descricao: "Aluguel & Condomínio Sede Aldeota", valor: 8500, dataVencimento: "10/10/2026", status: "PENDENTE", meioPagamento: "Boleto" },
-  { id: "cf-6", tipo: "RECEITA", categoria: "Comissão Venda", descricao: "Comissão Venda Apt 201 • Residencial Aldeota Platz", valor: 44000, dataVencimento: "15/10/2026", status: "PENDENTE", meioPagamento: "TED" },
-];
+const TABS = [
+  { id: "dre", label: "DRE Gerencial em Tempo Real", icon: FileText },
+  { id: "contas", label: "Contas a Pagar & Receber", icon: Layers },
+  { id: "projecao", label: "Projeção de Saldo (90 Dias)", icon: BarChart3 },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
+
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function FluxoCaixaDREPage() {
   const { user, setActionMessage, hideValues } = useCrm();
+  // Fluxo de Caixa e DRE: exclusivo da diretoria (a API também bloqueia com 403)
+  const canAccess = !user || user.role === "ADMINISTRADOR" || user.role === "DIRETOR";
 
-  if (user && user.role === "CORRETOR") {
-    return <AccessDeniedCard moduleName="o Fluxo de Caixa e DRE corporativo" />;
-  }
-
-  const [activeTab, setActiveTab] = useState<"contas" | "dre" | "projecao">("contas");
-  const [cashFlows, setCashFlows] = useState<CashFlowItem[]>(initialCashFlows);
+  const [activeTab, setActiveTab] = useState<TabId>("contas");
+  const [cashFlows, setCashFlows] = useState<CashFlowItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [filterTipo, setFilterTipo] = useState<"TODOS" | "RECEITA" | "DESPESA">("TODOS");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  React.useEffect(() => {
-    async function loadFinanceiro() {
-      try {
-        const res = await fetch("/api/financeiro");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.entries && data.entries.length > 0) {
-            const normalized = data.entries.map((item: any) => ({
-              id: item.id,
-              tipo: item.tipo,
-              categoria: item.categoria,
-              descricao: item.descricao,
-              valor: Number(item.valor),
-              dataVencimento: new Date(item.dataVencimento).toLocaleDateString("pt-BR"),
-              status: item.status,
-              meioPagamento: item.meioPagamento || "TED",
-            }));
-            setCashFlows(normalized);
-          }
-        }
-      } catch (err) {
-        // Fallback gracioso
+  const notify = useCallback(
+    (msg: string) => {
+      setActionMessage(msg);
+      setTimeout(() => setActionMessage(null), 4500);
+    },
+    [setActionMessage]
+  );
+
+  const loadFinanceiro = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/financeiro", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setLoadError(data?.error || "Não foi possível carregar o fluxo de caixa.");
+        return;
       }
+      setCashFlows(((data.entries as any[]) || []).map(cashFlowFromApi));
+    } catch {
+      setLoadError("Falha de conexão ao carregar o fluxo de caixa.");
+    } finally {
+      setLoading(false);
     }
-    loadFinanceiro();
   }, []);
 
-  const totalReceitas = cashFlows
-    .filter((c) => c.tipo === "RECEITA" && c.status === "PAGO")
-    .reduce((acc, curr) => acc + curr.valor, 0);
+  useEffect(() => {
+    if (canAccess) loadFinanceiro();
+  }, [canAccess, loadFinanceiro]);
 
-  const totalDespesas = cashFlows
-    .filter((c) => c.tipo === "DESPESA" && c.status === "PAGO")
-    .reduce((acc, curr) => acc + curr.valor, 0);
+  const summary = useMemo(() => computeCashFlowSummary(cashFlows), [cashFlows]);
 
-  const saldoLiquido = totalReceitas - totalDespesas;
+  const replaceEntry = (raw: any, extra?: Partial<CashFlowItem>) => {
+    const updated = { ...cashFlowFromApi(raw), ...extra };
+    setCashFlows((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+  };
 
-  const handleAddEntry = async (entry: CashFlowItem) => {
-    setCashFlows((prev) => [entry, ...prev]);
-    setActionMessage(
-      entry.status === "PAGO"
-        ? "Lançamento liquidado e registrado no caixa com sucesso!"
-        : "Lançamento agendado adicionado com sucesso!"
-    );
-    setTimeout(() => setActionMessage(null), 4000);
-
+  const handleAddEntry = async (payload: NewCashFlowPayload): Promise<boolean> => {
     try {
-      await fetch("/api/financeiro", {
+      const res = await fetch("/api/financeiro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(entry),
+        body: JSON.stringify(payload),
       });
-    } catch (e) {
-      console.warn("Falha ao salvar lançamento financeiro:", e);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.entry) {
+        notify(data?.error || "Não foi possível salvar o lançamento.");
+        return false;
+      }
+      setCashFlows((prev) => [cashFlowFromApi(data.entry), ...prev]);
+      notify(
+        payload.status === "PAGO"
+          ? "Lançamento liquidado e registrado no caixa com sucesso!"
+          : "Lançamento agendado adicionado com sucesso!"
+      );
+      return true;
+    } catch {
+      notify("Falha de conexão ao salvar o lançamento.");
+      return false;
     }
   };
 
-  const handleConfirmMovement = (
+  const handleConfirmMovement = async (
     item: CashFlowItem,
     dataEfetiva: string,
     meio: string,
     observacao?: string
-  ) => {
-    setCashFlows((prev) =>
-      prev.map((c) =>
-        c.id === item.id
-          ? {
-              ...c,
-              status: "PAGO",
-              dataLiquidacao: dataEfetiva,
-              foiAntecipado: true,
-              meioPagamento: meio,
-              observacaoLiquidacao: observacao,
-            }
-          : c
-      )
-    );
-    const tipoLabel = item.tipo === "RECEITA" ? "Entrada" : "Saída";
-    setActionMessage(
-      `${tipoLabel} de ${item.valor.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      })} confirmada com sucesso em ${dataEfetiva}! Saldo de caixa recalculado.`
-    );
-    setTimeout(() => setActionMessage(null), 5000);
+  ): Promise<boolean> => {
+    setBusyId(item.id);
+    try {
+      const res = await fetch(`/api/financeiro/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PAGO", dataPagamento: dataEfetiva, meioPagamento: meio, observacao }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.entry) {
+        notify(data?.error || "Não foi possível confirmar a liquidação.");
+        return false;
+      }
+      replaceEntry(data.entry, observacao ? { observacaoLiquidacao: observacao } : undefined);
+      const tipoLabel = item.tipo === "RECEITA" ? "Entrada" : "Saída";
+      notify(`${tipoLabel} de ${brl(item.valor)} confirmada em ${formatDateBr(dataEfetiva)}. Saldo de caixa recalculado.`);
+      return true;
+    } catch {
+      notify("Falha de conexão ao confirmar a liquidação.");
+      return false;
+    } finally {
+      setBusyId(null);
+    }
   };
 
-  const handleRevertMovement = (id: string) => {
-    setCashFlows((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              status: "PENDENTE",
-              dataLiquidacao: undefined,
-              foiAntecipado: false,
-            }
-          : c
-      )
-    );
-    setActionMessage("Lançamento revertido para pendente.");
-    setTimeout(() => setActionMessage(null), 4000);
+  const handleRevertMovement = async (item: CashFlowItem) => {
+    if (!window.confirm(`Estornar a liquidação de "${item.descricao}" para pendente?`)) return;
+    setBusyId(item.id);
+    try {
+      const res = await fetch(`/api/financeiro/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PENDENTE" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.entry) {
+        notify(data?.error || "Não foi possível estornar o lançamento.");
+        return;
+      }
+      replaceEntry(data.entry);
+      notify("Lançamento revertido para pendente.");
+    } catch {
+      notify("Falha de conexão ao estornar o lançamento.");
+    } finally {
+      setBusyId(null);
+    }
   };
+
+  const handleDelete = async (item: CashFlowItem) => {
+    if (!window.confirm(`Excluir o lançamento "${item.descricao}"? Esta ação não pode ser desfeita.`)) return;
+    setBusyId(item.id);
+    try {
+      const res = await fetch(`/api/financeiro/${item.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        notify(data?.error || "Não foi possível excluir o lançamento.");
+        return;
+      }
+      setCashFlows((prev) => prev.filter((c) => c.id !== item.id));
+      notify("Lançamento excluído.");
+    } catch {
+      notify("Falha de conexão ao excluir o lançamento.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (!canAccess) {
+    return <AccessDeniedCard moduleName="o Fluxo de Caixa e DRE corporativo" />;
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* 1. CABEÇALHO PADRÃO SEÇÃO 5.2 */}
       <PageHeader
         title="Fluxo de Caixa & DRE"
         subtitle="Conciliação de faturamento de vendas, estadias de temporada e custos operacionais."
@@ -158,125 +186,66 @@ export default function FluxoCaixaDREPage() {
         showExportButton={true}
       />
 
-      {/* 2. RESUMO DE CAIXA & RENTABILIDADE */}
       <div className="space-y-4">
         <SectionTitle>Resumo de Caixa & Rentabilidade</SectionTitle>
-
-        {/* 3 STATCARDS COM COUNT-UP */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
-                <ArrowUpRight className="w-4 h-4" />
-              </div>
-              <TrendBadge value="+18.4%" isPositive={true} />
-            </div>
-            <div>
-              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                Receitas Liquidadas (Mês)
-              </span>
-              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
-                {hideValues ? "••••••" : <CountUpNumber value={totalReceitas} prefix="R$ " decimals={2} />}
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-2 rounded-xl bg-red-500/10 text-red-500">
-                <ArrowDownRight className="w-4 h-4" />
-              </div>
-              <TrendBadge value="+4.2%" isPositive={false} />
-            </div>
-            <div>
-              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                Despesas & Splits Pagos
-              </span>
-              <span className="text-2xl font-black text-red-600 dark:text-red-400 mt-1 block">
-                {hideValues ? "••••••" : <CountUpNumber value={totalDespesas} prefix="R$ " decimals={2} />}
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-2 rounded-xl bg-platz-gold/15 text-platz-gold">
-                <Wallet className="w-4 h-4" />
-              </div>
-              <TrendBadge value="+12.8%" isPositive={true} />
-            </div>
-            <div>
-              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                Saldo Operacional em Caixa
-              </span>
-              <span className="text-2xl font-black text-slate-900 dark:text-[#F8DA56] mt-1 block">
-                {hideValues ? "••••••" : <CountUpNumber value={saldoLiquido} prefix="R$ " decimals={2} />}
-              </span>
-            </div>
-          </div>
-        </div>
+        <CashFlowStatCards summary={summary} hideValues={hideValues} loading={loading} />
       </div>
 
-      {/* 3. TABS SHADCN STYLE */}
       <div className="flex bg-muted p-1 rounded-xl gap-1 text-xs font-semibold overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("dre")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-            activeTab === "dre"
-              ? "bg-card text-foreground shadow-xs font-bold"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <FileText className="w-4 h-4 text-connect-blue" />
-          DRE Gerencial em Tempo Real
-        </button>
-
-        <button
-          onClick={() => setActiveTab("contas")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-            activeTab === "contas"
-              ? "bg-card text-foreground shadow-xs font-bold"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Layers className="w-4 h-4 text-connect-blue" />
-          Contas a Pagar & Receber
-        </button>
-
-        <button
-          onClick={() => setActiveTab("projecao")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-            activeTab === "projecao"
-              ? "bg-card text-foreground shadow-xs font-bold"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <BarChart3 className="w-4 h-4 text-connect-blue" />
-          Projeção de Saldo (90 Dias)
-        </button>
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
+                activeTab === tab.id
+                  ? "bg-card text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="w-4 h-4 text-connect-blue" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* 4. CONTEÚDO DAS ABAS MODULARIZADAS */}
-      {activeTab === "dre" && <DreTable entries={cashFlows} />}
-
-      {activeTab === "contas" && (
-        <CashFlowTable
-          cashFlows={cashFlows}
-          filterTipo={filterTipo}
-          onSetFilterTipo={setFilterTipo}
-          onConfirmMovement={handleConfirmMovement}
-          onRevertMovement={handleRevertMovement}
-        />
+      {loading ? (
+        <div className="bg-card border border-border rounded-2xl p-12 flex items-center justify-center text-muted-foreground gap-2 text-sm">
+          <Loader2 className="w-5 h-5 animate-spin text-connect-blue" />
+          Carregando lançamentos...
+        </div>
+      ) : loadError ? (
+        <div className="bg-card border border-red-500/30 rounded-2xl p-8 flex flex-col items-center gap-3 text-center">
+          <AlertCircle className="w-6 h-6 text-red-500" />
+          <p className="text-sm text-foreground font-semibold">{loadError}</p>
+          <button
+            onClick={loadFinanceiro}
+            className="px-4 py-2 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white text-xs font-bold transition-colors"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : (
+        <>
+          {activeTab === "dre" && <DreTable entries={cashFlows} />}
+          {activeTab === "contas" && (
+            <CashFlowTable
+              cashFlows={cashFlows}
+              filterTipo={filterTipo}
+              onSetFilterTipo={setFilterTipo}
+              onConfirmMovement={handleConfirmMovement}
+              onRevertMovement={handleRevertMovement}
+              onDelete={handleDelete}
+              busyId={busyId}
+            />
+          )}
+          {activeTab === "projecao" && <CashFlowProjection entries={cashFlows} />}
+        </>
       )}
 
-      {activeTab === "projecao" && <CashFlowProjection />}
-
-      {/* MODAL */}
-      <NewCashFlowModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleAddEntry}
-      />
+      <NewCashFlowModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleAddEntry} />
     </div>
   );
 }

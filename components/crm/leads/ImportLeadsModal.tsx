@@ -13,13 +13,14 @@ import {
 } from "lucide-react";
 import { parseLeadsCsv, ParsedCsvLead } from "@/lib/services/leads-csv";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
-import { logAuditEvent } from "@/lib/services/auditLogger";
+import { createLead, patchLead } from "./leadsApi";
 
 interface ImportLeadsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportSuccess: (importedLeads: LeadDetail[]) => void;
   availableStages: { id: string; nome: string }[];
+  funnelId: string | null;
 }
 
 export function ImportLeadsModal({
@@ -27,13 +28,14 @@ export function ImportLeadsModal({
   onClose,
   onImportSuccess,
   availableStages,
+  funnelId,
 }: ImportLeadsModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [parsedLeads, setParsedLeads] = useState<ParsedCsvLead[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [selectedStageId, setSelectedStageId] = useState(availableStages[0]?.id || "stage-1");
-  const [distributionMode, setDistributionMode] = useState<"roleta" | "bolsao">("roleta");
+  const [selectedStageId, setSelectedStageId] = useState(availableStages[0]?.id || "");
+  const [distributionMode, setDistributionMode] = useState<"responsavel" | "bolsao">("responsavel");
   const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isOpen) return null;
@@ -64,70 +66,47 @@ export function ImportLeadsModal({
     }
   };
 
-  const handleConfirmImport = () => {
+  // Cada linha é gravada via POST /api/leads (auditoria e score no servidor); falhas são reportadas
+  const handleConfirmImport = async () => {
     if (parsedLeads.length === 0) return;
     setIsProcessing(true);
+    setErrorMsg(null);
 
-    const now = new Date();
-    const stageObj = availableStages.find((s) => s.id === selectedStageId) || availableStages[0];
+    const created: LeadDetail[] = [];
+    const failures: string[] = [];
+    for (const p of parsedLeads) {
+      try {
+        let lead = await createLead({
+          nome: p.nome,
+          telefone: p.telefone,
+          email: p.email,
+          empreendimentoInteresse: p.empreendimento,
+          renda: p.renda,
+          origem: p.origem,
+          etapaId: selectedStageId,
+          funnelId,
+        });
+        if (distributionMode === "bolsao") {
+          lead = await patchLead(lead.id, { action: "MOVER_BOLSAO" });
+        }
+        created.push(lead);
+      } catch (err: any) {
+        failures.push(`${p.nome}: ${err?.message || "erro"}`);
+      }
+    }
 
-    const brokersList = [
-      { id: "b-1", nome: "Lucas Corretor" },
-      { id: "b-2", nome: "Ana Paula" },
-      { id: "b-3", nome: "Carlos Eduardo" },
-      { id: "b-4", nome: "Mariana Souza" },
-    ];
-
-    const createdLeads: LeadDetail[] = parsedLeads.map((p, idx) => {
-      const isBolsao = distributionMode === "bolsao";
-      const assignedBroker = isBolsao ? null : brokersList[idx % brokersList.length];
-
-      return {
-        id: `import-${Date.now()}-${idx}`,
-        nome: p.nome,
-        telefone: p.telefone || "(85) 98888-0000",
-        email: p.email || null,
-        stageId: stageObj.id,
-        stage: { id: stageObj.id, nome: stageObj.nome, cor: "#1266C7" },
-        corretorId: assignedBroker?.id || null,
-        corretor: assignedBroker,
-        temperatura: "MORNO",
-        score: 60,
-        source: "IMPORTADO_CSV",
-        isBolsao,
-        slaBreached: false,
-        slaDueAt: new Date(now.getTime() + 20 * 60000).toISOString(),
-        empreendimentoInteresse: p.empreendimento || "Reserva Imperial",
-        rendaDeclarada: p.renda ? parseFloat(p.renda.replace(/[^0-9.]/g, "")) || 15000 : 15000,
-        createdAt: now.toISOString(),
-        compromissosCount: 0,
-      };
-    });
-
-    // Registra na trilha de auditoria
-    logAuditEvent({
-      usuario: {
-        id: "current-user",
-        nome: "Robson Carvalho",
-        email: "robson@connectplatz.com.br",
-        role: "ADMINISTRADOR",
-      },
-      acao: `Importação em Lote de Leads (${createdLeads.length} registros)`,
-      tipoAcao: "CREATE",
-      modulo: "LEADS",
-      detalhes: `Importados ${createdLeads.length} leads do arquivo ${file?.name}. Modo: ${distributionMode.toUpperCase()}.`,
-      entidadeAfetada: {
-        tipo: "Lead",
-        id: `batch-${Date.now()}`,
-        nome: `${createdLeads.length} leads importados`,
-      },
-    });
-
-    setTimeout(() => {
-      onImportSuccess(createdLeads);
-      setIsProcessing(false);
-      onClose();
-    }, 400);
+    setIsProcessing(false);
+    if (created.length > 0) onImportSuccess(created);
+    if (failures.length > 0) {
+      setErrorMsg(
+        `${created.length} lead(s) importado(s); ${failures.length} falharam — ${failures.slice(0, 3).join(" | ")}${
+          failures.length > 3 ? " …" : ""
+        }`
+      );
+      setParsedLeads((prev) => prev.filter((p) => failures.some((f) => f.startsWith(`${p.nome}:`))));
+      return;
+    }
+    onClose();
   };
 
   return (
@@ -183,7 +162,7 @@ export function ImportLeadsModal({
           </div>
 
           {errorMsg && (
-            <div className="p-3 bg-red-950/60 border border-red-800 text-red-300 rounded-lg text-xs flex items-center gap-2">
+            <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 rounded-lg text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -217,15 +196,15 @@ export function ImportLeadsModal({
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setDistributionMode("roleta")}
+                      onClick={() => setDistributionMode("responsavel")}
                       className={`p-2 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                        distributionMode === "roleta"
+                        distributionMode === "responsavel"
                           ? "border-connect-blue bg-connect-blue/10 text-connect-blue"
                           : "border-border bg-background text-muted-foreground hover:bg-muted"
                       }`}
                     >
                       <Users className="w-3.5 h-3.5" />
-                      Roleta
+                      Atribuir a mim
                     </button>
                     <button
                       type="button"

@@ -34,7 +34,7 @@ export function AgendaHeader({
   const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1C2537] rounded-2xl p-4 shadow-sm">
+    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card border border-border rounded-2xl p-4 shadow-sm">
       {/* Title & Date */}
       <div className="flex items-center gap-3">
         <div className="p-2.5 rounded-xl bg-connect-blue/10 dark:bg-connect-blue/15 border border-connect-blue/20 dark:border-connect-blue/30 text-connect-blue">
@@ -59,10 +59,10 @@ export function AgendaHeader({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full lg:w-auto">
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
           {/* Navigation ‹ Hoje › */}
-          <div className="flex items-center bg-slate-100 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-1">
+          <div className="flex items-center bg-muted border border-border rounded-xl p-1">
             <button
               onClick={() => onNavigate("prev")}
-              className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-[#161F30] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="p-1.5 rounded-lg hover:bg-muted text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               title="Anterior"
               aria-label="Anterior"
             >
@@ -70,13 +70,13 @@ export function AgendaHeader({
             </button>
             <button
               onClick={() => onNavigate("today")}
-              className="px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#161F30] rounded-lg transition-colors"
+              className="px-2.5 py-1 text-xs font-semibold text-foreground hover:text-slate-900 dark:hover:text-white hover:bg-muted rounded-lg transition-colors"
             >
               Hoje
             </button>
             <button
               onClick={() => onNavigate("next")}
-              className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-[#161F30] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="p-1.5 rounded-lg hover:bg-muted text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               title="Próximo"
               aria-label="Próximo"
             >
@@ -89,7 +89,7 @@ export function AgendaHeader({
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full sm:w-auto appearance-none bg-slate-100 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] text-slate-700 dark:text-slate-300 rounded-xl px-3 py-1.5 pr-8 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-connect-blue cursor-pointer transition-colors truncate"
+              className="w-full sm:w-auto appearance-none bg-muted border border-border text-foreground rounded-xl px-3 py-1.5 pr-8 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-connect-blue cursor-pointer transition-colors truncate"
             >
               <option value="ALL">Todos os tipos</option>
               {Object.entries(APPOINTMENT_TYPE_CONFIG).map(([key, config]) => (
@@ -104,7 +104,7 @@ export function AgendaHeader({
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
           {/* View Mode Toggle: Dia | Semana | Mês */}
-          <div className="flex-1 sm:flex-initial flex bg-slate-100 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-1 text-xs font-semibold justify-center">
+          <div className="flex-1 sm:flex-initial flex bg-muted border border-border rounded-xl p-1 text-xs font-semibold justify-center">
             {(["dia", "semana", "mes"] as const).map((mode) => (
               <button
                 key={mode}

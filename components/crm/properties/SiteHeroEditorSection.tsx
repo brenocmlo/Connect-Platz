@@ -67,6 +67,7 @@ export function SiteHeroEditorSection({
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("folder", "site");
 
       const res = await fetch("/api/upload", {
         method: "POST",

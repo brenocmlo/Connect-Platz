@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { useCrm } from "@/components/crm/CrmContext";
 import {
   AppointmentItem,
   AgendaHeader,
@@ -9,124 +11,81 @@ import {
   AgendaMonthView,
   NewAppointmentModal,
   VisitOutcomeModal,
+  normalizeAppointmentType,
 } from "@/components/crm/agenda";
 
-const initialAppointments: AppointmentItem[] = [
-  {
-    id: "app-1",
-    titulo: "Visita ao Decorado • Villa Platz Beach",
-    tipo: "VISITA",
-    dataInicio: "2026-10-01T14:30:00Z",
-    dataFim: "2026-10-01T15:30:00Z",
-    status: "AGENDADO",
-    lead: { id: "l-1", nome: "Dr. Marcelo Cavalcante", telefone: "85998124455" },
-    property: { id: "p-1", nome: "Villa Platz Beach", endereco: "Av. Beira-Mar, 1200", bairro: "Meireles" },
-    observacoes: "Cliente busca 3 suítes frente mar, sol poente mitigado.",
-    user: { id: "u-1", nome: "Carlos Eduardo" },
-  },
-  {
-    id: "app-2",
-    titulo: "Reunião de Alinhamento de Proposta",
-    tipo: "PROPOSTA",
-    dataInicio: "2026-10-01T16:00:00Z",
-    dataFim: "2026-10-01T17:00:00Z",
-    status: "AGENDADO",
-    lead: { id: "l-2", nome: "Juliana Albuquerque", telefone: "85987332211" },
-    property: { id: "p-2", nome: "Platz Oceanfront Residence", endereco: "Rua Dep. Moreira da Rocha, 450", bairro: "Meireles" },
-    observacoes: "Análise de fluxo de pagamento durante as obras.",
-    user: { id: "u-2", nome: "Ana Paula" },
-  },
-  {
-    id: "app-3",
-    titulo: "Coleta e Conferência de Documentação",
-    tipo: "DOCUMENTACAO",
-    dataInicio: "2026-10-02T10:00:00Z",
-    dataFim: "2026-10-02T11:00:00Z",
-    status: "AGENDADO",
-    lead: { id: "l-3", nome: "Roberto Simões", telefone: "85991448899" },
-    property: { id: "p-3", nome: "Residencial Aldeota Platz", endereco: "Rua Barbosa de Freitas, 880", bairro: "Aldeota" },
-    user: { id: "u-1", nome: "Carlos Eduardo" },
-  },
-  {
-    id: "app-4",
-    titulo: "Retorno telefônico sobre proposta enviada",
-    tipo: "RETORNO",
-    dataInicio: "2026-10-03T11:30:00Z",
-    dataFim: "2026-10-03T12:00:00Z",
-    status: "AGENDADO",
-    lead: { id: "l-4", nome: "Fernando Guimarães", telefone: "85992334455" },
-    property: { id: "p-1", nome: "Villa Platz Beach" },
-    user: { id: "u-3", nome: "Mariana Costa" },
-  },
-  {
-    id: "app-5",
-    titulo: "Lembrete: Enviar minuta contratual para cartório",
-    tipo: "LEMBRETE",
-    dataInicio: "2026-10-01T11:00:00Z",
-    dataFim: "2026-10-01T11:30:00Z",
-    status: "CONCLUIDO",
-    lead: { id: "l-5", nome: "Beatriz Mota", telefone: "85994445566" },
-    user: { id: "u-1", nome: "Carlos Eduardo" },
-  },
-];
+/** Normaliza o compromisso vindo da API (datas ISO e tipo do enum). */
+function toItem(raw: any): AppointmentItem {
+  return {
+    ...raw,
+    tipo: normalizeAppointmentType(raw.tipo) || raw.tipo,
+    dataInicio: new Date(raw.dataInicio).toISOString(),
+    dataFim: new Date(raw.dataFim).toISOString(),
+  };
+}
 
 export default function AgendaPage() {
-  const [appointments, setAppointments] = useState<AppointmentItem[]>(initialAppointments);
-  const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 9, 1)); // 01 de Outubro de 2026
+  const { setActionMessage } = useCrm();
+  const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [viewMode, setViewMode] = useState<"dia" | "semana" | "mes">("semana");
   const [selectedType, setSelectedType] = useState<string>("ALL");
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [selectedForOutcome, setSelectedForOutcome] = useState<AppointmentItem | null>(null);
 
-  React.useEffect(() => {
-    async function loadAppointments() {
-      try {
-        const res = await fetch("/api/agenda");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.appointments && data.appointments.length > 0) {
-            setAppointments(data.appointments);
-          }
-        }
-      } catch (err) {
-        // Fallback
+  const notify = useCallback(
+    (msg: string) => {
+      setActionMessage(msg);
+      setTimeout(() => setActionMessage(null), 4000);
+    },
+    [setActionMessage]
+  );
+
+  const loadAppointments = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/agenda", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setLoadError(data?.error || "Não foi possível carregar a agenda.");
+        return;
       }
+      setAppointments((data.appointments || []).map(toItem));
+    } catch {
+      setLoadError("Falha de conexão ao carregar a agenda.");
+    } finally {
+      setLoading(false);
     }
-    loadAppointments();
   }, []);
 
-  // Navigation handlers
+  useEffect(() => {
+    loadAppointments();
+  }, [loadAppointments]);
+
   const handleNavigate = (direction: "prev" | "today" | "next") => {
     if (direction === "today") {
-      setCurrentDate(new Date(2026, 9, 1));
+      setCurrentDate(new Date());
       return;
     }
-
     const newDate = new Date(currentDate);
     const step = direction === "next" ? 1 : -1;
-
-    if (viewMode === "dia") {
-      newDate.setDate(newDate.getDate() + step);
-    } else if (viewMode === "semana") {
-      newDate.setDate(newDate.getDate() + step * 7);
-    } else if (viewMode === "mes") {
-      newDate.setMonth(newDate.getMonth() + step);
-    }
-
+    if (viewMode === "dia") newDate.setDate(newDate.getDate() + step);
+    else if (viewMode === "semana") newDate.setDate(newDate.getDate() + step * 7);
+    else newDate.setMonth(newDate.getMonth() + step);
     setCurrentDate(newDate);
   };
 
-  const handleCreateAppointment = async (newApp: AppointmentItem) => {
-    setAppointments([newApp, ...appointments]);
-    try {
-      await fetch("/api/agenda", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newApp),
-      });
-    } catch (e) {
-      console.warn("Falha ao salvar compromisso no backend:", e);
-    }
+  // O modal já persiste via API e devolve o compromisso real criado
+  const handleCreated = (created: AppointmentItem) => {
+    setAppointments((prev) =>
+      [...prev, toItem(created)].sort(
+        (a, b) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime()
+      )
+    );
+    notify("Compromisso agendado com sucesso!");
   };
 
   const handleSaveOutcome = async (
@@ -134,31 +93,33 @@ export default function AgendaPage() {
     status: "CONCLUIDO" | "NAO_COMPARECEU",
     resultado: string
   ) => {
+    const previous = appointments;
+    // Atualização otimista com rollback em caso de falha
     setAppointments((prev) =>
       prev.map((a) => (a.id === appId ? { ...a, status, resultadoVisita: resultado } : a))
     );
     try {
-      await fetch("/api/agenda", {
+      const res = await fetch(`/api/agenda/${appId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: appId, status, resultadoVisita: resultado }),
+        body: JSON.stringify({ status, resultadoVisita: resultado || null }),
       });
-    } catch (e) {
-      console.warn("Falha ao atualizar status do compromisso:", e);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Não foi possível registrar o desfecho.");
+      setAppointments((prev) => prev.map((a) => (a.id === appId ? toItem(data.appointment) : a)));
+      notify("Desfecho registrado com sucesso!");
+    } catch (e: any) {
+      setAppointments(previous);
+      notify(e?.message || "Falha ao registrar o desfecho.");
     }
   };
 
-  // Filter appointments
-  const filteredAppointments = appointments.filter((app) => {
-    if (selectedType !== "ALL" && app.tipo.toUpperCase() !== selectedType.toUpperCase()) {
-      return false;
-    }
-    return true;
-  });
+  const filteredAppointments = appointments.filter(
+    (app) => selectedType === "ALL" || app.tipo === selectedType
+  );
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* 1. Header (Seção 5.7) */}
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
       <AgendaHeader
         currentDate={currentDate}
         viewMode={viewMode}
@@ -169,42 +130,59 @@ export default function AgendaPage() {
         onNewAppointment={() => setIsNewModalOpen(true)}
       />
 
-      {/* 2. Visual View: Dia | Semana | Mês */}
-      {viewMode === "dia" && (
-        <AgendaDayView
-          appointments={filteredAppointments}
-          currentDate={currentDate}
-          onOpenOutcomeModal={setSelectedForOutcome}
-          onNewAppointment={() => setIsNewModalOpen(true)}
-        />
+      {loading ? (
+        <div className="bg-card border border-border rounded-2xl p-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+          <Loader2 className="w-6 h-6 animate-spin text-connect-blue" />
+          <span className="text-xs">Carregando compromissos...</span>
+        </div>
+      ) : loadError ? (
+        <div className="bg-card border border-border rounded-2xl p-10 flex flex-col items-center gap-3 text-center">
+          <AlertCircle className="w-6 h-6 text-red-500" />
+          <p className="text-sm font-semibold text-foreground">{loadError}</p>
+          <button
+            onClick={loadAppointments}
+            className="px-4 py-2 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white text-xs font-bold transition-all hover:scale-[1.02]"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : (
+        <>
+          {viewMode === "dia" && (
+            <AgendaDayView
+              appointments={filteredAppointments}
+              currentDate={currentDate}
+              onOpenOutcomeModal={setSelectedForOutcome}
+              onNewAppointment={() => setIsNewModalOpen(true)}
+            />
+          )}
+          {viewMode === "semana" && (
+            <AgendaWeekView
+              appointments={filteredAppointments}
+              currentDate={currentDate}
+              onOpenOutcomeModal={setSelectedForOutcome}
+              onNewAppointment={() => setIsNewModalOpen(true)}
+            />
+          )}
+          {viewMode === "mes" && (
+            <AgendaMonthView
+              appointments={filteredAppointments}
+              currentDate={currentDate}
+              onOpenOutcomeModal={setSelectedForOutcome}
+              onSelectDate={(date) => {
+                setCurrentDate(date);
+                setViewMode("dia");
+              }}
+            />
+          )}
+        </>
       )}
 
-      {viewMode === "semana" && (
-        <AgendaWeekView
-          appointments={filteredAppointments}
-          currentDate={currentDate}
-          onOpenOutcomeModal={setSelectedForOutcome}
-          onNewAppointment={() => setIsNewModalOpen(true)}
-        />
-      )}
-
-      {viewMode === "mes" && (
-        <AgendaMonthView
-          appointments={filteredAppointments}
-          currentDate={currentDate}
-          onOpenOutcomeModal={setSelectedForOutcome}
-          onSelectDate={(date) => {
-            setCurrentDate(date);
-            setViewMode("dia");
-          }}
-        />
-      )}
-
-      {/* 3. Modais */}
       <NewAppointmentModal
         isOpen={isNewModalOpen}
+        initialDate={currentDate}
         onClose={() => setIsNewModalOpen(false)}
-        onSubmit={handleCreateAppointment}
+        onSubmit={handleCreated}
       />
 
       <VisitOutcomeModal

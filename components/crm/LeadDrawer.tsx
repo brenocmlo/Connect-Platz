@@ -52,6 +52,13 @@ export interface LeadDetail {
   createdAt?: string | null;
   score?: number | null;
   observacoes?: string | null;
+  corretorId?: string | null;
+  funnelId?: string | null;
+  firstContactAt?: string | null;
+  sourceLabel?: string | null;
+  isClosed?: boolean;
+  documentsCount?: number | null;
+  salesCount?: number | null;
 }
 
 interface LeadDrawerProps {

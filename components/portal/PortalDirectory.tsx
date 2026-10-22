@@ -31,7 +31,7 @@ export function PortalDirectory({ directoryCities, onFilterClick }: PortalDirect
         <Reveal>
           <PortalSectionTitle
             title="IMÓVEIS À VENDA E PARA TEMPORADA"
-            subtitle="Encontre o imóvel ideal nas principais cidades e praias atendidas pela Connect Platz."
+            subtitle="Encontre o imóvel ideal nas cidades com imóveis publicados pela Connect Platz."
           />
         </Reveal>
 
@@ -59,7 +59,9 @@ export function PortalDirectory({ directoryCities, onFilterClick }: PortalDirect
           ref={carousel.ref}
           className="no-scrollbar -mx-4 mt-10 flex snap-x snap-mandatory gap-8 overflow-x-auto scroll-px-4 px-4 sm:mx-0 sm:scroll-px-0 sm:px-0"
         >
-          {directoryCities.map((city) => {
+          {directoryCities
+            .filter((city) => (tab === "COMPRAR" ? city.comprar : city.alugar).length > 0)
+            .map((city) => {
             const items = tab === "COMPRAR" ? city.comprar : city.alugar;
             return (
               <div key={city.cidade} className="w-[230px] shrink-0 snap-start">

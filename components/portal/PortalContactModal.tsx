@@ -17,7 +17,8 @@ import {
   Navigation,
 } from "lucide-react";
 import type { PropertyItem } from "./types";
-import { FALLBACK_PHOTO, formatPrice, isTemporada, waLink } from "./portalUtils";
+import { FALLBACK_PHOTO, formatPrice, isTemporada } from "./portalUtils";
+import { useWaLink } from "./PortalSettingsContext";
 import { PropertyLocationTab } from "./PropertyLocationTab";
 import { PortalLeadContactForm } from "./PortalLeadContactForm";
 
@@ -27,6 +28,7 @@ interface PortalContactModalProps {
 }
 
 function ModalPanel({ property, onClose }: { property: PropertyItem; onClose: () => void }) {
+  const waLink = useWaLink();
   const [activeTab, setActiveTab] = useState<"detalhes" | "localizacao" | "contato">("detalhes");
 
   useEffect(() => {
@@ -41,16 +43,16 @@ function ModalPanel({ property, onClose }: { property: PropertyItem; onClose: ()
 
   const c = property.caracteristicas || {};
   const specs = [
-    { icon: Ruler, label: "Área", value: c.area_m2 ? `${c.area_m2} m²` : null },
-    { icon: BedDouble, label: "Quartos", value: c.quartos ? `${c.quartos}` : null },
-    { icon: Bath, label: "Suítes", value: c.suites ? `${c.suites}` : null },
-    { icon: Car, label: "Vagas", value: c.vagas ? `${c.vagas}` : null },
-  ].filter((s) => s.value);
+    { icon: Ruler, label: "Área", value: c.area_m2 != null ? `${c.area_m2} m²` : null },
+    { icon: BedDouble, label: "Quartos", value: c.quartos != null ? `${c.quartos}` : null },
+    { icon: Bath, label: "Suítes", value: c.suites != null ? `${c.suites}` : null },
+    { icon: Car, label: "Vagas", value: c.vagas != null ? `${c.vagas}` : null },
+  ].filter((s) => s.value !== null);
 
   const price = formatPrice(property);
-  const whatsAppDirectUrl = waLink(
-    `Olá! Gostaria de mais informações sobre o imóvel "${property.nome}" (${price}) em ${property.bairro || "Fortaleza"}.`
-  );
+  const whatsAppDirectUrl = waLink
+    ? waLink(`Olá! Gostaria de mais informações sobre o imóvel "${property.nome}" (${price})${property.bairro ? ` em ${property.bairro}` : ""}.`)
+    : null;
 
   return (
     <motion.div
@@ -95,12 +97,12 @@ function ModalPanel({ property, onClose }: { property: PropertyItem; onClose: ()
         </div>
 
         {/* Rodapé da imagem com construtora */}
-        {(property as any).construtora && (
+        {property.construtora && (
           <div className="absolute bottom-3 left-3 right-3 text-white z-10 text-xs">
-            <span className="text-[10px] uppercase font-semibold text-slate-300 block">Incorporação</span>
+            <span className="text-[10px] uppercase font-semibold text-white/80 block">Incorporação</span>
             <span className="font-bold flex items-center gap-1.5 text-sm">
               <Building className="w-4 h-4 text-platz-gold" />
-              {(property as any).construtora}
+              {property.construtora}
             </span>
           </div>
         )}
@@ -247,6 +249,7 @@ function ModalPanel({ property, onClose }: { property: PropertyItem; onClose: ()
                   <Calendar className="w-4 h-4" />
                   <span>Agendar Visita</span>
                 </button>
+                {whatsAppDirectUrl && (
                 <a
                   href={whatsAppDirectUrl}
                   target="_blank"
@@ -256,6 +259,7 @@ function ModalPanel({ property, onClose }: { property: PropertyItem; onClose: ()
                   <MessageCircle className="w-4 h-4" />
                   <span>WhatsApp</span>
                 </a>
+                )}
               </div>
             </div>
           )}

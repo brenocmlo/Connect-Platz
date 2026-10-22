@@ -1,155 +1,179 @@
+// lib/services/bi-pdf.ts
+// PDF executivo dos Relatórios BI gerado a partir dos dados reais de GET /api/relatorios.
+// Sem números fixos: diagnóstico e destaques são calculados deterministicamente dos próprios dados.
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import {
-  BI_METRIC_SUMMARIES,
-  CAMPAIGN_ROI_DATA,
-  FUNNEL_EFFICIENCY_DATA,
-} from "@/components/crm/relatorios/biData";
+import type { BiMetricSummary, BiReportData } from "@/components/crm/relatorios/types";
 
-export function generateBiExecutivePdf(periodLabel: string = "Mês Atual (Outubro 2026)") {
-  const doc = new jsPDF();
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const num = (v: number, decimals = 1) => v.toLocaleString("pt-BR", { maximumFractionDigits: decimals });
 
-  // 1. CABEÇALHO TIMBRADO OFICIAL CONNECT PLATZ
-  doc.setFillColor(10, 14, 23); // #0A0E17
-  doc.rect(0, 0, 210, 42, "F");
+function formatMetricValue(m: BiMetricSummary): string {
+  if (m.value === null) return "—";
+  if (m.prefix === "R$ ") return brl(m.value);
+  return `${m.prefix || ""}${num(m.value, m.decimals ?? 1)}${m.suffix || ""}`;
+}
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("CONNECT PLATZ IMOBILIÁRIA", 14, 18);
+function formatChange(m: BiMetricSummary): string {
+  if (m.changePercent === null) return "—";
+  const sign = m.changePercent > 0 ? "+" : m.changePercent < 0 ? "-" : "";
+  return `${sign}${num(Math.abs(m.changePercent))}${m.changeSuffix ?? "%"}`;
+}
 
-  doc.setFontSize(10);
-  doc.setTextColor(217, 187, 76); // #D9BB4C (Platz Gold)
-  doc.text("RELATÓRIO EXECUTIVO DE INTELIGÊNCIA COMERCIAL & BI", 14, 26);
+/** Diagnóstico textual calculado a partir do próprio relatório. */
+function buildInsights(data: BiReportData): string[] {
+  const insights: string[] = [];
+  const leader = [...data.channels].filter((c) => c.vgv > 0).sort((a, b) => b.vgv - a.vgv)[0];
+  const totalVgv = data.channels.reduce((acc, c) => acc + c.vgv, 0);
+  if (leader && totalVgv > 0) {
+    insights.push(
+      `• Canal destaque: ${leader.canal} responde por ${num((leader.vgv / totalVgv) * 100)}% do VGV do período` +
+        (leader.roiMultiplicador !== null ? ` (ROI ${num(leader.roiMultiplicador)}x).` : ".")
+    );
+  } else {
+    insights.push("• Nenhuma venda registrada no período para atribuição por canal.");
+  }
 
-  doc.setFontSize(8.5);
-  doc.setTextColor(180, 190, 205);
-  const now = new Date().toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  doc.text(`Período de Análise: ${periodLabel}`, 14, 34);
-  doc.text(`Emitido em: ${now} | Governança Oficial`, 130, 34);
+  const critical = data.funnelVelocity.stages
+    .filter((s) => s.status === "critico" && s.slaHoras)
+    .sort((a, b) => b.tempoHoras - (b.slaHoras || 0) - (a.tempoHoras - (a.slaHoras || 0)))[0];
+  insights.push(
+    critical
+      ? `• Gargalo de SLA: a etapa "${critical.etapa}" excede o SLA em +${num(critical.tempoHoras - (critical.slaHoras || 0))}h (média dos leads abertos).`
+      : "• Nenhuma etapa do funil acima do SLA configurado."
+  );
 
-  // 2. SUMÁRIO DE INDICADORES PRINCIPAIS (KPIs)
+  insights.push(`• Leads encerrados disponíveis para reativação/descarte (LGPD): ${data.closedLeads.length}.`);
+  return insights;
+}
+
+function sectionTitle(doc: jsPDF, text: string, y: number) {
   doc.setTextColor(18, 102, 199); // #1266C7 (Connect Blue)
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("1. Resumo Consolidado de Desempenho", 14, 52);
+  doc.text(text, 14, y);
+}
 
-  const kpiRows = BI_METRIC_SUMMARIES.map((m) => [
-    m.title,
-    m.category,
-    m.prefix === "R$ "
-      ? m.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-      : `${m.value}${m.suffix || ""}`,
-    `${m.changePercent >= 0 ? "+" : ""}${m.changePercent}%`,
-    m.sublabel,
-  ]);
+const lastY = (doc: jsPDF) => (doc as any).lastAutoTable.finalY as number;
 
+export function generateBiExecutivePdf(data: BiReportData, emittedBy?: string) {
+  const doc = new jsPDF();
+
+  // 1. CABEÇALHO
+  doc.setFillColor(8, 12, 20); // #080C14
+  doc.rect(0, 0, 210, 42, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("CONNECT PLATZ", 14, 18);
+  doc.setFontSize(10);
+  doc.setTextColor(217, 187, 76); // #D9BB4C (Platz Gold)
+  doc.text("RELATÓRIO EXECUTIVO DE INTELIGÊNCIA COMERCIAL & BI", 14, 26);
+  doc.setFontSize(8.5);
+  doc.setTextColor(180, 190, 205);
+  const now = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const scopeLabel = data.scope === "corretor" ? "Carteira individual" : "Organização";
+  doc.text(`Período: ${data.period.label} | Escopo: ${scopeLabel}`, 14, 34);
+  doc.text(`Emitido em: ${now}`, 150, 34);
+
+  // 2. KPIs
+  sectionTitle(doc, "1. Resumo Consolidado de Desempenho", 52);
   autoTable(doc, {
     startY: 56,
     theme: "striped",
     headStyles: { fillColor: [18, 102, 199], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
     bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
     head: [["Indicador", "Categoria", "Valor Realizado", "Variação", "Observação"]],
-    body: kpiRows,
+    body: data.summaries.map((m) => [m.title, m.category, formatMetricValue(m), formatChange(m), m.sublabel]),
   });
 
-  // 3. AUDITORIA DE CANAIS & ROI DE MÍDIA
-  const nextY = (doc as any).lastAutoTable.finalY + 10;
-  doc.setTextColor(18, 102, 199);
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("2. Desempenho por Canal de Aquisição & ROI", 14, nextY);
-
-  const channelRows = CAMPAIGN_ROI_DATA.map((c) => [
-    c.canal,
-    `${c.leads} contatos`,
-    c.investimento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-    `R$ ${c.cpl.toFixed(2)}`,
-    c.vgv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-    `${c.taxaConversao}%`,
-    c.roi,
-  ]);
-
+  // 3. CANAIS
+  const channelY = lastY(doc) + 10;
+  sectionTitle(doc, "2. Desempenho por Canal de Aquisição", channelY);
+  const withInvestment = data.investmentAvailable;
   autoTable(doc, {
-    startY: nextY + 4,
+    startY: channelY + 4,
     theme: "grid",
-    headStyles: { fillColor: [217, 187, 76], textColor: [10, 14, 23], fontStyle: "bold", fontSize: 8.5 },
+    headStyles: { fillColor: [217, 187, 76], textColor: [8, 12, 20], fontStyle: "bold", fontSize: 8.5 },
     bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
-    head: [["Canal", "Leads", "Custo Total", "CPL", "VGV Comercial", "Conversão", "ROI"]],
-    body: channelRows,
+    head: [
+      withInvestment
+        ? ["Canal", "Leads", "Vendas", "Custo Total", "CPL", "VGV", "Conversão", "ROI"]
+        : ["Canal", "Leads", "Vendas", "VGV", "Ticket Médio", "Conversão"],
+    ],
+    body: data.channels.length
+      ? data.channels.map((c) =>
+          withInvestment
+            ? [
+                c.canal,
+                String(c.leads),
+                String(c.vendas),
+                c.investimento === null ? "—" : brl(c.investimento),
+                c.cpl === null ? "—" : brl(c.cpl),
+                brl(c.vgv),
+                `${num(c.taxaConversao)}%`,
+                c.roiMultiplicador === null ? "—" : `${num(c.roiMultiplicador)}x`,
+              ]
+            : [c.canal, String(c.leads), String(c.vendas), brl(c.vgv), brl(c.ticketMedio), `${num(c.taxaConversao)}%`]
+        )
+      : [[{ content: "Sem leads ou vendas no período.", colSpan: withInvestment ? 8 : 6 }]],
   });
 
-  // 4. VELOCIDADE DE FUNIL & EFICIÊNCIA DE SLA
-  const funnelY = (doc as any).lastAutoTable.finalY + 10;
-  doc.setTextColor(18, 102, 199);
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("3. Eficiência Operacional & Análise de Gargalos de Funil", 14, funnelY);
-
-  const funnelRows = FUNNEL_EFFICIENCY_DATA.map((s, idx) => [
-    `0${idx + 1} - ${s.etapa}`,
-    `${s.tempoHoras} horas`,
-    `${s.slaHoras} horas`,
-    s.status === "critico" ? "GARGALO (Excede SLA)" : s.status === "alerta" ? "ATENÇÃO" : "DENTRO DO SLA",
-    `${s.taxaPassagem}%`,
-  ]);
-
+  // 4. FUNIL
+  const funnelY = lastY(doc) + 10;
+  sectionTitle(
+    doc,
+    `3. Velocidade do Funil${data.funnelVelocity.funil ? ` — ${data.funnelVelocity.funil}` : ""}`,
+    funnelY
+  );
   autoTable(doc, {
     startY: funnelY + 4,
     theme: "striped",
     headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
     bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
-    head: [["Etapa do Pipeline", "Permanência Média", "SLA Alvo", "Diagnóstico Operacional", "Taxa de Avanço"]],
-    body: funnelRows,
+    head: [["Etapa", "Leads Abertos", "Permanência Média", "SLA", "Diagnóstico", "Passagem"]],
+    body: data.funnelVelocity.stages.length
+      ? data.funnelVelocity.stages.map((s, idx) => [
+          `${String(idx + 1).padStart(2, "0")} - ${s.etapa}`,
+          String(s.leadsAbertos),
+          `${num(s.tempoHoras)} h`,
+          s.slaHoras ? `${num(s.slaHoras)} h` : "—",
+          s.status === "critico" ? "Excede o SLA" : s.status === "alerta" ? "Atenção" : "Dentro do SLA",
+          s.taxaPassagem === null ? "—" : `${num(s.taxaPassagem)}%`,
+        ])
+      : [[{ content: "Nenhum funil com leads no período.", colSpan: 6 }]],
   });
 
-  // 5. INSIGHTS E RECOMENDAÇÕES EXECUTIVAS
-  const insightsY = (doc as any).lastAutoTable.finalY + 10;
+  // 5. DIAGNÓSTICO CALCULADO
+  let insightsY = lastY(doc) + 10;
+  if (insightsY > 250) {
+    doc.addPage();
+    insightsY = 20;
+  }
+  const lines = doc.splitTextToSize(buildInsights(data).join("\n"), 172) as string[];
+  const boxHeight = 14 + lines.length * 4;
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(14, insightsY, 182, 30, 3, 3, "FD");
-
+  doc.roundedRect(14, insightsY, 182, boxHeight, 3, 3, "FD");
   doc.setTextColor(15, 23, 42);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("DIAGNÓSTICO E RECOMENDAÇÕES DA DIRETORIA COMERCIAL:", 18, insightsY + 8);
-
+  doc.text("DIAGNÓSTICO DO PERÍODO", 18, insightsY + 8);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.8);
   doc.setTextColor(71, 85, 105);
-  const recomendacao =
-    "• Canal Destaque: Meta Ads lidera a geração de VGV (41.9%), com excelente CPL de R$ 75,00. Manter investimento.\n" +
-    "• Ponto Crítico de SLA: A etapa de Análise de Crédito excede o prazo limite em +18h por pendências de documentação bancária. Ação recomendada: instituir pré-validação documental obrigatória antes da emissão da minuta contratual.\n" +
-    "• Governança: Todos os contatos inativos foram exportados e mantidos sob política estrita de conformidade com a LGPD.";
-  doc.text(recomendacao, 18, insightsY + 14);
+  doc.text(lines, 18, insightsY + 14);
 
-  // 6. ASSINATURA & VALIDAÇÃO
-  const signY = insightsY + 40;
-  doc.setDrawColor(180, 180, 180);
-  doc.line(14, signY + 12, 95, signY + 12);
+  // 6. RODAPÉ DE EMISSÃO
+  const footY = insightsY + boxHeight + 10;
   doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 23, 42);
-  doc.text("Robson Carvalho — Diretor Comercial", 14, signY + 17);
-  doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139);
-  doc.text("Connect Platz CRM Imobiliário", 14, signY + 21);
+  doc.text(
+    `${emittedBy ? `Emitido por: ${emittedBy} • ` : ""}Connect Platz CRM — dados extraídos do sistema em ${now}`,
+    14,
+    Math.min(footY, 287)
+  );
 
-  doc.line(105, signY + 12, 196, signY + 12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 23, 42);
-  doc.text("Controladoria & Auditoria de Dados", 105, signY + 17);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 116, 139);
-  doc.text("Certificação de Integridade Determinística", 105, signY + 21);
-
-  // DOWNLOAD DO ARQUIVO
-  const filename = `Relatorio_Executivo_BI_Connect_Platz_${new Date().toISOString().slice(0, 10)}.pdf`;
-  doc.save(filename);
+  doc.save(`Relatorio_Executivo_BI_Connect_Platz_${new Date().toISOString().slice(0, 10)}.pdf`);
 }

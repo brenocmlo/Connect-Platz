@@ -12,6 +12,10 @@ export interface PropertyItem {
   estado: string;
   bairro: string;
   endereco?: string | null;
+  cep?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  construtora?: string | null;
   descricao?: string | null;
   caracteristicas?: {
     area_m2?: number;

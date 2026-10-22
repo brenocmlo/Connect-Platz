@@ -1,13 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  UserCircle,
-  Building2,
-  Sliders,
-  Flame,
-  BellRing,
-} from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { UserCircle, Building2, Sliders, Flame, BellRing } from "lucide-react";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { useCrm } from "@/components/crm/CrmContext";
 import { ProfileTab } from "@/components/crm/configuracoes/ProfileTab";
@@ -17,62 +11,66 @@ import { ScoreCalibrationTab } from "@/components/crm/configuracoes/ScoreCalibra
 import { PushNotificationCard } from "@/components/crm/configuracoes/PushNotificationCard";
 
 type ConfigTab = "perfil" | "notificacoes" | "geral" | "sla" | "score";
+type Access = "all" | "manager" | "director";
 
-const tabList: { id: ConfigTab; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
-  { id: "perfil", label: "Minha Conta", icon: UserCircle },
-  { id: "notificacoes", label: "Notificações PWA", icon: BellRing },
-  { id: "geral", label: "Administração", icon: Building2, adminOnly: true },
-  { id: "sla", label: "Regras de SLA", icon: Sliders, adminOnly: true },
-  { id: "score", label: "Régua de Score", icon: Flame, adminOnly: true },
+const tabList: { id: ConfigTab; label: string; icon: React.ElementType; access: Access }[] = [
+  { id: "perfil", label: "Minha Conta", icon: UserCircle, access: "all" },
+  { id: "notificacoes", label: "Notificações PWA", icon: BellRing, access: "all" },
+  { id: "geral", label: "Dados da Imobiliária", icon: Building2, access: "director" },
+  { id: "sla", label: "Regras de SLA", icon: Sliders, access: "manager" },
+  { id: "score", label: "Régua de Score", icon: Flame, access: "manager" },
 ];
 
 export default function ConfiguracoesPage() {
   const { user } = useCrm();
   const [activeTab, setActiveTab] = useState<ConfigTab>("perfil");
 
-  // RBAC: Corretor tem acesso a Minha Conta e Notificações PWA
-  const isAdminOrDirector = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR";
-  const availableTabs = isAdminOrDirector
-    ? tabList
-    : tabList.filter((t) => !t.adminOnly);
+  // RBAC: Corretor → Minha Conta + preferências locais; Gerente → + SLA e Score; Admin/Diretor → tudo
+  const isDirector = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR";
+  const isManager = isDirector || user?.role === "GERENTE";
 
-  // Sincroniza com hash da URL (#perfil, #notificacoes, #geral, #sla)
+  const availableTabs = useMemo(
+    () =>
+      tabList.filter(
+        (t) => t.access === "all" || (t.access === "manager" && isManager) || (t.access === "director" && isDirector)
+      ),
+    [isManager, isDirector]
+  );
+
+  // Sincroniza com hash da URL (#perfil, #notificacoes, #geral, #sla, #score)
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.replace("#", "") as ConfigTab;
-      if (availableTabs.some((t) => t.id === hash)) {
-        setActiveTab(hash);
-      } else {
-        setActiveTab("perfil");
-      }
+      setActiveTab(availableTabs.some((t) => t.id === hash) ? hash : "perfil");
     };
-
     handleHash();
     window.addEventListener("hashchange", handleHash);
     return () => window.removeEventListener("hashchange", handleHash);
-  }, [isAdminOrDirector]);
+  }, [availableTabs]);
 
   const handleTabChange = (id: ConfigTab) => {
     setActiveTab(id);
     window.location.hash = id;
   };
 
+  const canSee = (id: ConfigTab) => availableTabs.some((t) => t.id === id);
+
   return (
     <div className="space-y-6">
-      {/* 1. CABEÇALHO PADRÃO HABITUS (5.2) */}
       <PageHeader
-        title={isAdminOrDirector ? "Configurações do Sistema" : "Minha Conta & Preferências"}
+        title={isManager ? "Configurações do Sistema" : "Minha Conta & Preferências"}
         subtitle={
-          isAdminOrDirector
-            ? "Gerencie seu perfil de corretor, dados corporativos, alertas e regras de SLA da equipe."
-            : "Gerencie suas informações profissionais, CRECI individual e alertas PWA em tempo real."
+          isDirector
+            ? "Gerencie seu perfil, dados corporativos, alertas e regras de SLA e score da equipe."
+            : isManager
+            ? "Gerencie seu perfil, alertas e as regras operacionais de SLA e score da equipe."
+            : "Gerencie suas informações profissionais, CRECI individual e alertas PWA."
         }
         showHideValuesButton={false}
         showPeriodSelector={false}
         showExportButton={false}
       />
 
-      {/* 2. BARRA DE ABAS SHADCN / RADIX STYLE */}
       {availableTabs.length > 1 && (
         <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl overflow-x-auto select-none border border-border">
           {availableTabs.map((tab) => {
@@ -88,11 +86,7 @@ export default function ConfiguracoesPage() {
                     : "text-muted-foreground hover:text-foreground hover:bg-card/50"
                 }`}
               >
-                <Icon
-                  className={`w-4 h-4 ${
-                    isActive ? "text-connect-blue" : "text-muted-foreground"
-                  }`}
-                />
+                <Icon className={`w-4 h-4 ${isActive ? "text-connect-blue" : "text-muted-foreground"}`} />
                 {tab.label}
               </button>
             );
@@ -100,13 +94,12 @@ export default function ConfiguracoesPage() {
         </div>
       )}
 
-      {/* 3. CONTEÚDO DAS ABAS */}
       <div className="transition-opacity duration-300">
         {activeTab === "perfil" && <ProfileTab />}
         {activeTab === "notificacoes" && <PushNotificationCard />}
-        {isAdminOrDirector && activeTab === "geral" && <AdminGeneralTab />}
-        {isAdminOrDirector && activeTab === "sla" && <SlaEngineTab />}
-        {isAdminOrDirector && activeTab === "score" && <ScoreCalibrationTab />}
+        {canSee("geral") && activeTab === "geral" && <AdminGeneralTab />}
+        {canSee("sla") && activeTab === "sla" && <SlaEngineTab />}
+        {canSee("score") && activeTab === "score" && <ScoreCalibrationTab />}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import React from "react";
 import { FileCheck, MessageCircle, ShieldCheck, Zap } from "lucide-react";
 import { CountUp, PortalSectionTitle, Reveal } from "./PortalUI";
-import { waLink } from "./portalUtils";
+import { useWaLink } from "./PortalSettingsContext";
 
 interface PortalWhyUsProps {
   totalImoveis: number;
@@ -51,6 +51,7 @@ function StatPin({ label, value, suffix, caption }: { label: string; value: numb
 }
 
 export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: PortalWhyUsProps) {
+  const waLink = useWaLink();
   // Valores institucionais com fallback caso o banco local/staging ainda esteja sendo alimentado
   const imoveisVal = totalImoveis > 0 ? totalImoveis : 120;
   const cidadesVal = totalCidades > 0 ? totalCidades : 8;
@@ -123,6 +124,7 @@ export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: Port
           </Reveal>
         </div>
 
+        {waLink && (
         <div className="mt-16 flex justify-center">
           <a
             href={waLink("Olá! Gostaria de falar com um corretor da Connect Platz.")}
@@ -134,6 +136,7 @@ export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: Port
             Falar com corretor
           </a>
         </div>
+        )}
       </div>
     </section>
   );

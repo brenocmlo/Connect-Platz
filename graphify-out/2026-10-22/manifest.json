@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/crm/empreendimentos/page.tsx": {
-    "mtime": 1791818325.5334802,
-    "seen": 1791818624.385458,
-    "ast_hash": "4d967cb93cdf7c1181e0730284b0e547",
+    "mtime": 1792678148.250913,
+    "seen": 1792678647.9464939,
+    "ast_hash": "266c30bbbe876f89ee2682fdaa621553",
     "semantic_hash": ""
   },
   "app/crm/equipes/page.tsx": {
@@ -168,10 +168,10 @@
     "semantic_hash": ""
   },
   "app/espelho/[slug]/page.tsx": {
-    "mtime": 1790813619.1329339,
-    "seen": 1791241244.8819861,
-    "ast_hash": "2c1004b95dd4adb46b5bed654c2f7713",
-    "semantic_hash": "2c1004b95dd4adb46b5bed654c2f7713"
+    "mtime": 1792678336.3176844,
+    "seen": 1792678647.9483268,
+    "ast_hash": "ae897282de2c3c986bf3fd68c789b71b",
+    "semantic_hash": ""
   },
   "app/layout.tsx": {
     "mtime": 1792001237.633304,
@@ -696,9 +696,9 @@
     "semantic_hash": ""
   },
   "components/crm/properties/EspelhoVendasModal.tsx": {
-    "mtime": 1792676379.7415166,
-    "seen": 1792676651.5161228,
-    "ast_hash": "e980e12ec05e2c91d801a4a5d5f6a3ee",
+    "mtime": 1792678370.28739,
+    "seen": 1792678647.972466,
+    "ast_hash": "3a1af794dacd501480ddd6d5270d4bee",
     "semantic_hash": ""
   },
   "components/crm/properties/ImageUploadZone.tsx": {
@@ -714,9 +714,9 @@
     "semantic_hash": "bafc7e9fdbddf417fbc2a3447997b42a"
   },
   "components/crm/properties/NewEmpreendimentoModal.tsx": {
-    "mtime": 1792439809.6066797,
-    "seen": 1792592925.020313,
-    "ast_hash": "22eca0afa73206dbed14059ec8b1d891",
+    "mtime": 1792678003.3188615,
+    "seen": 1792678647.973014,
+    "ast_hash": "d084a450d9d7acacf8297cae92429dcb",
     "semantic_hash": ""
   },
   "components/crm/properties/NewImovelAvulsoModal.tsx": {
@@ -732,15 +732,15 @@
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyMenu.tsx": {
-    "mtime": 1791818116.1596718,
-    "seen": 1791818624.399468,
-    "ast_hash": "439aaa458b469b0a4971e5e9ac6dcd9b",
+    "mtime": 1792678272.245567,
+    "seen": 1792678647.9753091,
+    "ast_hash": "6a8fa3337b57b4c18a5ba3096a1116d5",
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyProductCard.tsx": {
-    "mtime": 1792436187.7850535,
-    "seen": 1792592925.020596,
-    "ast_hash": "7cab9c33d2870b567c4d9d799d56eed4",
+    "mtime": 1792678497.8475902,
+    "seen": 1792678647.975314,
+    "ast_hash": "21c2bf11badda8cb4872f95053a16e02",
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyStatCards.tsx": {
@@ -750,10 +750,10 @@
     "semantic_hash": "7d61fe0b2b73e8ff7ce6967f5e4ea6e5"
   },
   "components/crm/properties/PublishLandingModal.tsx": {
-    "mtime": 1790889784.905308,
-    "seen": 1791241244.882139,
-    "ast_hash": "da39b2c9effef554c8ab2bb00524b4a6",
-    "semantic_hash": "da39b2c9effef554c8ab2bb00524b4a6"
+    "mtime": 1792678304.4572668,
+    "seen": 1792678647.975484,
+    "ast_hash": "397c6700619f386c6e388c0e79740d72",
+    "semantic_hash": ""
   },
   "components/crm/properties/SiteAppearanceSection.tsx": {
     "mtime": 1790889861.0058112,
@@ -1668,9 +1668,9 @@
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyMaterialsModal.tsx": {
-    "mtime": 1792676310.0831466,
-    "seen": 1792676651.517632,
-    "ast_hash": "b9de093c7816387dce92eab6e24039ea",
+    "mtime": 1792676887.2778878,
+    "seen": 1792677159.567692,
+    "ast_hash": "dff6a142d174a7837c6d4636d88067e2",
     "semantic_hash": ""
   },
   "components/crm/financeiro/DreCostCenterBreakdown.tsx": {
@@ -1944,9 +1944,15 @@
     "semantic_hash": ""
   },
   "components/crm/properties/AddMaterialForm.tsx": {
-    "mtime": 1792676262.4382534,
-    "seen": 1792676651.515836,
-    "ast_hash": "f9335742dae918aec76d76bc7327d1ad",
+    "mtime": 1792676830.4665918,
+    "seen": 1792677159.563243,
+    "ast_hash": "0aee5dd02685996cb93509877909a460",
+    "semantic_hash": ""
+  },
+  "components/crm/properties/PropertyDetailsModal.tsx": {
+    "mtime": 1792677921.3171608,
+    "seen": 1792678647.9732091,
+    "ast_hash": "3dd3c938efe6ddb2326241afd995e73b",
     "semantic_hash": ""
   }
 }

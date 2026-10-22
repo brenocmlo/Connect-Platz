@@ -28,14 +28,6 @@ export default function LoginPage() {
         throw new Error(data.error || "Falha na autenticação");
       }
 
-      // Grava token e usuário em localStorage como espelho para o frontend
-      if (data.token) {
-        try {
-          localStorage.setItem("connect_platz_token", data.token);
-          localStorage.setItem("connect_platz_user", JSON.stringify(data.user));
-        } catch {}
-      }
-
       // Redirecionamento completo para garantir despacho imediato dos cookies HTTP
       window.location.href = "/crm";
     } catch (err: any) {

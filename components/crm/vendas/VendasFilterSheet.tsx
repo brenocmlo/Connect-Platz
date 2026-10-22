@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { X, Filter, RotateCcw } from "lucide-react";
-import { VendasFilterState } from "./types";
+import { SaleItem, VendasFilterState } from "./types";
 
 interface VendasFilterSheetProps {
   isOpen: boolean;
@@ -11,7 +11,16 @@ interface VendasFilterSheetProps {
   onFilterChange: (filters: VendasFilterState) => void;
   onResetFilters: () => void;
   totalFilteredCount: number;
+  /** Vendas carregadas — as opções dos selects são derivadas delas (sem nomes fixos) */
+  sales: SaleItem[];
 }
+
+const fieldClass =
+  "w-full bg-background border border-border rounded-lg p-2.5 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue";
+const labelClass = "block font-semibold text-muted-foreground mb-1";
+
+const uniq = (values: (string | null | undefined)[]) =>
+  Array.from(new Set(values.filter((v): v is string => Boolean(v)))).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
 export function VendasFilterSheet({
   isOpen,
@@ -20,192 +29,115 @@ export function VendasFilterSheet({
   onFilterChange,
   onResetFilters,
   totalFilteredCount,
+  sales,
 }: VendasFilterSheetProps) {
+  const options = useMemo(
+    () => ({
+      corretor: uniq(sales.flatMap((s) => [s.corretorTitular, s.segundoCorretor])),
+      gerente: uniq(sales.map((s) => s.gerente)),
+      captador: uniq(sales.map((s) => s.captador)),
+      gestor: uniq(sales.map((s) => s.gestor)),
+      construtora: uniq(sales.map((s) => s.construtora)),
+    }),
+    [sales]
+  );
+
   if (!isOpen) return null;
 
-  const handleChange = (field: keyof VendasFilterState, value: any) => {
-    onFilterChange({
-      ...filters,
-      [field]: value,
-    });
-  };
+  const handleChange = (field: keyof VendasFilterState, value: string) =>
+    onFilterChange({ ...filters, [field]: value });
+
+  const selects: { field: keyof typeof options; label: string; all: string }[] = [
+    { field: "corretor", label: "Corretores", all: "Todos os corretores" },
+    { field: "gerente", label: "Gerentes", all: "Todos os gerentes" },
+    { field: "captador", label: "Captadores", all: "Todos os captadores" },
+    { field: "gestor", label: "Gestores / Sócios", all: "Todos os gestores" },
+    { field: "construtora", label: "Construtoras", all: "Todas as construtoras" },
+  ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end">
-      <div className="w-full max-w-md bg-white dark:bg-[#0A0E17] border-l border-slate-200 dark:border-[#1C2537] h-full shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-200">
-        {/* Header */}
-        <div className="p-5 border-b border-slate-200 dark:border-[#1C2537] flex items-center justify-between">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in-0">
+      <div className="w-full max-w-md bg-card border-l border-border h-full shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-200">
+        <div className="p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-connect-blue/10 text-connect-blue">
               <Filter className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Filtros de Vendas
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Refine a listagem de negócios e comissões
-              </p>
+              <h3 className="text-base font-bold text-foreground">Filtros de Vendas</h3>
+              <p className="text-xs text-muted-foreground">Refine a listagem de negócios e comissões</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161F30] transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Fechar filtros"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Scrollable Filters Form */}
         <div className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
-          {/* Código da Venda */}
           <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Código da Venda
-            </label>
+            <label className={labelClass}>Código da Venda</label>
             <input
               type="text"
-              placeholder="Ex: CP-2026-089"
+              placeholder="Ex: CP-2026-001"
               value={filters.codigoVenda}
               onChange={(e) => handleChange("codigoVenda", e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
+              className={fieldClass}
             />
           </div>
 
-          {/* Status */}
           <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Status da Venda
-            </label>
-            <select
-              value={filters.status}
-              onChange={(e) => handleChange("status", e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
-            >
+            <label className={labelClass}>Status da Venda</label>
+            <select value={filters.status} onChange={(e) => handleChange("status", e.target.value)} className={fieldClass}>
               <option value="ALL">Todos os status</option>
-              <option value="APROVADA">Aprovada</option>
-              <option value="EM_ANALISE">Em Análise</option>
-              <option value="PAGA">Paga / Liquidada</option>
-              <option value="CANCELADA">Cancelada</option>
+              <option value="ativa">Ativa</option>
+              <option value="cancelada">Cancelada</option>
+              <option value="comissao_pendente">Comissão pendente</option>
+              <option value="comissao_parcial">Comissão parcial</option>
+              <option value="comissao_paga">Comissão paga</option>
             </select>
           </div>
 
-          {/* Corretores */}
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Corretores
-            </label>
-            <select
-              value={filters.corretor}
-              onChange={(e) => handleChange("corretor", e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
-            >
-              <option value="ALL">Todos os corretores</option>
-              <option value="Lucas Santos">Lucas Santos</option>
-              <option value="Mariana Oliveira">Mariana Oliveira</option>
-              <option value="Carlos Eduardo">Carlos Eduardo</option>
-              <option value="Ana Paula">Ana Paula</option>
-            </select>
-          </div>
+          {selects.map(({ field, label, all }) => (
+            <div key={field}>
+              <label className={labelClass}>{label}</label>
+              <select value={filters[field]} onChange={(e) => handleChange(field, e.target.value)} className={fieldClass}>
+                <option value="ALL">{all}</option>
+                {options[field].map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
 
-          {/* Gerentes */}
           <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Gerentes
-            </label>
-            <select
-              value={filters.gerente}
-              onChange={(e) => handleChange("gerente", e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
-            >
-              <option value="ALL">Todos os gerentes</option>
-              <option value="Mariana Oliveira">Mariana Oliveira</option>
-              <option value="Rodrigo Pinho">Rodrigo Pinho</option>
-            </select>
-          </div>
-
-          {/* Captadores */}
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Captadores
-            </label>
-            <select
-              value={filters.captador}
-              onChange={(e) => handleChange("captador", e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
-            >
-              <option value="ALL">Todos os captadores</option>
-              <option value="Rafael Mendes">Rafael Mendes</option>
-              <option value="Lucas Santos">Lucas Santos</option>
-            </select>
-          </div>
-
-          {/* Gestores */}
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Gestores / Sócios
-            </label>
-            <select
-              value={filters.gestor}
-              onChange={(e) => handleChange("gestor", e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
-            >
-              <option value="ALL">Todos os gestores</option>
-              <option value="Diretoria Platz">Diretoria Platz</option>
-              <option value="Gestão Comercial">Gestão Comercial</option>
-            </select>
-          </div>
-
-          {/* Construtoras */}
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Construtoras
-            </label>
-            <select
-              value={filters.construtora}
-              onChange={(e) => handleChange("construtora", e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
-            >
-              <option value="ALL">Todas as construtoras</option>
-              <option value="Platz Empreendimentos">Platz Empreendimentos</option>
-              <option value="Moura Dubeux">Moura Dubeux</option>
-              <option value="Diagonal Engenharia">Diagonal Engenharia</option>
-            </select>
-          </div>
-
-          {/* Faixa de VGV */}
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              VGV Mínimo e Máximo (R$)
-            </label>
+            <label className={labelClass}>VGV Mínimo e Máximo (R$)</label>
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="number"
                 placeholder="Mínimo"
                 value={filters.vgvMin}
                 onChange={(e) => handleChange("vgvMin", e.target.value)}
-                className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
+                className={fieldClass}
               />
               <input
                 type="number"
                 placeholder="Máximo"
                 value={filters.vgvMax}
                 onChange={(e) => handleChange("vgvMax", e.target.value)}
-                className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
+                className={fieldClass}
               />
             </div>
           </div>
 
-          {/* Ordenar por */}
           <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Ordenar por
-            </label>
-            <select
-              value={filters.ordenarPor}
-              onChange={(e) => handleChange("ordenarPor", e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-connect-blue"
-            >
+            <label className={labelClass}>Ordenar por</label>
+            <select value={filters.ordenarPor} onChange={(e) => handleChange("ordenarPor", e.target.value)} className={fieldClass}>
               <option value="recente">Mais recentes primeiro</option>
               <option value="vgv_desc">Maior VGV</option>
               <option value="vgv_asc">Menor VGV</option>
@@ -213,11 +145,10 @@ export function VendasFilterSheet({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-[#1C2537] flex items-center justify-between bg-slate-50 dark:bg-[#080C14]">
+        <div className="p-4 border-t border-border flex items-center justify-between bg-muted/40">
           <button
             onClick={onResetFilters}
-            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             Limpar Filtros
@@ -225,13 +156,13 @@ export function VendasFilterSheet({
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#161F30] transition-colors"
+              className="px-3.5 py-2 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               Fechar
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-connect-blue text-white hover:bg-connect-deep-blue transition-all"
+              className="px-4 py-2 rounded-lg text-xs font-bold bg-connect-blue text-white hover:bg-connect-deep-blue shadow-lg shadow-connect-blue/20 transition-all hover:scale-[1.02]"
             >
               Ver resultados ({totalFilteredCount})
             </button>

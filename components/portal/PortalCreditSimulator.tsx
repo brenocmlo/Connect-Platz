@@ -3,7 +3,8 @@
 import React, { useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, Info, MessageCircle, TriangleAlert } from "lucide-react";
 import { Reveal } from "./PortalUI";
-import { formatBRL, waLink } from "./portalUtils";
+import { formatBRL } from "./portalUtils";
+import { useWaLink } from "./PortalSettingsContext";
 
 // Premissas fixas e públicas da estimativa (100% determinística, sem consulta externa).
 const TAXA_ANUAL = 0.105;
@@ -40,6 +41,7 @@ function MoneyField({ id, label, value, onChange, hint }: { id: string; label: s
 }
 
 export function PortalCreditSimulator() {
+  const waLink = useWaLink();
   const [regime, setRegime] = useState(REGIMES[0]);
   const [valorImovel, setValorImovel] = useState(800000);
   const [renda, setRenda] = useState(16000);
@@ -145,6 +147,7 @@ export function PortalCreditSimulator() {
               proposta final depende da análise do banco.
             </p>
 
+            {waLink && (
             <a
               href={waLink(mensagem)}
               target="_blank"
@@ -154,6 +157,7 @@ export function PortalCreditSimulator() {
               <MessageCircle className="h-4 w-4" />
               Receber proposta
             </a>
+            )}
           </form>
         </Reveal>
       </div>

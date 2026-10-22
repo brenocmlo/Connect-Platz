@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getJwtSecret } from "@/lib/auth/secret";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  "connect_platz_jwt_super_secret_key_change_in_production_2026";
 
 interface DecodedSession {
   userId: string;
@@ -28,7 +26,7 @@ async function verifyJwtInEdge(token: string): Promise<DecodedSession | null> {
 
     const key = await crypto.subtle.importKey(
       "raw",
-      encoder.encode(JWT_SECRET),
+      encoder.encode(getJwtSecret()),
       { name: "HMAC", hash: "SHA-256" },
       false,
       ["verify"]

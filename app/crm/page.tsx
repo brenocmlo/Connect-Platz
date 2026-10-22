@@ -1,106 +1,120 @@
 "use client";
 
 import React from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
-import { HeroMetricCard } from "@/components/crm/primitives/HeroMetricCard";
+import { useCrm } from "@/components/crm/CrmContext";
+import { useDashboardData } from "@/components/crm/dashboard/useDashboardData";
+import { DashboardSkeleton } from "@/components/crm/dashboard/DashboardSkeleton";
+import { exportDashboardXlsx } from "@/components/crm/dashboard/exportDashboard";
+import { VgvHeroCard } from "@/components/crm/dashboard/VgvHeroCard";
 import { CashFlowSummaryCard } from "@/components/crm/dashboard/CashFlowSummaryCard";
 import { FinancialStatCards } from "@/components/crm/dashboard/FinancialStatCards";
 import { OperationalAndLeadCards } from "@/components/crm/dashboard/OperationalAndLeadCards";
-import { MonthlySalesChart } from "@/components/crm/dashboard/MonthlySalesChart";
+import { MonthlySalesChart, granularityForPeriod } from "@/components/crm/dashboard/MonthlySalesChart";
 import { SalesFunnelBarChart } from "@/components/crm/dashboard/SalesFunnelBarChart";
 import { HotLeadsRankedList } from "@/components/crm/dashboard/HotLeadsRankedList";
 import { UpcomingAppointmentsTimeline } from "@/components/crm/dashboard/UpcomingAppointmentsTimeline";
 import { TeamPerformanceAndActivity } from "@/components/crm/dashboard/TeamPerformanceAndActivity";
 
 export default function CrmDashboardPage() {
-  const [data, setData] = React.useState<any>(null);
+  const { selectedPeriod, setActionMessage } = useCrm();
+  const { data, loading, error, reload } = useDashboardData(selectedPeriod);
 
-  React.useEffect(() => {
-    async function loadDashboard() {
-      try {
-        const res = await fetch("/api/dashboard");
-        if (res.ok) {
-          const json = await res.json();
-          setData(json);
-        }
-      } catch (err) {
-        // Fallback gracioso com valores padrão já nos componentes
-      }
-    }
-    loadDashboard();
-  }, []);
+  const handleExport = () => {
+    if (!data) return;
+    exportDashboardXlsx(data);
+    setActionMessage("Resumo da dashboard exportado (.xlsx).");
+    setTimeout(() => setActionMessage(null), 4000);
+  };
 
-  const vgv = data?.financial?.vgvTotal || 35396000;
-  const cashFlow = data?.financial?.cashFlow || { balance: 1480000, inflow: 2150000, outflow: 670000 };
-  const financial = data?.financial || {};
-  const operational = data?.operational || {};
+  const sparkSeries = data ? data.salesSeries[granularityForPeriod(selectedPeriod)] : [];
 
   return (
     <div className="space-y-7 max-w-7xl mx-auto pb-12">
-      {/* 1. CABEÇALHO PADRÃO SEÇÃO 5.2 */}
       <PageHeader
         title="Dashboard"
-        subtitle="Visão executiva de VGV, vendas, fluxo de caixa e aderência aos SLAs"
+        subtitle={
+          data?.scope === "corretor"
+            ? "Seus resultados: vendas, comissões, leads e agenda"
+            : "Visão executiva de VGV, vendas, fluxo de caixa e funil comercial"
+        }
         actionLabel="Novo Lead"
         actionHref="/crm/leads"
         showPeriodSelector={true}
-        showExportButton={true}
+        showExportButton={Boolean(data)}
+        onExportClick={data ? handleExport : undefined}
       />
 
-      {/* 2. RESUMO FINANCEIRO (5.3 itens 1, 2 e 3) */}
-      <div className="space-y-4">
-        <SectionTitle>Resumo Financeiro</SectionTitle>
-
-        {/* Hero VGV Total (50%) + Card Fluxo de Caixa (50%) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <HeroMetricCard
-            label="VGV TOTAL"
-            value={vgv}
-            subtitle="Soma das vendas fechadas no período"
-            trendText="+100%"
-            sparklineData={[15, 22, 18, 30, 42, 36, 52, 48, 65]}
-          />
-          <CashFlowSummaryCard
-            balance={cashFlow.balance}
-            inflow={cashFlow.inflow}
-            outflow={cashFlow.outflow}
-          />
+      {error && (
+        <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            {error}
+          </span>
+          <button
+            onClick={reload}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-500/30 hover:bg-rose-500/10 font-semibold"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Tentar novamente
+          </button>
         </div>
+      )}
 
-        {/* Linha de 5 StatCards */}
-        <FinancialStatCards
-          totalSales={financial.totalSales}
-          commissionReceived={financial.commissionReceived}
-          averageTicket={financial.averageTicket}
-          commissionPaid={financial.commissionPaid}
-          commissionPending={financial.commissionPending}
-        />
-      </div>
+      {!data ? (
+        loading ? <DashboardSkeleton /> : null
+      ) : (
+        <div
+          className={`space-y-7 transition-opacity duration-300 ${loading ? "opacity-70" : "opacity-100"}`}
+          aria-busy={loading}
+        >
+          {/* RESUMO FINANCEIRO (5.3 itens 1, 2 e 3) */}
+          <div className="space-y-4">
+            <SectionTitle>Resumo Financeiro</SectionTitle>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <VgvHeroCard
+                value={data.financial.vgvTotal}
+                subtitle={`Soma das vendas • ${data.period.label}`}
+                trend={data.financial.trends.vgvTotal}
+                sparklineData={sparkSeries.map((p) => p.vgv)}
+                className={data.cashFlow ? "" : "lg:col-span-2"}
+              />
+              {data.cashFlow && (
+                <CashFlowSummaryCard
+                  balance={data.cashFlow.balance}
+                  inflow={data.cashFlow.inflow}
+                  outflow={data.cashFlow.outflow}
+                  balanceTrend={data.cashFlow.balanceTrend}
+                />
+              )}
+            </div>
+            <FinancialStatCards
+              financial={data.financial}
+              scope={data.scope}
+              salesSparkline={sparkSeries.map((p) => p.vendas)}
+            />
+          </div>
 
-      {/* 3. OPERACIONAL & PERFORMANCE DE LEADS (5.3 item 4) */}
-      <OperationalAndLeadCards
-        activeBrokers={operational.activeBrokers}
-        leadsToday={operational.leadsToday}
-        totalLeads={operational.totalLeads}
-        conversionRate={operational.conversionRate}
-      />
+          {/* OPERACIONAL & PERFORMANCE DE LEADS (5.3 item 4) */}
+          <OperationalAndLeadCards operational={data.operational} />
 
-      {/* 4. VENDAS MENSAIS & FUNIL DE VENDAS (5.3 itens 5 e 6) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <MonthlySalesChart />
-        <SalesFunnelBarChart />
-      </div>
+          {/* VENDAS & FUNIL (5.3 itens 5 e 6) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <MonthlySalesChart series={data.salesSeries} />
+            <SalesFunnelBarChart funnels={data.funnels} />
+          </div>
 
-      {/* 5. LEADS QUENTES & COMPROMISSOS (5.3 itens 7 e 8) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <HotLeadsRankedList />
-        <UpcomingAppointmentsTimeline />
-      </div>
+          {/* LEADS QUENTES & COMPROMISSOS (5.3 itens 7 e 8) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <HotLeadsRankedList leads={data.hotLeads} />
+            <UpcomingAppointmentsTimeline appointments={data.appointments} />
+          </div>
 
-      {/* 6. PERFORMANCE DA EQUIPE & ATIVIDADES RECENTES (5.3 item 9) */}
-      <TeamPerformanceAndActivity />
+          {/* PERFORMANCE DA EQUIPE & ATIVIDADES (5.3 item 9) */}
+          <TeamPerformanceAndActivity team={data.team} activities={data.activities} periodLabel={data.period.label} />
+        </div>
+      )}
     </div>
   );
 }
-

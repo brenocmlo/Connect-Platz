@@ -6,7 +6,8 @@ import type { DirectoryCity, NavigateFn } from "./types";
 import { PortalLogo } from "./PortalUI";
 import { PortalMobileMenu } from "./PortalMobileMenu";
 import { PortalThemeToggle } from "./PortalThemeToggle";
-import { ANCHOR_LINKS, cityLabel, scrollToId, waLink } from "./portalUtils";
+import { ANCHOR_LINKS, cityLabel, scrollToId } from "./portalUtils";
+import { useWaLink } from "./PortalSettingsContext";
 
 interface PortalHeaderProps {
   cities: DirectoryCity[];
@@ -58,6 +59,7 @@ function NavDropdown({
 }
 
 export function PortalHeader({ cities, onNavigate }: PortalHeaderProps) {
+  const waLink = useWaLink();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -83,6 +85,7 @@ export function PortalHeader({ cities, onNavigate }: PortalHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2">
+          {waLink && (
           <a
             href={waLink("Olá! Gostaria de informações sobre imóveis com a Connect Platz.")}
             target="_blank"
@@ -92,6 +95,7 @@ export function PortalHeader({ cities, onNavigate }: PortalHeaderProps) {
             <MessageCircle className="h-4 w-4" />
             Falar com corretor
           </a>
+          )}
           <PortalThemeToggle />
           <button
             type="button"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import {
   Paperclip,
   Upload,
@@ -8,20 +8,12 @@ import {
   Image as ImageIcon,
   Trash2,
   Download,
-  CheckCircle2,
   Plus,
+  Loader2,
 } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { useCrm } from "@/components/crm/CrmContext";
-
-export interface LeadAttachmentFile {
-  id: string;
-  name: string;
-  size: string;
-  type: string;
-  uploadedAt: string;
-  dataUrl?: string;
-}
+import { useLeadDocuments, formatBytes } from "./useLeadDocuments";
 
 interface LeadAttachmentsSectionProps {
   lead: LeadDetail;
@@ -30,98 +22,24 @@ interface LeadAttachmentsSectionProps {
 export function LeadAttachmentsSection({ lead }: LeadAttachmentsSectionProps) {
   const { setActionMessage } = useCrm();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [attachments, setAttachments] = useState<LeadAttachmentFile[]>([]);
+  const { documents: attachments, isLoading, busy, error, upload, remove } = useLeadDocuments(lead.id);
 
-  // Carrega anexos persistidos ou amostras padrão vinculadas ao lead
-  useEffect(() => {
-    try {
-      const storageKey = `lead_attachments_${lead.id}`;
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        setAttachments(JSON.parse(saved));
-      } else {
-        // Amostras iniciais realistas para homologação
-        const defaultSample: LeadAttachmentFile[] = [
-          {
-            id: `att-${lead.id}-1`,
-            name: `cnh_frente_verso_${lead.nome.toLowerCase().replace(/\s+/g, "_")}.pdf`,
-            size: "1.24 MB",
-            type: "application/pdf",
-            uploadedAt: "Ontem às 15:30",
-          },
-          {
-            id: `att-${lead.id}-2`,
-            name: `comprovante_renda_holerite.pdf`,
-            size: "840 KB",
-            type: "application/pdf",
-            uploadedAt: "Hoje às 10:15",
-          },
-        ];
-        setAttachments(defaultSample);
-        localStorage.setItem(storageKey, JSON.stringify(defaultSample));
-      }
-    } catch (e) {
-      // Fallback
-    }
-  }, [lead.id, lead.nome]);
-
-  const saveAttachments = (newAttachments: LeadAttachmentFile[]) => {
-    setAttachments(newAttachments);
-    try {
-      localStorage.setItem(`lead_attachments_${lead.id}`, JSON.stringify(newAttachments));
-    } catch (e) {
-      // Fallback
-    }
+  const flash = (msg: string) => {
+    if (!setActionMessage) return;
+    setActionMessage(msg);
+    setTimeout(() => setActionMessage(null), 3500);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-
-    const filesArray = Array.from(e.target.files);
-    const newItems: LeadAttachmentFile[] = filesArray.map((file) => ({
-      id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      name: file.name,
-      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-      type: file.type || "application/pdf",
-      uploadedAt: `Hoje às ${new Date().toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`,
-    }));
-
-    const updated = [...newItems, ...attachments];
-    saveAttachments(updated);
-
-    if (setActionMessage) {
-      setActionMessage(
-        `${newItems.length} arquivo(s) anexado(s) com sucesso ao lead ${lead.nome}!`
-      );
-      setTimeout(() => setActionMessage(null), 4000);
-    }
-
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = "";
+    if (files.length === 0) return;
+    const count = await upload(files, "anexo");
+    if (count > 0) flash(`${count} arquivo(s) anexado(s) ao lead ${lead.nome}.`);
   };
 
-  const handleRemove = (id: string, name: string) => {
-    const updated = attachments.filter((a) => a.id !== id);
-    saveAttachments(updated);
-    if (setActionMessage) {
-      setActionMessage(`Anexo "${name}" removido.`);
-      setTimeout(() => setActionMessage(null), 3000);
-    }
-  };
-
-  const handleDownload = (att: LeadAttachmentFile) => {
-    // Simula download de arquivo de documentação
-    const blob = new Blob([`Documento Connect Platz: ${att.name}`], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = att.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleRemove = async (id: string, name: string) => {
+    if (await remove(id)) flash(`Anexo "${name}" removido.`);
   };
 
   return (
@@ -141,6 +59,7 @@ export function LeadAttachmentsSection({ lead }: LeadAttachmentsSectionProps) {
         <div className="flex items-center gap-2 text-foreground font-semibold">
           <Paperclip className="w-4 h-4 text-connect-blue" />
           <span>Anexos & Documentos</span>
+          {(isLoading || busy) && <Loader2 className="w-3.5 h-3.5 animate-spin text-connect-blue" />}
           {attachments.length > 0 && (
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-connect-blue/10 text-connect-blue font-bold">
               {attachments.length}
@@ -151,6 +70,7 @@ export function LeadAttachmentsSection({ lead }: LeadAttachmentsSectionProps) {
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
+          disabled={busy}
           className="text-xs font-bold text-connect-blue hover:text-connect-deep-blue flex items-center gap-1 hover:underline"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -174,11 +94,17 @@ export function LeadAttachmentsSection({ lead }: LeadAttachmentsSectionProps) {
         </p>
       </div>
 
+      {error && (
+        <p className="text-[11px] text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-2.5 py-1.5">
+          {error}
+        </p>
+      )}
+
       {/* Lista de Documentos Anexados */}
       {attachments.length > 0 && (
         <div className="space-y-1.5">
           {attachments.map((att) => {
-            const isImage = att.name.match(/\.(jpg|jpeg|png)$/i);
+            const isImage = att.mimeType?.startsWith("image/") || /\.(jpg|jpeg|png|webp)$/i.test(att.nomeArquivo);
 
             return (
               <div
@@ -191,26 +117,31 @@ export function LeadAttachmentsSection({ lead }: LeadAttachmentsSectionProps) {
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-foreground truncate max-w-[190px]">
-                      {att.name}
+                      {att.nomeArquivo}
                     </p>
                     <p className="text-[10px] text-muted-foreground font-mono">
-                      {att.size} • {att.uploadedAt}
+                      {[formatBytes(att.fileSize), new Date(att.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })]
+                        .filter(Boolean)
+                        .join(" • ")}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(att)}
+                  <a
+                    href={att.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    download={att.nomeArquivo}
                     className="p-1.5 rounded-lg text-muted-foreground hover:text-connect-blue hover:bg-connect-blue/10 transition-colors"
                     title="Baixar documento"
                   >
                     <Download className="w-3.5 h-3.5" />
-                  </button>
+                  </a>
                   <button
                     type="button"
-                    onClick={() => handleRemove(att.id, att.name)}
+                    onClick={() => handleRemove(att.id, att.nomeArquivo)}
+                    disabled={busy}
                     className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
                     title="Remover anexo"
                   >

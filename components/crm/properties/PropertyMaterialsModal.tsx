@@ -12,19 +12,15 @@ import {
   ExternalLink,
   Plus,
   Trash2,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { PropertyCardData } from "./PropertyProductCard";
 import { AddMaterialForm } from "./AddMaterialForm";
+import { PropertyMaterialItem, usePropertyMaterials } from "./usePropertyMaterials";
+import { useCrm } from "@/components/crm/CrmContext";
 
-export interface PropertyMaterialItem {
-  id: string;
-  titulo: string;
-  categoria: "BOOK" | "TABELA" | "MEMORIAL" | "PLANTAS" | "DOCUMENTO";
-  tamanho: string;
-  dataAtualizacao: string;
-  url: string;
-  tipo: "pdf" | "link";
-}
+export type { PropertyMaterialItem } from "./usePropertyMaterials";
 
 interface PropertyMaterialsModalProps {
   isOpen: boolean;
@@ -32,112 +28,68 @@ interface PropertyMaterialsModalProps {
   property: PropertyCardData | null;
 }
 
-const DEFAULT_MATERIALS: PropertyMaterialItem[] = [
-  {
-    id: "mat-1",
-    titulo: "Book Comercial de Apresentação",
-    categoria: "BOOK",
-    tamanho: "14.2 MB",
-    dataAtualizacao: "Atualizado ontem",
-    url: "https://materiais.connectplatz.com.br/book-apresentacao.pdf",
-    tipo: "pdf",
-  },
-  {
-    id: "mat-2",
-    titulo: "Tabela de Vendas & Fluxo de Pagamento",
-    categoria: "TABELA",
-    tamanho: "1.8 MB",
-    dataAtualizacao: "Atualizada hoje",
-    url: "https://materiais.connectplatz.com.br/tabela-vendas.pdf",
-    tipo: "pdf",
-  },
-  {
-    id: "mat-3",
-    titulo: "Memorial Descritivo & Acabamentos",
-    categoria: "MEMORIAL",
-    tamanho: "3.5 MB",
-    dataAtualizacao: "02/10/2026",
-    url: "https://materiais.connectplatz.com.br/memorial-descritivo.pdf",
-    tipo: "pdf",
-  },
-  {
-    id: "mat-4",
-    titulo: "Caderno de Plantas Humanizadas & Implantação",
-    categoria: "PLANTAS",
-    tamanho: "8.7 MB",
-    dataAtualizacao: "28/09/2026",
-    url: "https://materiais.connectplatz.com.br/plantas-humanizadas.pdf",
-    tipo: "pdf",
-  },
-];
+const MANAGER_ROLES = ["ADMINISTRADOR", "DIRETOR", "GERENTE"];
+
+const absoluteUrl = (url: string) => (url.startsWith("http") ? url : `${window.location.origin}${url}`);
+
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("pt-BR");
+};
 
 export function PropertyMaterialsModal({
   isOpen,
   onClose,
   property,
 }: PropertyMaterialsModalProps) {
+  const { user, setActionMessage } = useCrm();
+  const canManage = MANAGER_ROLES.includes(user?.role || "");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-
-  const storageKey = property ? `connect_platz_materials_${property.id}` : "";
-  const [materials, setMaterials] = useState<PropertyMaterialItem[]>(DEFAULT_MATERIALS);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { materials, loading, error, reload, addFromFile, addLink, remove } = usePropertyMaterials(
+    isOpen && property ? property.id : null
+  );
 
   useEffect(() => {
-    if (!storageKey || typeof window === "undefined") return;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Filtra qualquer resquício de tour virtual antigo em cache
-        const sanitized = parsed.filter(
-          (item: any) => item.categoria !== "TOUR" && !item.titulo?.toLowerCase().includes("tour")
-        );
-        setMaterials(sanitized.length > 0 ? sanitized : DEFAULT_MATERIALS);
-      } catch {
-        setMaterials(DEFAULT_MATERIALS);
-      }
-    } else {
-      setMaterials(DEFAULT_MATERIALS);
-    }
-  }, [storageKey]);
+    if (!isOpen) setShowAddForm(false);
+  }, [isOpen]);
 
   if (!isOpen || !property) return null;
 
-  const saveMaterialsState = (items: PropertyMaterialItem[]) => {
-    setMaterials(items);
-    if (storageKey && typeof window !== "undefined") {
-      localStorage.setItem(storageKey, JSON.stringify(items));
+  const notify = (msg: string) => {
+    setActionMessage(msg);
+    setTimeout(() => setActionMessage(null), 3500);
+  };
+
+  const handleCopyLink = async (item: PropertyMaterialItem) => {
+    try {
+      await navigator.clipboard.writeText(absoluteUrl(item.url));
+      setCopiedId(item.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      notify("Não foi possível copiar o link.");
     }
   };
 
-  const handleCopyLink = (item: PropertyMaterialItem) => {
-    const fullUrl = item.url.startsWith("http") ? item.url : `${window.location.origin}${item.url}`;
-    navigator.clipboard.writeText(fullUrl);
-    setCopiedId(item.id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
   const handleSendWhatsApp = (item: PropertyMaterialItem) => {
-    const fullUrl = item.url.startsWith("http") ? item.url : `${window.location.origin}${item.url}`;
     const text = encodeURIComponent(
-      `Olá! Segue o material oficial do empreendimento *${property.nome}*:\n\n📄 *${item.titulo}*\nAcesse pelo link oficial: ${fullUrl}\n\nFico à total disposição para tirar qualquer dúvida!`
+      `Olá! Segue o material oficial do empreendimento *${property.nome}*:\n\n📄 *${item.titulo}*\nAcesse pelo link: ${absoluteUrl(item.url)}\n\nFico à disposição para tirar qualquer dúvida!`
     );
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+    window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
   };
 
-  const handleDownload = (item: PropertyMaterialItem) => {
-    const fullUrl = item.url.startsWith("http") ? item.url : `${window.location.origin}${item.url}`;
-    window.open(fullUrl, "_blank");
-  };
-
-  const handleDeleteItem = (id: string) => {
-    const updated = materials.filter((m) => m.id !== id);
-    saveMaterialsState(updated);
-  };
-
-  const handleSuccessAdd = (newItem: PropertyMaterialItem) => {
-    saveMaterialsState([newItem, ...materials]);
-    setShowAddForm(false);
+  const handleDeleteItem = async (item: PropertyMaterialItem) => {
+    if (!confirm(`Excluir o material "${item.titulo}"? O arquivo será removido do servidor.`)) return;
+    setDeletingId(item.id);
+    try {
+      await remove(item.id);
+      notify("Material excluído com sucesso.");
+    } catch (err: any) {
+      notify(err.message || "Erro ao excluir o material.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const getCategoryBadge = (cat: PropertyMaterialItem["categoria"]) => {
@@ -147,7 +99,7 @@ export function PropertyMaterialsModal({
       case "TABELA":
         return "bg-emerald-500/15 text-emerald-600 border-emerald-500/30";
       case "MEMORIAL":
-        return "bg-purple-500/15 text-purple-600 border-purple-500/30";
+        return "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30";
       case "PLANTAS":
         return "bg-amber-500/15 text-amber-600 border-amber-500/30";
       case "DOCUMENTO":
@@ -156,7 +108,7 @@ export function PropertyMaterialsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="p-5 border-b border-border flex items-center justify-between gap-3 bg-muted/20">
@@ -174,7 +126,7 @@ export function PropertyMaterialsModal({
                 </span>
               </div>
               <p className="text-xs text-muted-foreground truncate">
-                {property.nome} • {property.bairro || "Meireles"}, {property.cidade || "Fortaleza"}
+                {[property.nome, [property.bairro, property.cidade].filter(Boolean).join(", ")].filter(Boolean).join(" • ")}
               </p>
             </div>
           </div>
@@ -191,8 +143,9 @@ export function PropertyMaterialsModal({
         <div className="p-5 overflow-y-auto space-y-3.5 flex-1">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-muted-foreground">
-              {materials.length} arquivos disponíveis para envio imediato ao cliente
+              {loading ? "Carregando materiais..." : `${materials.length} ${materials.length === 1 ? "material disponível" : "materiais disponíveis"} para envio ao cliente`}
             </span>
+            {canManage && (
             <button
               onClick={() => setShowAddForm(!showAddForm)}
               className="text-xs font-bold text-connect-blue hover:underline flex items-center gap-1"
@@ -200,14 +153,45 @@ export function PropertyMaterialsModal({
               <Plus className="w-3.5 h-3.5" />
               <span>{showAddForm ? "Cancelar" : "Novo Anexo"}</span>
             </button>
+            )}
           </div>
 
           {/* Form com Upload Real de Arquivo e Link */}
-          {showAddForm && (
+          {showAddForm && canManage && (
             <AddMaterialForm
-              onSuccess={handleSuccessAdd}
+              onAddFile={addFromFile}
+              onAddLink={addLink}
+              onSuccess={() => {
+                setShowAddForm(false);
+                notify("Material adicionado com sucesso!");
+              }}
               onCancel={() => setShowAddForm(false)}
             />
+          )}
+
+          {error && (
+            <div className="flex items-center justify-between gap-2 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-xs text-red-600 dark:text-red-400">
+              <span className="flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" />{error}</span>
+              <button type="button" onClick={reload} className="font-bold underline">Tentar novamente</button>
+            </div>
+          )}
+
+          {loading && (
+            <div className="space-y-2.5">
+              {[0, 1].map((i) => (
+                <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {!loading && !error && materials.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-2 py-10 text-center border border-dashed border-border rounded-xl">
+              <FileText className="w-7 h-7 text-muted-foreground" />
+              <p className="text-xs font-semibold text-foreground">Nenhum material cadastrado</p>
+              <p className="text-[11px] text-muted-foreground max-w-xs">
+                {canManage ? "Envie books, tabelas, memoriais e plantas para a equipe compartilhar com os clientes." : "Os gestores ainda não enviaram materiais para este imóvel."}
+              </p>
+            </div>
           )}
 
           {/* Lista de Materiais */}
@@ -235,9 +219,9 @@ export function PropertyMaterialsModal({
                       </span>
                     </div>
                     <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-                      <span>{item.tamanho}</span>
+                      <span>{item.tipo === "link" ? "Link externo" : item.tamanho || "—"}</span>
                       <span>•</span>
-                      <span>{item.dataAtualizacao}</span>
+                      <span>Enviado em {formatDate(item.createdAt)}</span>
                     </div>
                   </div>
                 </div>
@@ -256,17 +240,18 @@ export function PropertyMaterialsModal({
                     )}
                   </button>
 
-                  <button
-                    onClick={() => handleDownload(item)}
+                  <a
+                    href={item.url}
+                    {...(item.tipo === "link" ? { target: "_blank", rel: "noopener noreferrer" } : { download: "" })}
                     className="p-2 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors"
-                    title="Baixar arquivo / Abrir documento"
+                    title={item.tipo === "link" ? "Abrir link" : "Baixar arquivo"}
                   >
-                    {item.tipo === "pdf" ? (
-                      <Download className="w-3.5 h-3.5 text-muted-foreground" />
-                    ) : (
+                    {item.tipo === "link" ? (
                       <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5 text-muted-foreground" />
                     )}
-                  </button>
+                  </a>
 
                   <button
                     onClick={() => handleSendWhatsApp(item)}
@@ -277,13 +262,16 @@ export function PropertyMaterialsModal({
                     <span>WhatsApp</span>
                   </button>
 
-                  <button
-                    onClick={() => handleDeleteItem(item.id)}
-                    className="p-2 rounded-lg border border-border bg-background hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
-                    title="Remover anexo"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {canManage && (
+                    <button
+                      onClick={() => handleDeleteItem(item)}
+                      disabled={deletingId === item.id}
+                      className="p-2 rounded-lg border border-border bg-background hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-50"
+                      title="Excluir material"
+                    >
+                      {deletingId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -292,7 +280,7 @@ export function PropertyMaterialsModal({
 
         {/* Footer explicativo */}
         <div className="p-4 border-t border-border bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>Envio oficial de books, plantas e tabelas da imobiliária via WhatsApp e CDN seguro.</span>
+          <span>Books, plantas e tabelas oficiais compartilhados com a equipe e enviados ao cliente via WhatsApp.</span>
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-semibold"

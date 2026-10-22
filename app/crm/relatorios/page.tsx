@@ -1,18 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import * as XLSX from "xlsx";
-import { Download, FileText } from "lucide-react";
+import { AlertTriangle, Download, FileText, RefreshCw } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
 import { generateBiExecutivePdf } from "@/lib/services/bi-pdf";
-import { BiMetricType, BiGranularityType } from "@/components/crm/relatorios/types";
-import {
-  BI_METRIC_SUMMARIES,
-  CAMPAIGN_ROI_DATA,
-  CLOSED_LEADS_FOR_REMARKETING,
-} from "@/components/crm/relatorios/biData";
+import type { BiMetricType, BiGranularityType } from "@/components/crm/relatorios/types";
+import { useBiReport } from "@/components/crm/relatorios/useBiReport";
+import { exportBiReportXlsx, exportLgpdXlsx } from "@/components/crm/relatorios/biExport";
+import { DashboardSkeleton } from "@/components/crm/dashboard/DashboardSkeleton";
 import { BiMetricSelectorCards } from "@/components/crm/relatorios/BiMetricSelectorCards";
 import { BiHeroChartCanvas } from "@/components/crm/relatorios/BiHeroChartCanvas";
 import { BiChannelDistributionCard } from "@/components/crm/relatorios/BiChannelDistributionCard";
@@ -20,62 +17,36 @@ import { BiFunnelVelocityCard } from "@/components/crm/relatorios/BiFunnelVeloci
 import { BiRoiTableCard } from "@/components/crm/relatorios/BiRoiTableCard";
 import { BiLgpdGovernanceCard } from "@/components/crm/relatorios/BiLgpdGovernanceCard";
 
+const headerButton =
+  "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition-colors shadow-xs disabled:opacity-50 disabled:pointer-events-none";
+
 export default function RelatoriosBiPage() {
-  const { setActionMessage } = useCrm();
+  const { selectedPeriod, setActionMessage, user } = useCrm();
+  const { data, loading, error, reload } = useBiReport(selectedPeriod);
   const [activeMetric, setActiveMetric] = useState<BiMetricType>("vgv");
   const [granularity, setGranularity] = useState<BiGranularityType>("mensal");
 
-  // Exportação geral consolidada
-  const handleExportFullReport = () => {
-    const workbook = XLSX.utils.book_new();
-
-    // Aba 1: Resumo Métricas
-    const metricsSheet = XLSX.utils.json_to_sheet(
-      BI_METRIC_SUMMARIES.map((m) => ({
-        Indicador: m.title,
-        Categoria: m.category,
-        Valor: m.value,
-        "Variação (%)": `${m.changePercent}%`,
-        Status: m.sublabel,
-      }))
-    );
-    XLSX.utils.book_append_sheet(workbook, metricsSheet, "Métricas Principais");
-
-    // Aba 2: ROI Canais
-    const roiSheet = XLSX.utils.json_to_sheet(
-      CAMPAIGN_ROI_DATA.map((c) => ({
-        Canal: c.canal,
-        Leads: c.leads,
-        Investimento: c.investimento,
-        VGV: c.vgv,
-        ROI: c.roi,
-        "Taxa Conversão": `${c.taxaConversao}%`,
-      }))
-    );
-    XLSX.utils.book_append_sheet(workbook, roiSheet, "ROI de Canais");
-
-    // Aba 3: LGPD
-    const lgpdSheet = XLSX.utils.json_to_sheet(CLOSED_LEADS_FOR_REMARKETING);
-    XLSX.utils.book_append_sheet(workbook, lgpdSheet, "Descarte LGPD");
-
-    XLSX.writeFile(workbook, "Relatorio_BI_Consolidado_Connect_Platz.xlsx");
-    setActionMessage("Relatório consolidado exportado com sucesso (.xlsx)!");
+  const notify = (msg: string) => {
+    setActionMessage(msg);
     setTimeout(() => setActionMessage(null), 4000);
+  };
+
+  const handleExportFullReport = () => {
+    if (!data) return;
+    exportBiReportXlsx(data);
+    notify("Relatório consolidado exportado com sucesso (.xlsx)!");
   };
 
   const handleExportLgpd = () => {
-    const worksheet = XLSX.utils.json_to_sheet(CLOSED_LEADS_FOR_REMARKETING);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Leads Encerrados LGPD");
-    XLSX.writeFile(workbook, "Leads_Encerrados_Remarketing_LGPD.xlsx");
-    setActionMessage("Exportação de contatos encerrados concluída com conformidade LGPD.");
-    setTimeout(() => setActionMessage(null), 4000);
+    if (!data || data.closedLeads.length === 0) return;
+    exportLgpdXlsx(data.closedLeads);
+    notify("Exportação de leads encerrados (LGPD) concluída.");
   };
 
   const handleExportPdf = () => {
-    generateBiExecutivePdf();
-    setActionMessage("Relatório Executivo (.pdf) gerado e baixado com sucesso!");
-    setTimeout(() => setActionMessage(null), 4000);
+    if (!data) return;
+    generateBiExecutivePdf(data, user?.nome);
+    notify("Relatório Executivo (.pdf) gerado e baixado com sucesso!");
   };
 
   return (
@@ -83,62 +54,93 @@ export default function RelatoriosBiPage() {
       {/* 1. CABEÇALHO GLOBAL DA PÁGINA (Seção 5.2) */}
       <PageHeader
         title="Relatórios BI & Métricas Executivas"
-        subtitle="Inteligência de vendas, eficiência operacional de funil, velocidade de SLA e ROI por canal de captação."
+        subtitle={
+          data?.scope === "corretor"
+            ? "Seus indicadores de vendas, conversão, funil e origem dos seus leads."
+            : "Inteligência de vendas, eficiência operacional de funil, velocidade de SLA e ROI por canal de captação."
+        }
         showPeriodSelector={true}
-        showExportButton={true}
-        onExportClick={handleExportFullReport}
+        showExportButton={Boolean(data)}
+        onExportClick={data ? handleExportFullReport : undefined}
       >
-        <button
-          onClick={handleExportPdf}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition-colors shadow-xs"
-        >
+        <button onClick={handleExportPdf} disabled={!data} className={headerButton}>
           <FileText className="w-3.5 h-3.5 text-connect-blue" />
           <span>PDF Executivo</span>
         </button>
 
         <button
           onClick={handleExportLgpd}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition-colors shadow-xs"
+          disabled={!data || data.closedLeads.length === 0}
+          className={headerButton}
         >
           <Download className="w-3.5 h-3.5 text-platz-gold" />
           <span>Exportar LGPD</span>
         </button>
       </PageHeader>
 
-      {/* 2. SELETORES INTERATIVOS DE MÉTRICA (Inspirado no modelo Behance Finance Management) */}
-      <BiMetricSelectorCards
-        metrics={BI_METRIC_SUMMARIES}
-        activeMetric={activeMetric}
-        onSelectMetric={(metric) => setActiveMetric(metric)}
-      />
-
-      {/* 3. CANVAS PRINCIPAL DO GRÁFICO DINÂMICO (Atualiza conforme a métrica selecionada) */}
-      <BiHeroChartCanvas
-        activeMetric={activeMetric}
-        granularity={granularity}
-        onGranularityChange={setGranularity}
-      />
-
-      {/* 4. SEÇÃO COMPLEMENTAR: DISTRIBUIÇÃO POR CANAL & VELOCIDADE DE FUNIL */}
-      <div className="space-y-3">
-        <SectionTitle>Eficiência Operacional & Origem de Tráfego</SectionTitle>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
-          <BiChannelDistributionCard />
-          <BiFunnelVelocityCard />
+      {error && (
+        <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            {error}
+          </span>
+          <button
+            onClick={reload}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-500/30 hover:bg-rose-500/10 font-semibold"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Tentar novamente
+          </button>
         </div>
-      </div>
+      )}
 
-      {/* 5. TABELA ANALÍTICA DE ROI & PERFORMANCE */}
-      <div className="space-y-3">
-        <SectionTitle>Auditoria Comercial de Canais</SectionTitle>
-        <BiRoiTableCard />
-      </div>
+      {!data ? (
+        loading ? <DashboardSkeleton /> : null
+      ) : (
+        <div
+          className={`space-y-6 transition-opacity duration-300 ${loading ? "opacity-70" : "opacity-100"}`}
+          aria-busy={loading}
+        >
+          {/* 2. SELETORES INTERATIVOS DE MÉTRICA */}
+          <BiMetricSelectorCards
+            metrics={data.summaries}
+            activeMetric={activeMetric}
+            onSelectMetric={(metric) => setActiveMetric(metric)}
+          />
 
-      {/* 6. GOVERNANÇA LGPD & REMARKETING */}
-      <div className="space-y-3">
-        <SectionTitle>Governança de Dados & Remarketing LGPD</SectionTitle>
-        <BiLgpdGovernanceCard />
-      </div>
+          {/* 3. CANVAS PRINCIPAL DO GRÁFICO DINÂMICO (atualiza conforme a métrica selecionada) */}
+          <BiHeroChartCanvas
+            data={data}
+            activeMetric={activeMetric}
+            granularity={granularity}
+            onGranularityChange={setGranularity}
+          />
+
+          {/* 4. DISTRIBUIÇÃO POR CANAL & VELOCIDADE DE FUNIL */}
+          <div className="space-y-3">
+            <SectionTitle>Eficiência Operacional & Origem de Tráfego</SectionTitle>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+              <BiChannelDistributionCard channels={data.channels} />
+              <BiFunnelVelocityCard funil={data.funnelVelocity.funil} stages={data.funnelVelocity.stages} />
+            </div>
+          </div>
+
+          {/* 5. TABELA ANALÍTICA DE ROI & PERFORMANCE */}
+          <div className="space-y-3">
+            <SectionTitle>Auditoria Comercial de Canais</SectionTitle>
+            <BiRoiTableCard
+              channels={data.channels}
+              campaigns={data.campaigns}
+              investmentAvailable={data.investmentAvailable}
+            />
+          </div>
+
+          {/* 6. GOVERNANÇA LGPD & REMARKETING */}
+          <div className="space-y-3">
+            <SectionTitle>Governança de Dados & Remarketing LGPD</SectionTitle>
+            <BiLgpdGovernanceCard leads={data.closedLeads} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

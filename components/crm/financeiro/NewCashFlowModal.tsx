@@ -2,59 +2,74 @@
 
 import React, { useState } from "react";
 import { X, CheckCircle2 } from "lucide-react";
-import { CashFlowItem } from "./CashFlowTable";
-import { accountsByType, getAccount, COST_CENTERS } from "@/lib/services/dre";
+import { accountsByType, getAccount } from "@/lib/services/dre";
+import { localDateKey } from "@/components/crm/agenda/types";
+import { PAYMENT_METHOD_OPTIONS } from "./paymentMethods";
+
+/** Payload aceito por POST /api/financeiro. */
+export interface NewCashFlowPayload {
+  tipo: "RECEITA" | "DESPESA";
+  categoria: string;
+  descricao: string;
+  valor: number;
+  dataVencimento: string;
+  status: "PENDENTE" | "PAGO";
+  dataPagamento?: string;
+  meioPagamento: string;
+}
 
 interface NewCashFlowModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (entry: CashFlowItem) => void;
+  /** Retorna true quando a API confirmou a criação. */
+  onSubmit: (payload: NewCashFlowPayload) => Promise<boolean>;
 }
 
 export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModalProps) {
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = localDateKey(new Date());
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState<number>(0);
   const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
   const [categoria, setCategoria] = useState("Tráfego Pago Meta Ads");
-  const [centroCusto, setCentroCusto] = useState<string>(getAccount("Tráfego Pago Meta Ads", "DESPESA").centroCustoPadrao);
   const [vencimento, setVencimento] = useState(todayStr);
   const [status, setStatus] = useState<"PENDENTE" | "PAGO">("PENDENTE");
-  const [meio, setMeio] = useState("PIX");
+  const [meio, setMeio] = useState<string>("PIX");
+  const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const changeCategoria = (cat: string, t: "RECEITA" | "DESPESA" = tipo) => {
-    setCategoria(cat);
-    setCentroCusto(getAccount(cat, t).centroCustoPadrao);
-  };
+  // Centro de custo derivado do plano de contas (usado no DRE)
+  const centroCusto = getAccount(categoria, tipo).centroCustoPadrao;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      id: `cf-${Date.now()}`,
+    if (!(valor > 0) || submitting) return;
+    setSubmitting(true);
+    const ok = await onSubmit({
       tipo,
       categoria,
-      centroCusto,
-      descricao,
-      valor,
+      descricao: descricao.trim(),
+      valor: Math.round(valor * 100) / 100,
       dataVencimento: vencimento,
       status,
+      dataPagamento: status === "PAGO" ? todayStr : undefined,
       meioPagamento: meio,
-      dataLiquidacao: status === "PAGO" ? todayStr : undefined,
-      foiAntecipado: status === "PAGO",
     });
-    setDescricao("");
-    setValor(0);
-    setStatus("PENDENTE");
-    onClose();
+    setSubmitting(false);
+    // Só limpa e fecha após a API confirmar
+    if (ok) {
+      setDescricao("");
+      setValor(0);
+      setStatus("PENDENTE");
+      onClose();
+    }
   };
 
   const selectCls =
     "w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue font-semibold";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <h3 className="text-base font-bold text-foreground">Novo Lançamento Financeiro</h3>
@@ -75,7 +90,7 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
                 onChange={(e) => {
                   const t = e.target.value as "RECEITA" | "DESPESA";
                   setTipo(t);
-                  changeCategoria(t === "RECEITA" ? "Comissão Venda" : "Tráfego Pago Meta Ads", t);
+                  setCategoria(t === "RECEITA" ? "Comissão Venda" : "Tráfego Pago Meta Ads");
                 }}
                 className={selectCls}
               >
@@ -88,7 +103,8 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
               <input
                 type="number"
                 required
-                min={1}
+                min={0.01}
+                step="0.01"
                 value={valor || ""}
                 onChange={(e) => setValor(Number(e.target.value))}
                 className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-mono font-bold focus:outline-none focus:ring-2 focus:ring-connect-blue"
@@ -99,7 +115,7 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-muted-foreground font-semibold mb-1">Conta (Plano de Contas)</label>
-              <select value={categoria} onChange={(e) => changeCategoria(e.target.value)} className={selectCls}>
+              <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className={selectCls}>
                 {accountsByType(tipo).map((a) => (
                   <option key={a.categoria} value={a.categoria}>
                     {a.categoria}
@@ -109,13 +125,9 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
             </div>
             <div>
               <label className="block text-muted-foreground font-semibold mb-1">Centro de Custo</label>
-              <select value={centroCusto} onChange={(e) => setCentroCusto(e.target.value)} className={selectCls}>
-                {COST_CENTERS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+              <div className="w-full bg-muted/30 border border-dashed border-border rounded-xl p-2.5 text-muted-foreground font-semibold truncate" title="Definido pelo plano de contas">
+                {centroCusto}
+              </div>
             </div>
           </div>
 
@@ -149,11 +161,11 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
                 onChange={(e) => setMeio(e.target.value)}
                 className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue font-semibold"
               >
-                <option value="PIX">PIX</option>
-                <option value="TED">TED</option>
-                <option value="Boleto">Boleto</option>
-                <option value="Cartão de Crédito">Cartão de Crédito</option>
-                <option value="Dinheiro">Dinheiro / Espécie</option>
+                {PAYMENT_METHOD_OPTIONS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -206,9 +218,10 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-extrabold shadow-sm transition-all"
+              disabled={submitting}
+              className="disabled:opacity-60 px-4 py-2 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-extrabold shadow-sm transition-all"
             >
-              Salvar Lançamento
+              {submitting ? "Salvando..." : "Salvar Lançamento"}
             </button>
           </div>
         </form>

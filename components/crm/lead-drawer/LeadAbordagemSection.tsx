@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   MessageSquare,
   Send,
@@ -12,11 +12,11 @@ import {
   Clock,
   Calendar,
   XCircle,
-  Trash2,
-  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
-import { useCrm } from "@/components/crm/CrmContext";
+import { broadcastLeadUpdated } from "@/components/crm/leads/leadsApi";
+import { useLeadTimeline, formatTimelineDate } from "./useLeadTimeline";
 
 export type CanalAbordagem = "whatsapp" | "ligacao" | "reuniao" | "email" | "anotacao";
 export type DesfechoAbordagem = "respondeu" | "sem_resposta" | "reagendou" | "sem_interesse";
@@ -65,7 +65,7 @@ const canaisConfig: Record<
   anotacao: {
     label: "Nota Interna",
     icon: FileText,
-    colorClass: "text-slate-400",
+    colorClass: "text-muted-foreground",
     badgeClass: "bg-muted text-muted-foreground border-border",
   },
 };
@@ -96,82 +96,47 @@ const desfechosConfig: Record<
   },
 };
 
-export function LeadAbordagemSection({ lead }: LeadAbordagemSectionProps) {
-  const { user } = useCrm();
-  const storageKey = `connect_platz_lead_abordagens_${lead.id}`;
+const CONTACT_CHANNELS: CanalAbordagem[] = ["whatsapp", "ligacao", "reuniao", "email"];
 
-  const [abordagens, setAbordagens] = useState<AbordagemItem[]>([]);
+export function LeadAbordagemSection({ lead }: LeadAbordagemSectionProps) {
+  const { entries, isLoading, error: loadError, add } = useLeadTimeline(lead.id);
   const [canal, setCanal] = useState<CanalAbordagem>("whatsapp");
   const [desfecho, setDesfecho] = useState<DesfechoAbordagem>("respondeu");
   const [conteudo, setConteudo] = useState("");
   const [justSent, setJustSent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Carrega abordagens do localStorage ou inicializa padrão
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        setAbordagens(JSON.parse(stored));
-      } else {
-        const initial: AbordagemItem[] = [
-          {
-            id: `ab-init-${lead.id}`,
-            canal: "whatsapp",
-            desfecho: "respondeu",
-            conteudo: `Primeiro contato via WhatsApp: Apresentado o catálogo do empreendimento ${
-              lead.empreendimentoInteresse || "Reserva Imperial"
-            }. Cliente demonstrou interesse em agendar visita nos próximos dias.`,
-            corretorNome: lead.corretor?.nome || user?.nome || "Lucas Pinheiro",
-            dataHora: "Hoje às 11:45",
-          },
-        ];
-        setAbordagens(initial);
-        localStorage.setItem(storageKey, JSON.stringify(initial));
-      }
-    } catch {
-      // Fallback gracioso
-    }
-  }, [lead.id, storageKey]);
+  // Abordagens = registros "abordagem" da timeline persistida do lead
+  const abordagens: AbordagemItem[] = entries
+    .filter((e) => e.tipo === "abordagem")
+    .map((e) => ({
+      id: e.id,
+      canal: (e.metadata?.canal as CanalAbordagem) || "anotacao",
+      desfecho: (e.metadata?.desfecho as DesfechoAbordagem) || "respondeu",
+      conteudo: e.conteudo || "",
+      corretorNome: e.user?.nome || "Sistema",
+      dataHora: formatTimelineDate(e.createdAt),
+    }));
 
-  const handleSalvarAbordagem = (e: React.FormEvent) => {
+  const handleSalvarAbordagem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!conteudo.trim()) return;
-
-    const agora = new Date();
-    const dataHoraFormatada = `Hoje às ${agora.getHours().toString().padStart(2, "0")}:${agora
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-
-    const novaAbordagem: AbordagemItem = {
-      id: `ab-${Date.now()}`,
-      canal,
-      desfecho,
-      conteudo: conteudo.trim(),
-      corretorNome: user?.nome || lead.corretor?.nome || "Corretor Responsável",
-      dataHora: dataHoraFormatada,
-    };
-
-    const atualizadas = [novaAbordagem, ...abordagens];
-    setAbordagens(atualizadas);
-    setConteudo("");
-    setJustSent(true);
-    setTimeout(() => setJustSent(false), 3000);
-
+    if (!conteudo.trim() || saving) return;
+    setSaving(true);
+    setSaveError(null);
     try {
-      localStorage.setItem(storageKey, JSON.stringify(atualizadas));
-    } catch {
-      // Fallback
-    }
-  };
-
-  const handleRemoverAbordagem = (id: string) => {
-    const atualizadas = abordagens.filter((item) => item.id !== id);
-    setAbordagens(atualizadas);
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(atualizadas));
-    } catch {
-      // Fallback
+      const entry = await add({ tipo: "abordagem", canal, desfecho, conteudo: conteudo.trim() });
+      setConteudo("");
+      setJustSent(true);
+      setTimeout(() => setJustSent(false), 3000);
+      // Contato efetivo registra o primeiro contato no servidor: reflete no SLA/Kanban
+      if (!lead.firstContactAt && CONTACT_CHANNELS.includes(canal)) {
+        broadcastLeadUpdated({ ...lead, firstContactAt: entry.createdAt });
+      }
+    } catch (err: any) {
+      setSaveError(err?.message || "Não foi possível registrar a abordagem.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -261,7 +226,9 @@ export function LeadAbordagemSection({ lead }: LeadAbordagemSectionProps) {
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            {justSent ? (
+            {saveError ? (
+              <span className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold">{saveError}</span>
+            ) : justSent ? (
               <span className="text-[11px] text-emerald-500 font-semibold flex items-center gap-1 animate-in fade-in-0">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Abordagem registrada com sucesso!
               </span>
@@ -273,10 +240,10 @@ export function LeadAbordagemSection({ lead }: LeadAbordagemSectionProps) {
 
             <button
               type="submit"
-              disabled={!conteudo.trim()}
+              disabled={!conteudo.trim() || saving}
               className="px-4 py-2 bg-connect-blue hover:bg-connect-deep-blue text-white rounded-lg text-xs font-bold disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-sm active:scale-[0.98] flex-shrink-0"
             >
-              <Send className="w-3.5 h-3.5" />
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               <span>Registrar Abordagem</span>
             </button>
           </div>
@@ -289,7 +256,17 @@ export function LeadAbordagemSection({ lead }: LeadAbordagemSectionProps) {
           Histórico de Abordagens Registradas:
         </label>
 
-        {abordagens.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-2">
+            {[0, 1].map((i) => (
+              <div key={i} className="h-20 rounded-xl bg-muted/50 animate-pulse" />
+            ))}
+          </div>
+        ) : loadError ? (
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-center text-rose-600 dark:text-rose-400 text-xs">
+            {loadError}
+          </div>
+        ) : abordagens.length === 0 ? (
           <div className="bg-muted/30 border border-dashed border-border rounded-xl p-4 text-center text-muted-foreground text-xs">
             Nenhuma abordagem registrada para este lead ainda.
           </div>
@@ -321,17 +298,7 @@ export function LeadAbordagemSection({ lead }: LeadAbordagemSectionProps) {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1 text-muted-foreground font-mono flex-shrink-0">
-                      <span>{item.dataHora}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoverAbordagem(item.id)}
-                        className="text-muted-foreground/60 hover:text-rose-500 p-0.5 transition-colors"
-                        title="Remover abordagem"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
+                    <span className="text-muted-foreground font-mono flex-shrink-0">{item.dataHora}</span>
                   </div>
 
                   {/* Conteúdo da abordagem */}

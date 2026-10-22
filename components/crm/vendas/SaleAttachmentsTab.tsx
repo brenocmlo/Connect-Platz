@@ -45,7 +45,7 @@ export function SaleAttachmentsTab({
       {/* Dropzone interativa */}
       <div
         onClick={() => fileInputRef.current?.click()}
-        className="border-2 border-dashed border-slate-300 dark:border-[#242C3D] hover:border-connect-blue dark:hover:border-connect-blue rounded-2xl p-6 text-center space-y-2 cursor-pointer transition-all bg-slate-50/50 dark:bg-[#0E1726]/50 group"
+        className="border-2 border-dashed border-border hover:border-connect-blue dark:hover:border-connect-blue rounded-2xl p-6 text-center space-y-2 cursor-pointer transition-all bg-muted/40 group"
       >
         <div className="w-12 h-12 rounded-xl bg-connect-blue/10 text-connect-blue flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
           <Upload className="w-6 h-6" />
@@ -72,7 +72,7 @@ export function SaleAttachmentsTab({
             {attachments.map((att) => (
               <div
                 key={att.id}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-[#0E1726] border border-slate-200 dark:border-[#1F2937] text-xs"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-muted/50 border border-border text-xs"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">

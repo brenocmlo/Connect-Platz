@@ -19,8 +19,9 @@ interface PropertyListSectionProps {
   onOpenPublishModal: (prop: PropertyCardData) => void;
   onOpenMaterials?: (prop: PropertyCardData) => void;
   onOpenEditImage?: (prop: PropertyCardData) => void;
-  onOpenNewEmpModal: () => void;
-  onOpenNewAvulsoModal: () => void;
+  /** Ausentes para perfis sem permissão de cadastro (corretor). */
+  onOpenNewEmpModal?: () => void;
+  onOpenNewAvulsoModal?: () => void;
   onToggleLandingPage: (id: string, current: boolean) => Promise<void>;
   onDeleteProperty?: (id: string) => Promise<void>;
 }
@@ -107,7 +108,8 @@ export function PropertyListSection({
           />
         </div>
 
-        {/* Botões de Ação para Cadastrar */}
+        {/* Botões de Ação para Cadastrar (somente gestores) */}
+        {onOpenNewEmpModal && onOpenNewAvulsoModal && (
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -121,12 +123,13 @@ export function PropertyListSection({
           <button
             type="button"
             onClick={onOpenNewEmpModal}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-connect-blue hover:bg-[#0D478F] text-white shadow-md shadow-connect-blue/20 transition-all hover:scale-105 flex items-center gap-1.5"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-connect-blue hover:bg-connect-deep-blue text-white shadow-md shadow-connect-blue/20 transition-all hover:scale-105 flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
             <span>Novo Empreendimento</span>
           </button>
         </div>
+        )}
       </div>
 
       {/* 2. Filtros em Pílula (Segmented Style) */}
@@ -201,7 +204,7 @@ export function PropertyListSection({
           icon={Building2}
           title="Nenhum imóvel encontrado"
           description="Tente ajustar os filtros de busca ou cadastre um novo empreendimento para enriquecer seu catálogo."
-          actionLabel="Cadastrar Empreendimento"
+          actionLabel={onOpenNewEmpModal ? "Cadastrar Empreendimento" : undefined}
           onActionClick={onOpenNewEmpModal}
         />
       ) : (

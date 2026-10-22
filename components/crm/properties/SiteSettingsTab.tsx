@@ -51,11 +51,11 @@ export function SiteSettingsTab({
   const [primaryColor, setPrimaryColor] = useState("#1266C7");
   const [secondaryColor, setSecondaryColor] = useState("#D9BB4C");
   const [siteTitle, setSiteTitle] = useState("Connect Platz Imóveis & Veraneio");
-  const [siteSlogan, setSiteSlogan] = useState("Os melhores lançamentos e imóveis no Ceará");
-  const [corretorNome, setCorretorNome] = useState("Connect Platz Negócios Imobiliários");
-  const [creci, setCreci] = useState("CRECI 12345-J");
-  const [whatsapp, setWhatsapp] = useState("(85) 99999-0001");
-  const [email, setEmail] = useState("contato@connectplatz.com.br");
+  const [siteSlogan, setSiteSlogan] = useState("");
+  const [corretorNome, setCorretorNome] = useState("");
+  const [creci, setCreci] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [email, setEmail] = useState("");
   const [pixelId, setPixelId] = useState("");
 
   useEffect(() => {
@@ -74,11 +74,11 @@ export function SiteSettingsTab({
             if (s.primaryColor) setPrimaryColor(s.primaryColor);
             if (s.secondaryColor) setSecondaryColor(s.secondaryColor);
             if (s.siteTitle) setSiteTitle(s.siteTitle);
-            if (s.siteSlogan) setSiteSlogan(s.siteSlogan);
-            if (s.corretorNome) setCorretorNome(s.corretorNome);
-            if (s.creci) setCreci(s.creci);
-            if (s.whatsapp) setWhatsapp(s.whatsapp);
-            if (s.email) setEmail(s.email);
+            setSiteSlogan(s.siteSlogan || "");
+            setCorretorNome(s.corretorNome || "");
+            setCreci(s.creci || "");
+            setWhatsapp(s.whatsapp || "");
+            setEmail(s.email || "");
             if (s.pixelId !== undefined) setPixelId(s.pixelId);
             if (s.siteAtivo !== undefined) setSiteAtivo(s.siteAtivo);
           }
@@ -120,13 +120,14 @@ export function SiteSettingsTab({
       if (res.ok) {
         setActionMessage("Configurações do Site e Hero salvas com sucesso!");
       } else {
-        setActionMessage("Configurações salvas localmente!");
+        const data = await res.json().catch(() => ({}));
+        setActionMessage(data.error || "Não foi possível salvar as configurações do site.");
       }
-      setTimeout(() => setActionMessage(null), 3500);
+      setTimeout(() => setActionMessage(null), 4000);
     } catch (err) {
       console.error("Erro ao salvar:", err);
-      setActionMessage("Configurações salvas!");
-      setTimeout(() => setActionMessage(null), 3000);
+      setActionMessage("Falha de conexão: as configurações não foram salvas.");
+      setTimeout(() => setActionMessage(null), 4000);
     } finally {
       setSaving(false);
     }

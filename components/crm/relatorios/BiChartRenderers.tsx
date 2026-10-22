@@ -6,26 +6,18 @@ import {
   Area,
   BarChart,
   Bar,
+  ComposedChart,
   Line,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import {
-  BiMetricType,
-  BiGranularityType,
-  BiChartVisualType,
-} from "./types";
-import {
-  VGV_TIME_SERIES,
-  FUNNEL_EFFICIENCY_DATA,
-  CAMPAIGN_ROI_DATA,
-  CONVERSION_TIME_SERIES,
-  COMMISSIONS_TIME_SERIES,
-} from "./biData";
+import type { BiMetricType, BiGranularityType, BiChartVisualType, BiReportData } from "./types";
+import { formatCompactBRL } from "@/components/crm/dashboard/format";
 
 interface BiChartRendererProps {
+  data: BiReportData;
   activeMetric: BiMetricType;
   granularity: BiGranularityType;
   visualType: BiChartVisualType;
@@ -43,7 +35,7 @@ export function BiChartTooltip({ active, payload, label, hideValues, isCurrency 
             ? hideValues
               ? "••••••"
               : item.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-            : item.value;
+            : `${item.value}${item.unit || ""}`;
           return (
             <div key={idx} className="flex items-center justify-between gap-3 text-[11px]">
               <span className="text-muted-foreground">{item.name}:</span>
@@ -59,7 +51,11 @@ export function BiChartTooltip({ active, payload, label, hideValues, isCurrency 
   return null;
 }
 
+const moneyTick = (hideValues: boolean) => (v: number) => (hideValues ? "•••" : formatCompactBRL(v));
+
+/** Gráfico principal do BI a partir dos dados reais (sem séries de meta fictícias). */
 export function renderMetricChart({
+  data: report,
   activeMetric,
   granularity,
   visualType,
@@ -68,7 +64,7 @@ export function renderMetricChart({
 }: BiChartRendererProps) {
   switch (activeMetric) {
     case "vgv": {
-      const data = VGV_TIME_SERIES[granularity] || VGV_TIME_SERIES.mensal;
+      const data = report.vgvSeries[granularity] || report.vgvSeries.mensal;
       return visualType === "barras" ? (
         <BarChart data={data} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
@@ -76,7 +72,7 @@ export function renderMetricChart({
           <YAxis
             stroke="#94A3B8"
             fontSize={11}
-            tickFormatter={(v) => (hideValues ? "•••" : `R$ ${(v / 1000000).toFixed(1)}M`)}
+            tickFormatter={moneyTick(hideValues)}
           />
           <Tooltip content={<BiChartTooltip hideValues={hideValues} isCurrency={true} />} />
           <Bar dataKey="realizado" name="VGV Realizado" fill="#1266C7" radius={[6, 6, 0, 0]} />
@@ -97,7 +93,7 @@ export function renderMetricChart({
           <YAxis
             stroke="#94A3B8"
             fontSize={11}
-            tickFormatter={(v) => (hideValues ? "•••" : `R$ ${(v / 1000000).toFixed(1)}M`)}
+            tickFormatter={moneyTick(hideValues)}
           />
           <Tooltip content={<BiChartTooltip hideValues={hideValues} isCurrency={true} />} />
           <Area
@@ -119,22 +115,13 @@ export function renderMetricChart({
               dot={false}
             />
           )}
-          <Line
-            type="monotone"
-            dataKey="meta"
-            name="Meta Comercial"
-            stroke="#D9BB4C"
-            strokeWidth={1.5}
-            strokeDasharray="3 3"
-            dot={false}
-          />
         </AreaChart>
       );
     }
 
     case "funil": {
       return (
-        <BarChart data={FUNNEL_EFFICIENCY_DATA} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
+        <ComposedChart data={report.funnelVelocity.stages} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
           <XAxis dataKey="etapa" stroke="#94A3B8" fontSize={11} />
           <YAxis stroke="#94A3B8" fontSize={11} unit="h" />
@@ -148,7 +135,9 @@ export function renderMetricChart({
                     <div className="text-connect-blue dark:text-blue-400 font-extrabold">
                       Tempo Médio: {d.tempoHoras} horas
                     </div>
-                    <div className="text-muted-foreground text-[11px]">SLA Alvo: {d.slaHoras}h</div>
+                    <div className="text-muted-foreground text-[11px]">
+                      SLA Alvo: {d.slaHoras ? `${d.slaHoras}h` : "não configurado"} • {d.leadsAbertos} abertos
+                    </div>
                   </div>
                 );
               }
@@ -156,20 +145,20 @@ export function renderMetricChart({
             }}
           />
           <Bar dataKey="tempoHoras" name="Horas na Etapa" radius={[6, 6, 0, 0]} fill="#1266C7" />
-          <Line type="monotone" dataKey="slaHoras" name="SLA Limite" stroke="#EF4444" strokeWidth={2} strokeDasharray="4 4" />
-        </BarChart>
+          <Line type="monotone" dataKey="slaHoras" name="SLA Limite" stroke="#EF4444" strokeWidth={2} strokeDasharray="4 4" connectNulls />
+        </ComposedChart>
       );
     }
 
     case "roi": {
       return (
-        <BarChart data={CAMPAIGN_ROI_DATA} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
+        <BarChart data={report.channels.filter((c) => c.vgv > 0 || c.leads > 0)} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
-          <XAxis dataKey="canal" stroke="#94A3B8" fontSize={10} tickFormatter={(v) => v.split(" ")[0]} />
+          <XAxis dataKey="canal" stroke="#94A3B8" fontSize={10} tickFormatter={(v: string) => v.split(" ")[0]} />
           <YAxis
             stroke="#94A3B8"
             fontSize={11}
-            tickFormatter={(v) => (hideValues ? "•••" : `R$ ${(v / 1000000).toFixed(1)}M`)}
+            tickFormatter={moneyTick(hideValues)}
           />
           <Tooltip
             content={({ active, payload }) => {
@@ -181,7 +170,14 @@ export function renderMetricChart({
                     <div className="text-emerald-700 dark:text-emerald-400 font-extrabold">
                       VGV: {hideValues ? "••••••" : d.vgv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     </div>
-                    <div className="text-connect-blue dark:text-blue-300 font-bold">ROI: {d.roi}</div>
+                    <div className="text-muted-foreground text-[11px]">
+                      {d.leads} leads • {d.vendas} vendas
+                    </div>
+                    {d.roiMultiplicador !== null && (
+                      <div className="text-connect-blue dark:text-blue-300 font-bold">
+                        ROI: {d.roiMultiplicador.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}x
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -195,7 +191,7 @@ export function renderMetricChart({
 
     case "conversao": {
       return (
-        <AreaChart data={CONVERSION_TIME_SERIES} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
+        <AreaChart data={report.conversionSeries} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
           <defs>
             <linearGradient id="convGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#22C55E" stopOpacity={0.35} />
@@ -204,27 +200,39 @@ export function renderMetricChart({
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
           <XAxis dataKey="label" stroke="#94A3B8" fontSize={11} />
-          <YAxis stroke="#94A3B8" fontSize={11} unit="%" domain={[0, 20]} />
+          <YAxis stroke="#94A3B8" fontSize={11} unit="%" />
           <Tooltip content={<BiChartTooltip hideValues={hideValues} isCurrency={false} />} />
-          <Area type="monotone" dataKey="realizado" name="Taxa de Conversão" stroke="#22C55E" strokeWidth={2.5} fill="url(#convGrad)" />
-          <Line type="monotone" dataKey="meta" name="Meta" stroke="#D9BB4C" strokeWidth={1.5} strokeDasharray="3 3" dot={false} />
+          <Area type="monotone" dataKey="realizado" name="Taxa de Conversão" unit="%" stroke="#22C55E" strokeWidth={2.5} fill="url(#convGrad)" />
+          {showComparison && (
+            <Line type="monotone" dataKey="anterior" name="Ano Anterior" unit="%" stroke="#94A3B8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
+          )}
         </AreaChart>
       );
     }
 
     case "comissoes": {
       return (
-        <BarChart data={COMMISSIONS_TIME_SERIES} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
+        <BarChart data={report.commissionSeries} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
           <XAxis dataKey="label" stroke="#94A3B8" fontSize={11} />
           <YAxis
             stroke="#94A3B8"
             fontSize={11}
-            tickFormatter={(v) => (hideValues ? "•••" : `R$ ${(v / 1000).toFixed(0)}k`)}
+            tickFormatter={moneyTick(hideValues)}
           />
           <Tooltip content={<BiChartTooltip hideValues={hideValues} isCurrency={true} />} />
-          <Bar dataKey="realizado" name="Comissão Total" fill="#1266C7" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="auxiliar" name="Repasse Corretores" fill="#D9BB4C" radius={[6, 6, 0, 0]} />
+          <Bar
+            dataKey="realizado"
+            name={report.scope === "corretor" ? "Minhas Comissões" : "Comissão Bruta"}
+            fill="#1266C7"
+            radius={[6, 6, 0, 0]}
+          />
+          <Bar
+            dataKey="auxiliar"
+            name={report.scope === "corretor" ? "Comissões Pagas" : "Repasses Pagos"}
+            fill="#D9BB4C"
+            radius={[6, 6, 0, 0]}
+          />
         </BarChart>
       );
     }

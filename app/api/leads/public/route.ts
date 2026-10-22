@@ -55,16 +55,10 @@ export async function POST(req: NextRequest) {
       adName: "Portal Connect Platz Oficial",
       utmSource: "site_direto",
       utmMedium: "landing_page",
+      mensagem: [data.mensagem, data.propertyNome ? `Imóvel de interesse: ${data.propertyNome}` : null]
+        .filter(Boolean)
+        .join(" — ") || undefined,
     });
-
-    // Se houver mensagem específica ou imóvel, registra na timeline do lead
-    if (data.mensagem || data.propertyNome) {
-      await container.leadRepository.addTimeline({
-        leadId: result.lead.id,
-        tipo: "nota",
-        conteudo: `MENSAGEM DO CLIENTE NO PORTAL: "${data.mensagem || "Sem mensagem"}". Imóvel de interesse: ${data.propertyNome || "Não especificado"}.`,
-      });
-    }
 
     return NextResponse.json(
       {

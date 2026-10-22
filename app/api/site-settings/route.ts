@@ -1,41 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, writeFile } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
+import { z } from "zod";
+import { prisma } from "@/lib/db/prisma";
+import { getRequestSession, requireSession, MANAGER_ROLES } from "@/lib/auth/session";
+import { recordAudit } from "@/lib/services/audit-server";
+import { resolvePublicOrganizationId } from "@/app/api/properties/propertyPayload";
 
 export const dynamic = "force-dynamic";
 
-interface SiteSettingsData {
-  heroImage: string;
-  heroTitle: string;
-  heroHighlight: string;
-  heroSubtitle: string;
-  siteTitle: string;
-  siteSlogan: string;
-  corretorNome: string;
-  creci: string;
-  whatsapp: string;
-  email: string;
-  pixelId?: string;
-  siteAtivo: boolean;
-  themePreset: string;
-  primaryColor: string;
-  secondaryColor: string;
-}
+// Configurações do site público, persistidas em Organization.settings.site (JSON).
+const hex = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Cor deve estar no formato #RRGGBB.");
+const text = (max: number) => z.string().trim().max(max);
+const urlOrPath = z
+  .string()
+  .trim()
+  .max(1000)
+  .refine((v) => v === "" || v.startsWith("/uploads/") || /^https:\/\//i.test(v), "Imagem deve ser um upload ou URL https.");
 
-const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
-  heroImage:
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2000&q=80",
+const SiteSettingsSchema = z
+  .object({
+    heroImage: urlOrPath,
+    heroTitle: text(160),
+    heroHighlight: text(200),
+    heroSubtitle: text(400),
+    siteTitle: text(120),
+    siteSlogan: text(200),
+    corretorNome: text(160),
+    creci: text(40),
+    whatsapp: text(30).refine((v) => v === "" || /^\d{10,13}$/.test(v.replace(/\D/g, "")), "WhatsApp inválido: informe DDD + número."),
+    email: z.union([z.literal(""), z.string().trim().email("E-mail inválido.").max(160)]),
+    pixelId: z.string().trim().regex(/^\d{0,20}$/, "Pixel ID deve conter apenas números."),
+    siteAtivo: z.boolean(),
+    themePreset: text(40),
+    primaryColor: hex,
+    secondaryColor: hex,
+  })
+  .partial()
+  .strict(); // chaves fora da lista são rejeitadas
+
+type SiteSettingsData = z.infer<typeof SiteSettingsSchema>;
+
+// Padrões neutros: identidade visual e textos institucionais; contatos ficam vazios até o gestor configurar.
+const DEFAULT_SITE_SETTINGS: Required<SiteSettingsData> = {
+  heroImage: "",
   heroTitle: "Seja qual for o seu momento de vida,",
   heroHighlight: "a Connect Platz tem o imóvel certo para você.",
-  heroSubtitle:
-    "Venda e temporada em Fortaleza e no litoral, com corretores especialistas e crédito facilitado.",
+  heroSubtitle: "Venda e temporada em Fortaleza e no litoral, com corretores especialistas e crédito facilitado.",
   siteTitle: "Connect Platz Imóveis & Veraneio",
-  siteSlogan: "Os melhores lançamentos e imóveis no Ceará",
-  corretorNome: "Connect Platz Negócios Imobiliários",
-  creci: "CRECI 12345-J",
-  whatsapp: "(85) 99999-0001",
-  email: "contato@connectplatz.com.br",
+  siteSlogan: "",
+  corretorNome: "",
+  creci: "",
+  whatsapp: "",
+  email: "",
   pixelId: "",
   siteAtivo: true,
   themePreset: "connect-blue",
@@ -43,59 +58,78 @@ const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   secondaryColor: "#D9BB4C",
 };
 
-const SETTINGS_FILE_PATH = join(process.cwd(), "data", "site-settings.json");
-
-// Cache em memória para acesso ultrarrápido
-let inMemorySettings: SiteSettingsData = { ...DEFAULT_SITE_SETTINGS };
-
-async function loadSettingsFromFile(): Promise<SiteSettingsData> {
-  try {
-    if (existsSync(SETTINGS_FILE_PATH)) {
-      const content = await readFile(SETTINGS_FILE_PATH, "utf-8");
-      const parsed = JSON.parse(content);
-      inMemorySettings = { ...DEFAULT_SITE_SETTINGS, ...parsed };
-      return inMemorySettings;
-    }
-  } catch (err) {
-    console.warn("Aviso ao ler site-settings.json:", err);
-  }
-  return inMemorySettings;
+async function readSettings(organizationId: string) {
+  const org = await prisma.organization.findUnique({ where: { id: organizationId }, select: { settings: true } });
+  const all = (org?.settings as Record<string, any> | null) || {};
+  const site = (all.site as SiteSettingsData | undefined) || {};
+  return { all, site: { ...DEFAULT_SITE_SETTINGS, ...site } };
 }
 
-export async function GET() {
+/** GET /api/site-settings — público (vitrine). Com sessão, lê a organização do usuário. */
+export async function GET(req: NextRequest) {
   try {
-    const settings = await loadSettingsFromFile();
-    return NextResponse.json({ success: true, settings }, { status: 200 });
-  } catch (error: any) {
+    const session = getRequestSession(req);
+    const orgId = session?.organizationId || (await resolvePublicOrganizationId());
+    if (!orgId) {
+      return NextResponse.json({ success: true, settings: DEFAULT_SITE_SETTINGS }, { status: 200 });
+    }
+    const { site } = await readSettings(orgId);
     return NextResponse.json(
-      { success: true, settings: inMemorySettings },
-      { status: 200 }
+      { success: true, settings: site },
+      { status: 200, headers: { "Cache-Control": session ? "private, no-store" : "public, s-maxage=60, stale-while-revalidate=300" } }
     );
+  } catch (error) {
+    console.error("Erro ao ler configurações do site:", error);
+    return NextResponse.json({ error: "Erro ao carregar configurações do site." }, { status: 500 });
   }
 }
 
+/** POST /api/site-settings — somente gestores; valida as chaves permitidas. */
 export async function POST(req: NextRequest) {
+  const auth = requireSession(req, MANAGER_ROLES);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+
+  const parsed = SiteSettingsSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    const message =
+      first?.code === "unrecognized_keys"
+        ? `Campos não permitidos: ${(first as any).keys.join(", ")}.`
+        : first?.message || "Configurações inválidas.";
+    return NextResponse.json({ error: message, details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+
   try {
-    const body = await req.json();
-    const current = await loadSettingsFromFile();
-    const merged: SiteSettingsData = {
-      ...current,
-      ...body,
-    };
+    const { all, site: before } = await readSettings(session.organizationId);
+    const patch = { ...parsed.data };
+    if (patch.whatsapp) patch.whatsapp = patch.whatsapp.replace(/\D/g, "");
+    const merged = { ...before, ...patch };
 
-    inMemorySettings = merged;
+    await prisma.organization.update({
+      where: { id: session.organizationId },
+      data: { settings: { ...all, site: merged } as any },
+    });
 
-    try {
-      await writeFile(SETTINGS_FILE_PATH, JSON.stringify(merged, null, 2), "utf-8");
-    } catch (writeErr) {
-      console.warn("Aviso ao salvar site-settings.json em disco:", writeErr);
-    }
+    const changed = Object.keys(patch).filter((k) => (before as any)[k] !== (merged as any)[k]);
+    await recordAudit({
+      req,
+      organizationId: session.organizationId,
+      userId: session.userId,
+      acao: "Atualizou configurações do site",
+      tipoAcao: "UPDATE",
+      modulo: "CONFIGURACOES",
+      entidade: "SiteSettings",
+      entidadeId: session.organizationId,
+      entidadeNome: "Site público",
+      descricao: `${session.nome} atualizou o site público${changed.length ? ` (${changed.join(", ")})` : ""}.`,
+      dadosAntes: Object.fromEntries(changed.map((k) => [k, (before as any)[k]])),
+      dadosDepois: Object.fromEntries(changed.map((k) => [k, (merged as any)[k]])),
+    });
 
     return NextResponse.json({ success: true, settings: merged }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Erro ao atualizar configurações do site." },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("Erro ao salvar configurações do site:", error);
+    return NextResponse.json({ error: "Erro ao salvar configurações do site." }, { status: 500 });
   }
 }

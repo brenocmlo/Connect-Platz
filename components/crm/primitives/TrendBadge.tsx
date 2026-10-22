@@ -10,6 +10,8 @@ interface TrendBadgeProps {
   suffix?: string;
   className?: string;
   showIcon?: boolean;
+  /** Métricas de custo: alta é ruim (vermelho) e queda é boa (verde). O sinal exibido não muda. */
+  invertColors?: boolean;
 }
 
 export function TrendBadge({
@@ -19,6 +21,7 @@ export function TrendBadge({
   suffix = "%",
   className = "",
   showIcon = true,
+  invertColors = false,
 }: TrendBadgeProps) {
   // REGRA PERMANENTE: Sanitização estrita contra duplicação de sinais (+, -, ↗, ↘, %)
   const rawStr = String(value).trim();
@@ -31,22 +34,37 @@ export function TrendBadge({
 
   // Remove sufixo duplicado se o valor já contiver (ex: "%" já incluso na string)
   const hasSuffix = Boolean(suffix && cleanedLeading.endsWith(suffix));
-  const coreValue = hasSuffix && suffix
-    ? cleanedLeading.slice(0, -suffix.length).trim()
-    : cleanedLeading;
+  const coreValue =
+    typeof value === "number"
+      ? Math.abs(value).toLocaleString("pt-BR", { maximumFractionDigits: 1 })
+      : hasSuffix && suffix
+      ? cleanedLeading.slice(0, -suffix.length).trim()
+      : cleanedLeading;
 
   // Determina se o valor é positivo, negativo ou zero
   const numVal =
     typeof value === "number"
       ? value
-      : parseFloat(rawStr.replace(/[^0-9.-]/g, ""));
+      : parseFloat(rawStr.replace(/[^0-9.,-]/g, "").replace(",", "."));
+
+  // Sinal explícito do valor prevalece sobre `isPositive` (evita "+" vermelho ou "-" verde).
+  const explicitSign: "+" | "-" | null =
+    typeof value === "number"
+      ? value < 0
+        ? "-"
+        : "+"
+      : /^[\s]*(↘|-)/.test(rawStr)
+      ? "-"
+      : /^[\s]*(↗|\+)/.test(rawStr)
+      ? "+"
+      : null;
 
   const positive =
-    isPositive !== undefined
+    explicitSign !== null
+      ? explicitSign === "+"
+      : isPositive !== undefined
       ? isPositive
-      : rawStr.startsWith("-")
-      ? false
-      : numVal >= 0;
+      : isNaN(numVal) || numVal >= 0;
 
   const isZero = numVal === 0 && !isNaN(numVal);
 
@@ -64,7 +82,7 @@ export function TrendBadge({
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors ${
-        positive
+        positive !== invertColors
           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
           : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
       } ${className}`}

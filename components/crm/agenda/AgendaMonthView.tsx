@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AppointmentItem, getTypeConfig } from "./types";
+import { AppointmentItem, getTypeConfig, localDateKey } from "./types";
 
 interface AgendaMonthViewProps {
   appointments: AppointmentItem[];
@@ -26,7 +26,7 @@ export function AgendaMonthView({
   // Total days in current month
   const totalDays = new Date(year, month + 1, 0).getDate();
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateKey(new Date());
 
   // Array of day numbers with leading padding
   const calendarCells: (number | null)[] = [];
@@ -39,9 +39,9 @@ export function AgendaMonthView({
 
   return (
     <div className="overflow-x-auto pb-4">
-      <div className="bg-white dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1C2537] rounded-2xl overflow-hidden shadow-sm min-w-[640px] md:min-w-0">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm min-w-[640px] md:min-w-0">
         {/* Weekday Header */}
-        <div className="grid grid-cols-7 border-b border-slate-200 dark:border-[#1C2537] bg-slate-50 dark:bg-[#080C14]">
+        <div className="grid grid-cols-7 border-b border-border bg-muted/50">
         {WEEKDAY_NAMES.map((name) => (
           <div
             key={name}
@@ -53,22 +53,22 @@ export function AgendaMonthView({
       </div>
 
       {/* Month Days Grid */}
-      <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-100 dark:divide-[#1C2537]/60">
+      <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-border/60">
         {calendarCells.map((dayNum, idx) => {
           if (dayNum === null) {
             return (
               <div
                 key={`empty-${idx}`}
-                className="min-h-[110px] bg-slate-50/40 dark:bg-[#080C14]/40 p-2"
+                className="min-h-[110px] bg-muted/30 p-2"
               />
             );
           }
 
           const dayDate = new Date(year, month, dayNum);
-          const dateStr = dayDate.toISOString().slice(0, 10);
+          const dateStr = localDateKey(dayDate);
           const isToday = dateStr === todayStr;
 
-          const dayApps = appointments.filter((a) => a.dataInicio.startsWith(dateStr));
+          const dayApps = appointments.filter((a) => localDateKey(a.dataInicio) === dateStr);
           dayApps.sort((a, b) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime());
 
           return (

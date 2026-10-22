@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, RotateCcw, Clock } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, RotateCcw, Clock, Trash2, Receipt } from "lucide-react";
 import { ConfirmCashMovementModal } from "./ConfirmCashMovementModal";
+import { paymentMethodLabel, formatDateBr } from "./paymentMethods";
 
 export interface CashFlowItem {
   id: string;
@@ -10,13 +11,18 @@ export interface CashFlowItem {
   categoria: string;
   descricao: string;
   valor: number;
+  /** AAAA-MM-DD */
   dataVencimento: string;
   status: "PAGO" | "PENDENTE";
-  meioPagamento?: string;
+  meioPagamento?: string | null;
+  /** AAAA-MM-DD */
   dataLiquidacao?: string;
   foiAntecipado?: boolean;
   observacaoLiquidacao?: string;
   centroCusto?: string;
+  saleId?: string | null;
+  bookingId?: string | null;
+  isRecorrente?: boolean;
 }
 
 interface CashFlowTableProps {
@@ -28,8 +34,11 @@ interface CashFlowTableProps {
     dataEfetiva: string,
     meio: string,
     observacao?: string
-  ) => void;
-  onRevertMovement?: (id: string) => void;
+  ) => Promise<boolean>;
+  onRevertMovement?: (item: CashFlowItem) => void;
+  onDelete?: (item: CashFlowItem) => void;
+  /** Id do lançamento com operação em andamento (desabilita as ações da linha). */
+  busyId?: string | null;
 }
 
 export function CashFlowTable({
@@ -38,6 +47,8 @@ export function CashFlowTable({
   onSetFilterTipo,
   onConfirmMovement,
   onRevertMovement,
+  onDelete,
+  busyId,
 }: CashFlowTableProps) {
   const [selectedItemToConfirm, setSelectedItemToConfirm] = useState<CashFlowItem | null>(null);
 
@@ -45,16 +56,17 @@ export function CashFlowTable({
     setSelectedItemToConfirm(item);
   };
 
-  const handleConfirm = (
+  const handleConfirm = async (
     item: CashFlowItem,
     dataEfetiva: string,
     meio: string,
     observacao?: string
-  ) => {
-    if (onConfirmMovement) {
-      onConfirmMovement(item, dataEfetiva, meio, observacao);
-    }
+  ): Promise<boolean> => {
+    if (!onConfirmMovement) return false;
+    return onConfirmMovement(item, dataEfetiva, meio, observacao);
   };
+
+  const visible = cashFlows.filter((c) => filterTipo === "TODOS" || c.tipo === filterTipo);
 
   return (
     <>
@@ -97,11 +109,26 @@ export function CashFlowTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {cashFlows
-                .filter((c) => filterTipo === "TODOS" || c.tipo === filterTipo)
-                .map((cf) => {
+              {visible.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <div className="p-3 rounded-full bg-connect-blue/10 text-connect-blue">
+                        <Receipt className="w-5 h-5" />
+                      </div>
+                      <span className="text-sm font-semibold text-foreground">Nenhum lançamento encontrado</span>
+                      <span className="text-xs">
+                        Registre receitas e despesas em &quot;Novo Lançamento&quot; ou realize vendas para gerar títulos.
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {visible.map((cf) => {
                   const isPendente = cf.status === "PENDENTE";
                   const isReceita = cf.tipo === "RECEITA";
+                  const isBusy = busyId === cf.id;
+                  const canDelete = Boolean(onDelete) && !cf.saleId && !cf.bookingId;
 
                   return (
                     <tr
@@ -118,14 +145,14 @@ export function CashFlowTable({
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{cf.categoria}</td>
                       <td className="py-3 px-4 font-mono text-foreground/80">
-                        {cf.dataVencimento}
-                        {cf.dataLiquidacao && (
+                        {formatDateBr(cf.dataVencimento)}
+                        {cf.status === "PAGO" && cf.dataLiquidacao && (
                           <span className="block text-[10px] text-emerald-600 dark:text-emerald-400 font-sans">
-                            Quitado em: {cf.dataLiquidacao}
+                            Quitado em: {formatDateBr(cf.dataLiquidacao)}
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-connect-blue font-semibold">{cf.meioPagamento || "PIX"}</td>
+                      <td className="py-3 px-4 text-connect-blue font-semibold">{paymentMethodLabel(cf.meioPagamento)}</td>
                       <td
                         className={`py-3 px-4 font-bold ${
                           isReceita
@@ -141,8 +168,8 @@ export function CashFlowTable({
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit ${
                               cf.status === "PAGO"
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800"
-                                : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400 border border-amber-300 dark:border-amber-800"
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                                : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30"
                             }`}
                           >
                             {cf.status === "PAGO" ? (
@@ -160,10 +187,12 @@ export function CashFlowTable({
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                         {isPendente ? (
                           <button
                             onClick={() => handleOpenConfirm(cf)}
-                            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all hover:scale-[1.02] ${
+                            disabled={isBusy}
+                            className={`disabled:opacity-50 px-2.5 py-1.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all hover:scale-[1.02] ${
                               isReceita
                                 ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                                 : "bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30"
@@ -187,25 +216,37 @@ export function CashFlowTable({
                             )}
                           </button>
                         ) : (
-                          <div className="flex items-center justify-end gap-1.5">
+                          <>
                             <span className="text-[11px] text-muted-foreground font-medium">
                               {cf.foiAntecipado ? "Antecipado ✓" : "Concluído ✓"}
                             </span>
                             {onRevertMovement && (
                               <button
-                                onClick={() => onRevertMovement(cf.id)}
-                                className="p-1 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
+                                onClick={() => onRevertMovement(cf)}
+                                disabled={isBusy}
+                                className="disabled:opacity-50 p-1 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
                                 title="Reverter para Pendente"
                               >
                                 <RotateCcw className="w-3 h-3" />
                               </button>
                             )}
-                          </div>
+                          </>
                         )}
+                        {canDelete && (
+                          <button
+                            onClick={() => onDelete?.(cf)}
+                            disabled={isBusy}
+                            className="disabled:opacity-50 p-1 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                            title="Excluir lançamento"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        </div>
                       </td>
                     </tr>
                   );
-                })}
+              })}
             </tbody>
           </table>
         </div>

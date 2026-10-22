@@ -1,225 +1,216 @@
 "use client";
 
-import React, { useState } from "react";
-import { User, Mail, Phone, Shield, Camera, Lock, Bell, CheckCircle2 } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { User, Mail, Phone, Shield, Camera, Loader2, Save } from "lucide-react";
 import { SectionTitle } from "@/components/crm/SectionTitle";
 import { useCrm } from "@/components/crm/CrmContext";
 import { ChangePasswordSection } from "./ChangePasswordSection";
 import { AccessibilitySection } from "./AccessibilitySection";
+import { NotificationPreferencesCard } from "./NotificationPreferencesCard";
+import { requestJson, useConfigResource, uploadImage, formatBrPhone } from "./configApi";
+import { ConfigCard, ConfigError, ConfigField, ConfigSkeleton, SaveButton, flash, inputClass } from "./ConfigUi";
+
+interface Profile {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  creci: string | null;
+  bio: string | null;
+  photoUrl: string | null;
+  role: string;
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  ADMINISTRADOR: "Administrador",
+  DIRETOR: "Diretor",
+  GERENTE: "Gerente",
+  CORRETOR: "Corretor",
+};
 
 export function ProfileTab() {
-  const { user, setActionMessage } = useCrm();
-  const [name, setName] = useState(user?.nome || "Robson Carvalho");
-  const [email, setEmail] = useState(user?.email || "robson@connectplatz.com.br");
-  const [phone, setPhone] = useState("(85) 99999-8877");
-  const [creci, setCreci] = useState(user?.creci || "18942-F");
-  const [bio, setBio] = useState(
-    "Especialista em lançamentos de alto padrão e oportunidades de investimento imobiliário."
-  );
-  const [notifySla, setNotifySla] = useState(true);
-  const [notifyNewLead, setNotifyNewLead] = useState(true);
-  const [notifyAppointments, setNotifyAppointments] = useState(true);
+  const { setActionMessage } = useCrm();
+  const { data, loading, error, reload } = useConfigResource<{ profile: Profile }>("/api/configuracoes/perfil");
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setActionMessage("Perfil atualizado com sucesso!");
-    setTimeout(() => setActionMessage(null), 3000);
+  const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [creci, setCreci] = useState("");
+  const [bio, setBio] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const fillForm = (p: Profile) => {
+    setNome(p.nome);
+    setTelefone(formatBrPhone(p.telefone));
+    setCreci(p.creci || "");
+    setBio(p.bio || "");
+    setPhotoUrl(p.photoUrl);
   };
+
+  useEffect(() => {
+    if (data?.profile) fillForm(data.profile);
+  }, [data]);
+
+  const handlePhoto = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setFormError("Selecione um arquivo de imagem (JPG, PNG ou WEBP).");
+      return;
+    }
+    setUploading(true);
+    setFormError(null);
+    try {
+      setPhotoUrl(await uploadImage(file, "avatars"));
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Falha ao enviar a foto.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setFormError(null);
+    try {
+      const res = await requestJson<{ profile: Profile }>("/api/configuracoes/perfil", "PATCH", {
+        nome,
+        telefone: telefone || null,
+        creci: creci || null,
+        bio: bio || null,
+        photoUrl,
+      });
+      fillForm(res.profile);
+      flash(setActionMessage, "Perfil atualizado com sucesso!");
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Não foi possível salvar o perfil.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const profile = data?.profile;
+  const initials =
+    nome
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?";
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSave} className="space-y-6">
-        {/* 1. SEÇÃO DE FOTO & DADOS BÁSICOS */}
-        <div className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-6">
-          <SectionTitle title="Informações Pessoais & Perfil Profissional" />
+      {loading && !profile ? (
+        <ConfigSkeleton />
+      ) : error && !profile ? (
+        <ConfigError message={error} onRetry={reload} />
+      ) : profile ? (
+        <form onSubmit={handleSave} className="space-y-6">
+          <ConfigCard className="space-y-6">
+            <SectionTitle title="Informações Pessoais & Perfil Profissional" />
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-border">
-            <div className="relative group">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#1266C7] to-[#0D478F] text-white flex items-center justify-center font-bold text-2xl shadow-md shadow-connect-blue/20">
-                {name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .slice(0, 2)
-                  .join("")}
-              </div>
-              <button
-                type="button"
-                className="absolute bottom-0 right-0 p-1.5 rounded-full bg-connect-blue text-white shadow hover:bg-connect-blue/90 transition-transform group-hover:scale-110"
-                title="Alterar foto de perfil"
-              >
-                <Camera className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-foreground">{name}</h3>
-              <p className="text-xs text-muted-foreground flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-connect-blue/10 text-connect-blue font-semibold text-[11px]">
-                  {user?.role || "Administrador / CEO"}
-                </span>
-                <span>• CRECI {creci}</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="block text-muted-foreground font-semibold mb-1.5">Nome Completo</label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-border">
+              <div className="relative group">
+                {photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photoUrl} alt={nome} className="w-20 h-20 rounded-full object-cover shadow-md" />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-connect-blue text-white flex items-center justify-center font-bold text-2xl shadow-md shadow-connect-blue/20">
+                    {initials}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-connect-blue text-white shadow hover:bg-connect-blue/90 transition-transform group-hover:scale-110"
+                  title="Alterar foto de perfil"
+                >
+                  {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                </button>
                 <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-2 text-foreground focus:ring-1 focus:ring-connect-blue focus:border-connect-blue transition-all"
-                  required
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handlePhoto(e.target.files?.[0])}
                 />
               </div>
+
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">{nome || profile.nome}</h3>
+                <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-connect-blue/10 text-connect-blue font-semibold text-[11px]">
+                    {ROLE_LABEL[profile.role] || profile.role}
+                  </span>
+                  {profile.creci && <span>CRECI {profile.creci}</span>}
+                </p>
+                {photoUrl !== profile.photoUrl && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    Nova foto carregada — clique em salvar para aplicar.
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-muted-foreground font-semibold mb-1.5">E-mail Corporativo</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+            {formError && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs">
+                {formError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <ConfigField label="Nome Completo *" icon={User}>
+                <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} className={inputClass} required minLength={2} />
+              </ConfigField>
+
+              <ConfigField label="E-mail de Acesso" icon={Mail} hint="O e-mail de login só pode ser alterado pela gestão.">
+                <input type="email" value={profile.email} className={inputClass} disabled readOnly />
+              </ConfigField>
+
+              <ConfigField label="WhatsApp / Telefone" icon={Phone} hint="DDD + número. Usado nos links wa.me.">
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-2 text-foreground focus:ring-1 focus:ring-connect-blue focus:border-connect-blue transition-all"
-                  required
+                  type="tel"
+                  inputMode="tel"
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  placeholder="(00) 00000-0000"
+                  className={inputClass}
                 />
-              </div>
-            </div>
+              </ConfigField>
 
-            <div>
-              <label className="block text-muted-foreground font-semibold mb-1.5">WhatsApp / Telefone</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-2 text-foreground focus:ring-1 focus:ring-connect-blue focus:border-connect-blue transition-all"
+              <ConfigField label="CRECI Individual" icon={Shield}>
+                <input type="text" value={creci} onChange={(e) => setCreci(e.target.value)} placeholder="Ex.: 00000-F" className={inputClass} />
+              </ConfigField>
+
+              <ConfigField label="Biografia Profissional" className="sm:col-span-2">
+                <textarea
+                  rows={3}
+                  value={bio}
+                  maxLength={1000}
+                  onChange={(e) => setBio(e.target.value)}
+                  className={`${inputClass} p-3`}
+                  placeholder="Descreva suas especialidades e regiões de atuação..."
                 />
-              </div>
+              </ConfigField>
             </div>
 
-            <div>
-              <label className="block text-muted-foreground font-semibold mb-1.5">CRECI Individual</label>
-              <div className="relative">
-                <Shield className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={creci}
-                  onChange={(e) => setCreci(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-2 text-foreground focus:ring-1 focus:ring-connect-blue focus:border-connect-blue transition-all"
-                />
-              </div>
+            <div className="flex justify-end">
+              <SaveButton saving={saving} label="Salvar Alterações do Perfil" icon={Save} disabled={uploading} />
             </div>
+          </ConfigCard>
+        </form>
+      ) : null}
 
-            <div className="sm:col-span-2">
-              <label className="block text-muted-foreground font-semibold mb-1.5">Biografia Profissional</label>
-              <textarea
-                rows={3}
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg p-3 text-foreground focus:ring-1 focus:ring-connect-blue focus:border-connect-blue transition-all"
-                placeholder="Descreva suas especialidades e regiões de atuação..."
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 2. NOTIFICAÇÕES & PREFERÊNCIAS */}
-        <div className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-4">
-          <SectionTitle title="Preferências de Notificação" />
-          <p className="text-xs text-muted-foreground">
-            Controle quais alertas e eventos devem disparar notificações visuais e sonoras no CRM.
-          </p>
-
-          <div className="space-y-3 pt-2">
-            <label className="flex items-center justify-between p-3.5 bg-muted/40 rounded-lg cursor-pointer hover:bg-muted/60 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-connect-blue/10 text-connect-blue flex items-center justify-center">
-                  <Bell className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-foreground block">
-                    Alertas de Estouro de SLA
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    Aviso antecipado de 5 minutos antes do transbordo para o bolsão
-                  </span>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifySla}
-                onChange={(e) => setNotifySla(e.target.checked)}
-                className="w-4 h-4 rounded text-connect-blue focus:ring-connect-blue"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3.5 bg-muted/40 rounded-lg cursor-pointer hover:bg-muted/60 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-foreground block">
-                    Novo Lead Atribuído
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    Notificar instantaneamente quando a roleta distribuir uma oportunidade
-                  </span>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifyNewLead}
-                onChange={(e) => setNotifyNewLead(e.target.checked)}
-                className="w-4 h-4 rounded text-connect-blue focus:ring-connect-blue"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3.5 bg-muted/40 rounded-lg cursor-pointer hover:bg-muted/60 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-foreground block">
-                    Compromissos & Visitas do Dia
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    Resumo matinal dos agendamentos marcados para a sua agenda
-                  </span>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifyAppointments}
-                onChange={(e) => setNotifyAppointments(e.target.checked)}
-                className="w-4 h-4 rounded text-connect-blue focus:ring-connect-blue"
-              />
-            </label>
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="bg-connect-blue hover:bg-connect-blue/90 text-white font-semibold text-xs px-6 py-2.5 rounded-lg shadow-md shadow-connect-blue/20 transition-all hover:scale-[1.02]"
-          >
-            Salvar Alterações do Perfil
-          </button>
-        </div>
-      </form>
-
-      {/* 3. SEÇÃO DE ACESSIBILIDADE E TAMANHO DE FONTE */}
+      {/* Preferências locais deste dispositivo */}
+      <NotificationPreferencesCard />
       <AccessibilitySection />
 
-      {/* 4. SEÇÃO DE ALTERAÇÃO DE SENHA COM CONFIRMAÇÃO */}
+      {/* Troca de senha com verificação da senha atual */}
       <ChangePasswordSection />
     </div>
   );

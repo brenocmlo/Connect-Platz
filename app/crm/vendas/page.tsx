@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { Plus, Filter, Eye, EyeOff } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, Filter, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { SaleItem, VendasFilterState } from "@/components/crm/vendas/types";
 import { VendasStatCards } from "@/components/crm/vendas/VendasStatCards";
@@ -10,64 +10,15 @@ import { VendasFilterSheet } from "@/components/crm/vendas/VendasFilterSheet";
 import { NewSaleModal } from "@/components/crm/vendas/NewSaleModal";
 import { SaleDetailModal } from "@/components/crm/vendas/SaleDetailModal";
 import { CommissionReceiptModal } from "@/components/crm/vendas/CommissionReceiptModal";
-
-const initialSales: SaleItem[] = [
-  {
-    id: "sale-1",
-    codigoVenda: "CP-2026-089",
-    imovelNome: "Villa Platz Beach Residence",
-    construtora: "Platz Empreendimentos",
-    unidadeNumero: "403 (Torre Coral)",
-    compradorNome: "Dr. Marcelo Cavalcante",
-    corretorTitular: "Lucas Santos",
-    gerente: "Mariana Oliveira",
-    gestor: "Diretoria Platz",
-    captador: "Rafael Mendes",
-    dataVenda: "28/09/2026",
-    vgv: 1050000,
-    valorAvaliacao: 1100000,
-    comissaoTotal: 52500,
-    impostoValor: 3150,
-    impostoPercentual: 6,
-    proximoPagamento: "05/10/2026",
-    meioPagamento: "TED",
-    status: "APROVADA",
-    splits: [
-      { id: "s-1", beneficiario: "Connect Platz Imobiliária", categoria: "Imobiliária", percentual: 40, valor: 21000, status: "PAGO" },
-      { id: "s-2", beneficiario: "Lucas Santos", categoria: "Corretor 1", percentual: 40, valor: 21000, status: "PAGO", pix: "lucas.corretor@pix.com" },
-      { id: "s-3", beneficiario: "Mariana Oliveira", categoria: "Gerente", percentual: 10, valor: 5250, status: "PAGO", pix: "mariana.gerente@pix.com" },
-      { id: "s-4", beneficiario: "Rafael Mendes", categoria: "Captador", percentual: 10, valor: 5250, status: "PENDENTE", pix: "rafael.captador@pix.com" },
-    ],
-  },
-  {
-    id: "sale-2",
-    codigoVenda: "CP-2026-090",
-    imovelNome: "Residencial Aldeota Platz",
-    construtora: "Platz Empreendimentos",
-    unidadeNumero: "201",
-    compradorNome: "Roberto Simões",
-    corretorTitular: "Mariana Oliveira",
-    segundoCorretor: "Carlos Eduardo",
-    gerente: "Mariana Oliveira",
-    gestor: "Diretoria Platz",
-    captador: "Lucas Santos",
-    dataVenda: "29/09/2026",
-    vgv: 880000,
-    valorAvaliacao: 900000,
-    comissaoTotal: 44000,
-    impostoValor: 2640,
-    impostoPercentual: 6,
-    proximoPagamento: "10/10/2026",
-    meioPagamento: "PIX",
-    status: "EM_ANALISE",
-    splits: [
-      { id: "s-5", beneficiario: "Connect Platz Imobiliária", categoria: "Imobiliária", percentual: 45, valor: 19800, status: "PAGO" },
-      { id: "s-6", beneficiario: "Mariana Oliveira", categoria: "Corretor 1", percentual: 30, valor: 13200, status: "PENDENTE", pix: "mariana.pix@banco.com" },
-      { id: "s-7", beneficiario: "Carlos Eduardo", categoria: "Corretor 2", percentual: 15, valor: 6600, status: "PENDENTE", pix: "carlos.pix@banco.com" },
-      { id: "s-8", beneficiario: "Lucas Santos", categoria: "Captador", percentual: 10, valor: 4400, status: "PENDENTE" },
-    ],
-  },
-];
+import {
+  PeriodKey,
+  periodWindow,
+  inWindow,
+  matchesFilters,
+  sortSales,
+  computeTotals,
+  trendOf,
+} from "@/components/crm/vendas/vendasMetrics";
 
 const initialFilters: VendasFilterState = {
   corretor: "ALL",
@@ -83,196 +34,149 @@ const initialFilters: VendasFilterState = {
   ordenarPor: "recente",
 };
 
+const TABS = [
+  { id: "vendas_mensais", label: "Vendas Mensais" },
+  { id: "comissoes", label: "Comissões" },
+  { id: "agenda_vencimentos", label: "Agenda de Vencimentos" },
+  { id: "pendencias", label: "Pendências Colaboradores" },
+  { id: "estatisticas", label: "Estatísticas" },
+] as const;
+
 export default function VendasComissoesPage() {
-  const { setActionMessage, selectedPeriod, setSelectedPeriod } = useCrm();
-  const [sales, setSales] = useState<SaleItem[]>(initialSales);
-  const [loadingSales, setLoadingSales] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "vendas_mensais" | "comissoes" | "agenda_vencimentos" | "pendencias" | "estatisticas"
-  >("vendas_mensais");
-  const [hideValues, setHideValues] = useState<boolean>(false);
+  const { user, setActionMessage, selectedPeriod, hideValues, toggleHideValues } = useCrm();
+  const canManagePayments = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR";
+
+  const [sales, setSales] = useState<SaleItem[]>([]);
+  const [loadingSales, setLoadingSales] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("vendas_mensais");
   const [filters, setFilters] = useState<VendasFilterState>(initialFilters);
-  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState<boolean>(false);
-  const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [selectedSaleDetail, setSelectedSaleDetail] = useState<SaleItem | null>(null);
   const [selectedReceiptSale, setSelectedReceiptSale] = useState<SaleItem | null>(null);
 
-  React.useEffect(() => {
-    async function loadSales() {
-      try {
-        setLoadingSales(true);
-        const res = await fetch("/api/vendas");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.sales && data.sales.length > 0) {
-            setSales(data.sales);
-          }
-        }
-      } catch (e) {
-        // Fallback resiliente
-      } finally {
-        setLoadingSales(false);
+  const notify = useCallback(
+    (msg: string) => {
+      setActionMessage(msg);
+      setTimeout(() => setActionMessage(null), 4000);
+    },
+    [setActionMessage]
+  );
+
+  const loadSales = useCallback(async () => {
+    setLoadingSales(true);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/vendas", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setLoadError(data?.error || "Não foi possível carregar as vendas.");
+        return;
       }
+      setSales(data.sales || []);
+    } catch {
+      setLoadError("Falha de conexão ao carregar as vendas.");
+    } finally {
+      setLoadingSales(false);
     }
-    loadSales();
   }, []);
 
-  // Filtragem (incluindo período)
-  const filteredSales = useMemo(() => {
-    return sales.filter((s) => {
-      if (filters.status !== "ALL" && s.status !== filters.status) return false;
-      if (
-        filters.corretor !== "ALL" &&
-        s.corretorTitular !== filters.corretor &&
-        s.segundoCorretor !== filters.corretor
-      )
-        return false;
-      if (filters.gerente !== "ALL" && s.gerente !== filters.gerente) return false;
-      if (filters.captador !== "ALL" && s.captador !== filters.captador) return false;
-      if (filters.construtora !== "ALL" && s.construtora !== filters.construtora) return false;
-      if (
-        filters.codigoVenda &&
-        !s.codigoVenda.toLowerCase().includes(filters.codigoVenda.toLowerCase())
-      )
-        return false;
-      if (filters.vgvMin && s.vgv < Number(filters.vgvMin)) return false;
-      if (filters.vgvMax && s.vgv > Number(filters.vgvMax)) return false;
+  useEffect(() => {
+    loadSales();
+  }, [loadSales]);
 
-      // Filtro de período determinístico
-      if (selectedPeriod && selectedPeriod !== "todos") {
-        const parts = s.dataVenda.split("/");
-        let saleDate = new Date();
-        if (parts.length === 3) {
-          saleDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-        }
-        const now = new Date();
-        const diffMs = Math.abs(now.getTime() - saleDate.getTime());
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  const period = (selectedPeriod || "todos") as PeriodKey;
 
-        if (selectedPeriod === "hoje") {
-          if (diffDays > 1 && saleDate.toDateString() !== now.toDateString()) return false;
-        } else if (selectedPeriod === "7d") {
-          if (diffDays > 7) return false;
-        } else if (selectedPeriod === "mes" || selectedPeriod === "30d") {
-          if (diffDays > 31) return false;
-        } else if (selectedPeriod === "ano") {
-          if (diffDays > 365) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [sales, filters, selectedPeriod]);
-
-  // Totais reativos para os StatCards baseados nas vendas filtradas
-  const vgvTotal = useMemo(() => filteredSales.reduce((acc, s) => acc + s.vgv, 0), [filteredSales]);
-  const totalVendas = filteredSales.length;
-  const comissaoRecebida = useMemo(
-    () => filteredSales.reduce((acc, s) => acc + s.comissaoTotal, 0),
-    [filteredSales]
-  );
-  const comissoesPagas = useMemo(
+  const filteredSales = useMemo(
     () =>
-      filteredSales.reduce(
-        (acc, s) =>
-          acc + s.splits.filter((sp) => sp.status === "PAGO").reduce((a, b) => a + b.valor, 0),
-        0
+      sortSales(
+        sales.filter((s) => matchesFilters(s, filters) && inWindow(s, periodWindow(period))),
+        filters.ordenarPor
       ),
-    [filteredSales]
-  );
-  const comissoesPendentes = useMemo(
-    () =>
-      filteredSales.reduce(
-        (acc, s) =>
-          acc + s.splits.filter((sp) => sp.status === "PENDENTE").reduce((a, b) => a + b.valor, 0),
-        0
-      ),
-    [filteredSales]
+    [sales, filters, period]
   );
 
-  const handleBaixaComissao = (saleId: string, splitId: string) => {
-    setSales((prev) =>
-      prev.map((s) =>
-        s.id === saleId
-          ? {
-              ...s,
-              splits: s.splits.map((sp) =>
-                sp.id === splitId ? { ...sp, status: "PAGO" as const } : sp
-              ),
-            }
-          : s
-      )
-    );
-    if (selectedSaleDetail && selectedSaleDetail.id === saleId) {
-      setSelectedSaleDetail((prev) =>
-        prev
-          ? {
-              ...prev,
-              splits: prev.splits.map((sp) =>
-                sp.id === splitId ? { ...sp, status: "PAGO" as const } : sp
-              ),
-            }
-          : null
-      );
-    }
-    setActionMessage("Baixa financeira de comissão confirmada com sucesso!");
-    setTimeout(() => setActionMessage(null), 4000);
+  const totals = useMemo(() => computeTotals(filteredSales), [filteredSales]);
+
+  // Tendência real: mesmo filtro aplicado à janela imediatamente anterior
+  const trends = useMemo(() => {
+    const prevWindow = periodWindow(period, 1);
+    if (!prevWindow) return {};
+    const prev = computeTotals(sales.filter((s) => matchesFilters(s, filters) && inWindow(s, prevWindow)));
+    return {
+      vgvTotal: trendOf(totals.vgvTotal, prev.vgvTotal),
+      totalVendas: trendOf(totals.totalVendas, prev.totalVendas),
+      comissaoRecebida: trendOf(totals.comissaoRecebida, prev.comissaoRecebida),
+      comissoesPagas: trendOf(totals.comissoesPagas, prev.comissoesPagas),
+      comissoesPendentes: trendOf(totals.comissoesPendentes, prev.comissoesPendentes),
+    };
+  }, [sales, filters, period, totals]);
+
+  const replaceSale = (updated: SaleItem) => {
+    setSales((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+    setSelectedSaleDetail((prev) => (prev && prev.id === updated.id ? updated : prev));
   };
 
-  const handleAddSale = async (newSale: SaleItem) => {
-    setSales((prev) => [newSale, ...prev]);
-    setActionMessage("Venda cadastrada e splits gerados com sucesso!");
-    setTimeout(() => setActionMessage(null), 4000);
-
+  const handleUpdateSplitStatus = async (
+    splitId: string,
+    status: "PAGO" | "PENDENTE",
+    dataPagamento?: string
+  ): Promise<boolean> => {
     try {
-      await fetch("/api/vendas", {
-        method: "POST",
+      const res = await fetch(`/api/vendas/splits/${splitId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newSale),
+        body: JSON.stringify({ status, ...(dataPagamento ? { dataPagamento } : {}) }),
       });
-    } catch (e) {
-      console.warn("Falha ao sincronizar venda com backend:", e);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        notify(data?.error || "Não foi possível atualizar a comissão.");
+        return false;
+      }
+      replaceSale(data.sale);
+      notify(status === "PAGO" ? "Baixa de comissão confirmada!" : "Baixa de comissão estornada.");
+      return true;
+    } catch {
+      notify("Falha de conexão ao atualizar a comissão.");
+      return false;
     }
+  };
+
+  const handleSaleCreated = (created: SaleItem) => {
+    setSales((prev) => [created, ...prev]);
+    notify(`Venda ${created.codigoVenda} registrada e splits gerados!`);
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* 1. Header com ações */}
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Vendas e Comissões
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Vendas e Comissões</h1>
+          <p className="text-xs text-muted-foreground">
             Controle de fechamentos, comissões pagas, a liberar e split de corretores.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Eye Button (Ocultar Valores Monetários) */}
           <button
-            onClick={() => setHideValues(!hideValues)}
-            className="p-2.5 rounded-xl border border-slate-200 dark:border-[#1F2937] bg-white dark:bg-[#0A0E17] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#161F30] transition-colors"
+            onClick={toggleHideValues}
+            className="p-2.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title={hideValues ? "Mostrar valores" : "Ocultar valores monetários"}
             aria-label="Alternar exibição de valores"
           >
             {hideValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
-
-
-          {/* Botão Filtros (Abre Sheet) */}
           <button
             onClick={() => setIsFilterSheetOpen(true)}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-[#1F2937] bg-white dark:bg-[#0A0E17] text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-[#161F30] flex items-center gap-1.5 transition-colors shadow-xs"
+            className="px-3.5 py-2 rounded-lg border border-border bg-card text-foreground text-xs font-semibold hover:bg-muted flex items-center gap-1.5 transition-colors"
           >
             <Filter className="w-3.5 h-3.5" />
             Filtros
           </button>
-
-          {/* CTA Nova Venda */}
           <button
             onClick={() => setIsNewModalOpen(true)}
-            className="bg-connect-blue hover:bg-connect-deep-blue text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-connect-blue/20 transition-all hover:scale-[1.02]"
+            className="bg-connect-blue hover:bg-connect-deep-blue text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-lg shadow-connect-blue/20 hover:shadow-connect-blue/30 transition-all hover:scale-[1.02]"
           >
             <Plus className="w-4 h-4" />
             Nova Venda
@@ -280,32 +184,17 @@ export default function VendasComissoesPage() {
         </div>
       </div>
 
-      {/* 2. 5 StatCards */}
-      <VendasStatCards
-        vgvTotal={vgvTotal}
-        totalVendas={totalVendas}
-        comissaoRecebida={comissaoRecebida}
-        comissoesPagas={comissoesPagas}
-        comissoesPendentes={comissoesPendentes}
-        hideValues={hideValues}
-      />
+      <VendasStatCards totals={totals} trends={trends} hideValues={hideValues} loading={loadingSales} />
 
-      {/* 3. Tabs de navegação interna */}
-      <div className="flex border-b border-slate-200 dark:border-[#1C2537] bg-slate-100/60 dark:bg-[#0A0E17] p-1 rounded-xl overflow-x-auto">
-        {[
-          { id: "vendas_mensais", label: "Vendas Mensais" },
-          { id: "comissoes", label: "Comissões" },
-          { id: "agenda_vencimentos", label: "Agenda de Vencimentos" },
-          { id: "pendencias", label: "Pendências Colaboradores" },
-          { id: "estatisticas", label: "Estatísticas" },
-        ].map((tab) => (
+      <div className="flex bg-muted p-1 rounded-lg overflow-x-auto">
+        {TABS.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-3.5 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === tab.id
-                ? "bg-white dark:bg-[#161F30] text-connect-blue dark:text-white shadow-xs font-bold"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-card text-connect-blue dark:text-foreground shadow-sm font-bold"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
@@ -313,16 +202,33 @@ export default function VendasComissoesPage() {
         ))}
       </div>
 
-      {/* 4. Tabela de Vendas */}
-      <VendasTable
-        sales={filteredSales}
-        hideValues={hideValues}
-        onViewDetails={(s) => setSelectedSaleDetail(s)}
-        onViewReceipt={(s) => setSelectedReceiptSale(s)}
-        onEditPayment={(s) => setSelectedSaleDetail(s)}
-      />
+      {loadingSales ? (
+        <div className="bg-card border border-border rounded-2xl p-12 flex flex-col items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-6 h-6 animate-spin text-connect-blue" />
+          <span className="text-xs">Carregando vendas...</span>
+        </div>
+      ) : loadError ? (
+        <div className="bg-card border border-border rounded-2xl p-10 flex flex-col items-center gap-3 text-center">
+          <AlertCircle className="w-6 h-6 text-red-500" />
+          <p className="text-sm font-semibold text-foreground">{loadError}</p>
+          <button
+            onClick={loadSales}
+            className="px-4 py-2 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white text-xs font-bold transition-all hover:scale-[1.02]"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : (
+        <VendasTable
+          sales={filteredSales}
+          hideValues={hideValues}
+          canManagePayments={canManagePayments}
+          onViewDetails={(s) => setSelectedSaleDetail(s)}
+          onViewReceipt={(s) => setSelectedReceiptSale(s)}
+          onEditPayment={(s) => setSelectedSaleDetail(s)}
+        />
+      )}
 
-      {/* 5. Modais & Sheet */}
       <VendasFilterSheet
         isOpen={isFilterSheetOpen}
         onClose={() => setIsFilterSheetOpen(false)}
@@ -330,24 +236,19 @@ export default function VendasComissoesPage() {
         onFilterChange={setFilters}
         onResetFilters={() => setFilters(initialFilters)}
         totalFilteredCount={filteredSales.length}
+        sales={sales}
       />
 
-      <NewSaleModal
-        isOpen={isNewModalOpen}
-        onClose={() => setIsNewModalOpen(false)}
-        onSubmit={handleAddSale}
-      />
+      <NewSaleModal isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} onSubmit={handleSaleCreated} />
 
       <SaleDetailModal
         sale={selectedSaleDetail}
+        canManagePayments={canManagePayments}
         onClose={() => setSelectedSaleDetail(null)}
-        onBaixaComissao={handleBaixaComissao}
+        onUpdateSplitStatus={handleUpdateSplitStatus}
       />
 
-      <CommissionReceiptModal
-        sale={selectedReceiptSale}
-        onClose={() => setSelectedReceiptSale(null)}
-      />
+      <CommissionReceiptModal sale={selectedReceiptSale} onClose={() => setSelectedReceiptSale(null)} />
     </div>
   );
 }

@@ -5,7 +5,6 @@ import {
   Bell,
   Sun,
   Moon,
-  PlusCircle,
   CheckCircle2,
   X,
   AlertTriangle,
@@ -15,7 +14,6 @@ import { useCrm } from "./CrmContext";
 
 export function Topbar() {
   const {
-    token,
     theme,
     toggleTheme,
     isSidebarCollapsed,
@@ -29,42 +27,6 @@ export function Topbar() {
   } = useCrm();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [isSimulatingLead, setIsSimulatingLead] = useState(false);
-
-  // Simular ingestão de lead em tempo real do Meta Ads
-  const handleSimulateMetaLead = async () => {
-    if (!token || isSimulatingLead) return;
-    setIsSimulatingLead(true);
-    try {
-      const randomId = Math.floor(1000 + Math.random() * 9000);
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          nome: `Comprador Meta Ads #${randomId}`,
-          telefone: `8598877${randomId}`,
-          email: `lead.meta${randomId}@gmail.com`,
-          faixaRenda: "10 a 20 SM",
-          tipoOcupacaoCredito: "CLT",
-          rendaDeclarada: 16500,
-          bairrosInteresse: ["Meireles", "Aldeota", "Porto das Dunas"],
-          observacoes: "Lead captado pelo criativo 'Villa Platz Beach Frente Mar'",
-        }),
-      });
-
-      if (res.ok) {
-        setActionMessage("Novo lead recebido e distribuído na Roleta Round-Robin!");
-        setTimeout(() => setActionMessage(null), 5000);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSimulatingLead(false);
-    }
-  };
 
   return (
     <header className="sticky top-0 z-20 h-14 bg-card/80 backdrop-blur-md border-b border-border px-4 md:px-6 flex items-center justify-between gap-4">
@@ -80,8 +42,8 @@ export function Topbar() {
         </button>
 
         {actionMessage && (
-          <div className="text-xs bg-emerald-950/80 border border-emerald-700/80 text-emerald-300 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm animate-fade-in">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm animate-fade-in">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>{actionMessage}</span>
           </div>
         )}
@@ -89,28 +51,17 @@ export function Topbar() {
         {slaBreachedCount > 0 && !actionMessage && (
           <a
             href="/crm/leads"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-950/70 border border-red-800 text-red-300 text-[11px] font-semibold hover:bg-red-900/60 transition-colors animate-pulse"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/40 text-red-700 dark:text-red-300 text-[11px] font-semibold hover:bg-red-500/20 transition-colors animate-pulse"
             title="Leads com SLA estourado"
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+            <AlertTriangle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
             <span>{slaBreachedCount} SLA Crítico</span>
           </a>
         )}
       </div>
 
-      {/* 2. LADO DIREITO (5.2): TOGGLE TEMA ☀/☾ + SINO 99+ + DEMO META */}
+      {/* 2. LADO DIREITO (5.2): TOGGLE TEMA ☀/☾ + SINO 99+  */}
       <div className="flex items-center gap-2.5 ml-auto">
-        {/* Simulação rápida Meta Ads */}
-        <button
-          onClick={handleSimulateMetaLead}
-          disabled={isSimulatingLead}
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-all"
-          title="Simular ingestão de lead Meta Ads"
-        >
-          <PlusCircle className={`w-3.5 h-3.5 ${isSimulatingLead ? "animate-spin" : ""}`} />
-          <span>Simular Lead</span>
-        </button>
-
         {/* Toggle de Tema Light / Dark (5.2) */}
         <button
           onClick={toggleTheme}

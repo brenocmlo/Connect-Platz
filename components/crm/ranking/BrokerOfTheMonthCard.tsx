@@ -1,111 +1,133 @@
 "use client";
 
 import React from "react";
+import { Trophy } from "lucide-react";
 import { AnimatedCrown } from "@/components/crm/AnimatedCrown";
 import { CountUpNumber } from "@/components/crm/CountUpNumber";
+import { useCrm } from "@/components/crm/CrmContext";
 import { BrokerRankItem } from "./types";
+import { RankAvatar } from "./RankAvatar";
 
 interface BrokerOfTheMonthCardProps {
   brokers: BrokerRankItem[];
-  selectedBrokerId: string;
+  /** Líder real do período (null = ninguém vendeu) */
+  leader: BrokerRankItem | null;
+  selectedBrokerId: string | null;
   onSelectBroker: (id: string) => void;
+  periodLabel: string;
 }
 
-export function BrokerOfTheMonthCard({
-  brokers,
-  selectedBrokerId,
-  onSelectBroker,
-}: BrokerOfTheMonthCardProps) {
-  const broker = brokers.find((b) => b.id === selectedBrokerId) || brokers[0];
+/** Card "Corretor do Mês" (5.9): coroa animada + anel dourado no líder; select para ver outros corretores. */
+export function BrokerOfTheMonthCard({ brokers, leader, selectedBrokerId, onSelectBroker, periodLabel }: BrokerOfTheMonthCardProps) {
+  const { hideValues } = useCrm();
+  const broker = brokers.find((b) => b.id === selectedBrokerId) || leader;
 
-  if (!broker) return null;
+  if (!broker) {
+    return (
+      <div className="rounded-2xl border border-dashed border-platz-gold/40 bg-gradient-to-br from-amber-500/5 via-card to-connect-blue/5 p-6 text-center space-y-2">
+        <Trophy className="w-7 h-7 text-platz-gold mx-auto" />
+        <h3 className="text-sm font-bold text-foreground">Corretor do Mês</h3>
+        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+          Nenhuma venda registrada em {periodLabel.toLowerCase()}. O líder aparece aqui assim que houver vendas.
+        </p>
+      </div>
+    );
+  }
 
+  const isLeader = Boolean(leader && broker.id === leader.id);
   const statMetrics = [
-    { label: "VGV VENDIDO", value: broker.vgv, isCurrency: true },
-    { label: "VENDAS", value: broker.vendas, isCurrency: false },
-    { label: "VISITAS", value: broker.visitas, isCurrency: false },
-    { label: "DOCUMENTAÇÕES", value: broker.documentos, isCurrency: false },
-    { label: "CAPTAÇÕES", value: broker.captacoes, isCurrency: false },
-    { label: "COMPROMISSOS", value: broker.compromissos, isCurrency: false },
+    { label: "VGV", value: broker.vgv, isCurrency: true },
+    { label: "Vendas", value: broker.vendas, isCurrency: false },
+    { label: "Visitas", value: broker.visitas, isCurrency: false },
+    { label: "Documentações", value: broker.documentos, isCurrency: false },
+    { label: "Captações", value: broker.captacoes, isCurrency: false },
+    { label: "Compromissos", value: broker.compromissos, isCurrency: false },
   ];
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-platz-gold/30 dark:border-platz-gold/40 bg-gradient-to-br from-amber-500/5 via-white to-connect-blue/5 dark:from-[#D9BB4C]/10 dark:via-[#0A0E17] dark:to-[#0D478F]/10 p-6 shadow-md">
-      {/* Top Bar with Select Corretor ▾ */}
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-gradient-to-r from-platz-gold to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5">
-            🏆 Corretor Destaque
+    <div className="relative overflow-hidden rounded-2xl border border-platz-gold/30 dark:border-platz-gold/40 bg-gradient-to-br from-amber-500/5 via-card to-connect-blue/5 dark:from-platz-gold/10 dark:to-connect-deep-blue/10 p-6 shadow-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="px-3 py-1 rounded-full bg-gradient-to-r from-platz-gold to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-sm">
+            🏆 {isLeader ? "Corretor do Mês" : "Desempenho Individual"}
           </span>
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Período: Outubro / 2026
-          </span>
+          <span className="text-xs font-semibold text-muted-foreground">Período: {periodLabel}</span>
         </div>
 
-        {/* Select Corretor ▾ */}
-        <div className="relative">
+        {brokers.length > 1 && (
           <select
-            value={selectedBrokerId}
+            value={broker.id}
             onChange={(e) => onSelectBroker(e.target.value)}
-            className="bg-white dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-connect-blue cursor-pointer shadow-xs"
+            aria-label="Selecionar corretor"
+            className="bg-card border border-border text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-xs"
           >
             {brokers.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.nome} ({b.posicao}º Lugar)
+                {b.nome} ({b.posicao}º)
               </option>
             ))}
           </select>
-        </div>
+        )}
       </div>
 
-      {/* Main Profile Info */}
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-6">
-        {/* Avatar with Animated Crown & Glowing Gold Ring */}
         <div className="flex flex-col items-center shrink-0">
           <div className="relative">
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
-              <AnimatedCrown size="md" />
-            </div>
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-platz-gold to-amber-300 p-1 ring-4 ring-platz-gold/60 shadow-xl shadow-platz-gold/25 flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-[#0A0E17] text-platz-gold font-black text-2xl flex items-center justify-center">
-                {broker.avatar}
+            {isLeader && (
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+                <AnimatedCrown size="md" />
               </div>
+            )}
+            <div
+              className={`w-20 h-20 rounded-full p-1 flex items-center justify-center ${
+                isLeader
+                  ? "bg-gradient-to-tr from-platz-gold to-amber-300 ring-4 ring-platz-gold/60 shadow-xl shadow-platz-gold/25"
+                  : "bg-connect-blue/20 ring-2 ring-connect-blue/30"
+              }`}
+            >
+              <RankAvatar
+                nome={broker.nome}
+                initials={broker.avatar}
+                photoUrl={broker.photoUrl}
+                className="w-full h-full text-2xl"
+                fallbackClassName="bg-card text-amber-600 dark:text-platz-gold font-black"
+              />
             </div>
           </div>
-          <span className="mt-2 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-platz-gold text-slate-950 shadow-xs">
+          <span
+            className={`mt-2 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full shadow-xs ${
+              isLeader ? "bg-platz-gold text-slate-950" : "bg-muted text-muted-foreground"
+            }`}
+          >
             {broker.posicao}º Lugar
           </span>
         </div>
 
-        {/* Titles */}
         <div className="space-y-1 text-center md:text-left flex-1">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {broker.nome}
-            </h2>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-connect-blue/15 text-connect-blue font-bold">
-              {broker.cargo}
-            </span>
+            <h2 className="text-2xl font-black text-foreground tracking-tight">{broker.nome}</h2>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-connect-blue/15 text-connect-blue font-bold">{broker.cargo}</span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Líder absoluto em conversão e VGV faturado no mês atual da Connect Platz.
+          <p className="text-xs text-muted-foreground">
+            {isLeader
+              ? `Maior VGV vendido em ${periodLabel.toLowerCase()}.`
+              : `Taxa de conversão de ${broker.taxaConversao.toLocaleString("pt-BR")}% sobre ${broker.leads} leads recebidos.`}
           </p>
         </div>
       </div>
 
-      {/* 6 Mini-cards Tint */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        {statMetrics.map((stat, idx) => (
+        {statMetrics.map((stat) => (
           <div
-            key={idx}
-            className="p-3 rounded-xl bg-white/80 dark:bg-[#080C14]/80 border border-slate-200/80 dark:border-[#1F2937] backdrop-blur-xs flex flex-col justify-between shadow-xs"
+            key={stat.label}
+            className="p-3 rounded-xl bg-card/80 border border-border/80 backdrop-blur-xs flex flex-col justify-between shadow-xs"
           >
-            <span className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 block tracking-wider truncate">
+            <span className="text-[10px] uppercase font-semibold text-muted-foreground block tracking-wider truncate">
               {stat.label}
             </span>
-            <span className="text-base font-extrabold text-slate-900 dark:text-white mt-1 block">
+            <span className="text-base font-extrabold text-foreground mt-1 block">
               {stat.isCurrency ? (
-                <CountUpNumber value={stat.value} prefix="R$ " decimals={0} />
+                hideValues ? "••••••" : <CountUpNumber value={stat.value} prefix="R$ " decimals={0} />
               ) : (
                 <CountUpNumber value={stat.value} />
               )}

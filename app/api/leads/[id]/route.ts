@@ -1,211 +1,198 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken } from "@/lib/auth/jwt";
-import { prisma } from "@/lib/db/prisma";
-import { maskLeadSensitiveData, RLSUserContext } from "@/lib/db/rls";
 import { z } from "zod";
+import { prisma } from "@/lib/db/prisma";
+import { requireSession } from "@/lib/auth/session";
+import { recordAudit } from "@/lib/services/audit-server";
+import { refreshLeadScore } from "@/lib/services/lead-score";
+import {
+  leadInclude,
+  serializeLead,
+  toRlsContext,
+  canViewLead,
+  canModifyLead,
+  findOrgLead,
+  loadSerializedLead,
+  badRequest,
+  forbidden,
+} from "../_lib/leadAccess";
+import { zodMessage } from "../_lib/leadPayload";
+import { UpdateLeadSchema, buildLeadUpdate, summarizeChanges, LeadUpdateError } from "../_lib/leadUpdate";
 
-function getSessionContext(req: NextRequest): RLSUserContext | null {
-  const authHeader = req.headers.get("authorization");
-  const cookieToken = req.cookies.get("connect_platz_token")?.value;
-  const token = authHeader?.replace("Bearer ", "") || cookieToken;
+export const dynamic = "force-dynamic";
 
-  if (!token) return null;
-  const session = verifySessionToken(token);
-  if (!session) return null;
+type Params = { params: { id: string } };
 
-  return {
-    userId: session.userId,
-    organizationId: session.organizationId,
-    role: session.role,
-  };
-}
+/** GET: prontuário completo do lead (timeline, documentos e compromissos agendados). */
+export async function GET(req: NextRequest, { params }: Params) {
+  const auth = requireSession(req);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+  const ctx = toRlsContext(session);
 
-const UpdateLeadSchema = z.object({
-  stageId: z.string().uuid().optional(),
-  action: z.enum(["ASSUMIR_BOLSAO", "ATUALIZAR_CREDITO", "REGISTRAR_CONTATO", "MUDAR_ETAPA"]).optional(),
-  // Campos de crédito
-  tipoOcupacaoCredito: z.enum(["CLT", "AUTONOMO", "EMPRESARIO", "APOSENTADO_PENSIONISTA", "OUTRO"]).optional(),
-  rendaDeclarada: z.number().optional(),
-  rendaEspecificaAutonomo: z.number().optional(),
-  faixaRenda: z.string().optional(),
-  statusCredito: z.enum(["NAO_INICIADA", "EM_ANALISE", "DOCUMENTACAO_PENDENTE", "APROVADO", "REPROVADO", "CONDICIONADO"]).optional(),
-  temperatura: z.enum(["FRIO", "MORNO", "QUENTE"]).optional(),
-  observacoes: z.string().optional(),
-});
-
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
   try {
-    const context = getSessionContext(req);
-    if (!context) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
-
     const lead = await prisma.lead.findUnique({
       where: { id: params.id },
       include: {
-        stage: true,
-        funnel: true,
-        corretor: {
-          select: { id: true, nome: true, email: true, telefone: true },
-        },
+        ...leadInclude,
+        funnel: { select: { id: true, nome: true } },
         timeline: {
           orderBy: { createdAt: "desc" },
-          include: {
-            user: { select: { id: true, nome: true } },
-          },
+          take: 200,
+          include: { user: { select: { id: true, nome: true } } },
         },
-        documents: true,
+        documents: { orderBy: { createdAt: "desc" } },
+        appointments: {
+          where: { status: "AGENDADO" },
+          orderBy: { dataInicio: "asc" },
+          take: 20,
+          select: { id: true, tipo: true, titulo: true, dataInicio: true, dataFim: true, status: true },
+        },
       },
     });
 
-    if (!lead || lead.organizationId !== context.organizationId) {
+    if (!lead || lead.organizationId !== session.organizationId) {
       return NextResponse.json({ error: "Lead não encontrado." }, { status: 404 });
     }
-
-    // Validação de RLS estrita
-    if (context.role === "CORRETOR") {
-      const isOwner = lead.corretorId === context.userId;
-      const isAvailableInBolsao = lead.isBolsao && !lead.isClosed;
-      if (!isOwner && !isAvailableInBolsao) {
-        return NextResponse.json({ error: "Acesso não autorizado a este registro." }, { status: 403 });
-      }
+    if (!canViewLead(lead, session)) {
+      return NextResponse.json({ error: "Acesso não autorizado a este registro." }, { status: 403 });
     }
 
-    const protectedLead = maskLeadSensitiveData(lead, context);
-    return NextResponse.json({ lead: protectedLead }, { status: 200 });
+    const { timeline, documents, appointments, funnel, ...base } = lead;
+    return NextResponse.json(
+      { lead: { ...serializeLead(base, ctx), funnel, timeline, documents, appointments } },
+      { status: 200 }
+    );
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Erro ao carregar lead." }, { status: 500 });
+    console.error("API /api/leads/[id] GET error:", error?.message);
+    return NextResponse.json({ error: "Erro ao carregar lead." }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+/** PATCH: etapa, bolsão, primeiro contato, etiquetas e edição de dados (com checagem de dono). */
+export async function PATCH(req: NextRequest, { params }: Params) {
+  const auth = requireSession(req);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+  const ctx = toRlsContext(session);
+
+  let input;
   try {
-    const context = getSessionContext(req);
-    if (!context) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    input = UpdateLeadSchema.parse(await req.json());
+  } catch (err) {
+    return badRequest(err instanceof z.ZodError ? zodMessage(err) : "JSON inválido.");
+  }
+
+  try {
+    const found = await findOrgLead(params.id, session);
+    if (found.error) return found.error;
+    const { lead } = found;
+
+    if (!canModifyLead(lead, session, input.action)) return forbidden();
+
+    const plan = await buildLeadUpdate(lead, input, session);
+    if (plan.changed.length === 0) {
+      // Nada a alterar (ex.: primeiro contato já registrado) — resposta idempotente
+      return NextResponse.json(
+        { success: true, unchanged: true, lead: await loadSerializedLead(lead.id, ctx) },
+        { status: 200 }
+      );
     }
 
-    const body = await req.json();
-    const data = UpdateLeadSchema.parse(body);
+    await prisma.lead.update({ where: { id: lead.id }, data: plan.data });
+    if (plan.events.length > 0) {
+      await prisma.leadTimeline.createMany({
+        data: plan.events.map((ev) => ({
+          leadId: lead.id,
+          userId: session.userId,
+          tipo: ev.tipo,
+          conteudo: ev.conteudo,
+          metadata: ev.metadata,
+        })),
+      });
+    }
 
-    const lead = await prisma.lead.findUnique({
-      where: { id: params.id },
-      include: { stage: true },
+    await refreshLeadScore(lead.id);
+
+    const { antes, depois } = summarizeChanges(lead, plan);
+    await recordAudit({
+      req,
+      organizationId: session.organizationId,
+      userId: session.userId,
+      acao: input.action ? `LEAD_${input.action}` : plan.isStageChange ? "LEAD_MUDAR_ETAPA" : "LEAD_ATUALIZADO",
+      tipoAcao: plan.isStageChange ? "STATUS_CHANGE" : "UPDATE",
+      modulo: "LEADS",
+      entidade: "Lead",
+      entidadeId: lead.id,
+      entidadeNome: lead.nome,
+      descricao: plan.events.map((e) => e.conteudo).join(" ") || `Lead "${lead.nome}" atualizado.`,
+      dadosAntes: antes,
+      dadosDepois: depois,
     });
 
-    if (!lead || lead.organizationId !== context.organizationId) {
-      return NextResponse.json({ error: "Lead não encontrado." }, { status: 404 });
+    const updated = await loadSerializedLead(lead.id, ctx);
+    return NextResponse.json({ success: true, lead: updated }, { status: 200 });
+  } catch (error: any) {
+    if (error instanceof LeadUpdateError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error("API /api/leads/[id] PATCH error:", error?.message);
+    return NextResponse.json({ error: "Erro ao atualizar lead." }, { status: 500 });
+  }
+}
+
+/** DELETE: gestor ou dono. Leads com vendas/reservas vinculadas não podem ser excluídos (409). */
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const auth = requireSession(req);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+
+  try {
+    const found = await findOrgLead(params.id, session);
+    if (found.error) return found.error;
+    const { lead } = found;
+
+    if (!canModifyLead(lead, session)) return forbidden("Você não tem permissão para excluir este lead.");
+
+    // Sale e SeasonBooking usam onDelete: Restrict — bloqueia com mensagem clara
+    const [salesCount, bookingsCount] = await Promise.all([
+      prisma.sale.count({ where: { leadId: lead.id } }),
+      prisma.seasonBooking.count({ where: { leadId: lead.id } }),
+    ]);
+    if (salesCount > 0 || bookingsCount > 0) {
+      const motivo = salesCount > 0 ? `${salesCount} venda(s)` : `${bookingsCount} reserva(s) de temporada`;
+      return NextResponse.json(
+        { error: `Este lead possui ${motivo} vinculada(s) e não pode ser excluído. Encerre a oportunidade em vez de excluir.` },
+        { status: 409 }
+      );
     }
 
-    // 1. AÇÃO: ASSUMIR LEAD DO BOLSÃO
-    if (data.action === "ASSUMIR_BOLSAO") {
-      if (!lead.isBolsao) {
-        return NextResponse.json({ error: "Este lead não está disponível no bolsão." }, { status: 400 });
-      }
+    // Timeline e documentos são removidos em cascata; compromissos ficam com leadId nulo (SetNull)
+    await prisma.lead.delete({ where: { id: lead.id } });
 
-      const updated = await prisma.lead.update({
-        where: { id: lead.id },
-        data: {
-          corretorId: context.userId,
-          isBolsao: false,
-          bolsaoEnteredAt: null,
-          slaDueAt: new Date(Date.now() + 20 * 60 * 1000), // Dispara SLA obrigatório de 20 min
-        },
-      });
-
-      await prisma.leadTimeline.create({
-        data: {
-          leadId: lead.id,
-          userId: context.userId,
-          tipo: "transbordo",
-          conteudo: "Lead resgatado do Bolsão Compartilhado pelo corretor.",
-        },
-      });
-
-      return NextResponse.json({ success: true, lead: updated }, { status: 200 });
-    }
-
-    // 2. AÇÃO: ATUALIZAR ETAPA (KANBAN DRAG-AND-DROP)
-    if (data.stageId && data.stageId !== lead.stageId) {
-      const nextStage = await prisma.funnelStage.findUnique({
-        where: { id: data.stageId },
-      });
-
-      const updated = await prisma.lead.update({
-        where: { id: lead.id },
-        data: {
-          stageId: data.stageId,
-          slaDueAt: nextStage?.slaMinutes
-            ? new Date(Date.now() + nextStage.slaMinutes * 60 * 1000)
-            : null,
-        },
-      });
-
-      await prisma.leadTimeline.create({
-        data: {
-          leadId: lead.id,
-          userId: context.userId,
-          tipo: "status_change",
-          conteudo: `Etapa alterada de "${lead.stage.nome}" para "${nextStage?.nome}".`,
-        },
-      });
-
-      return NextResponse.json({ success: true, lead: updated }, { status: 200 });
-    }
-
-    // 3. AÇÃO: REGISTRAR PRIMEIRO CONTATO
-    if (data.action === "REGISTRAR_CONTATO") {
-      const updated = await prisma.lead.update({
-        where: { id: lead.id },
-        data: {
-          firstContactAt: lead.firstContactAt || new Date(),
-        },
-      });
-
-      await prisma.leadTimeline.create({
-        data: {
-          leadId: lead.id,
-          userId: context.userId,
-          tipo: "nota",
-          conteudo: `Primeiro contato registrado com sucesso. ${data.observacoes || ""}`,
-        },
-      });
-
-      return NextResponse.json({ success: true, lead: updated }, { status: 200 });
-    }
-
-    // 4. ATUALIZAR ESTEIRA DE CRÉDITO
-    const updated = await prisma.lead.update({
-      where: { id: lead.id },
-      data: {
-        tipoOcupacaoCredito: data.tipoOcupacaoCredito || lead.tipoOcupacaoCredito,
-        rendaDeclarada: data.rendaDeclarada ?? lead.rendaDeclarada,
-        rendaEspecificaAutonomo: data.rendaEspecificaAutonomo ?? lead.rendaEspecificaAutonomo,
-        faixaRenda: data.faixaRenda || lead.faixaRenda,
-        statusCredito: data.statusCredito || lead.statusCredito,
-        temperatura: data.temperatura || lead.temperatura,
+    await recordAudit({
+      req,
+      organizationId: session.organizationId,
+      userId: session.userId,
+      acao: "LEAD_EXCLUIDO",
+      tipoAcao: "DELETE",
+      modulo: "LEADS",
+      entidade: "Lead",
+      entidadeId: lead.id,
+      entidadeNome: lead.nome,
+      descricao: `Lead "${lead.nome}" excluído por ${session.nome}.`,
+      dadosAntes: {
+        nome: lead.nome,
+        telefone: lead.telefone,
+        email: lead.email,
+        etapa: lead.stage.nome,
+        corretorId: lead.corretorId,
+        source: lead.source,
       },
     });
 
-    if (data.observacoes) {
-      await prisma.leadTimeline.create({
-        data: {
-          leadId: lead.id,
-          userId: context.userId,
-          tipo: "nota",
-          conteudo: `Atualização de qualificação/crédito: ${data.observacoes}`,
-        },
-      });
-    }
-
-    return NextResponse.json({ success: true, lead: updated }, { status: 200 });
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Erro ao atualizar lead." }, { status: 500 });
+    console.error("API /api/leads/[id] DELETE error:", error?.message);
+    return NextResponse.json({ error: "Erro ao excluir lead." }, { status: 500 });
   }
 }

@@ -1,113 +1,102 @@
 "use client";
 
-import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Info, Filter } from "lucide-react";
+import { EmptyState } from "@/components/crm/primitives/EmptyState";
+import type { FunnelReport } from "./types";
 
-interface FunnelStep {
-  name: string;
-  count: number;
-  percentage: number;
-  color: string;
+interface SalesFunnelBarChartProps {
+  funnels: FunnelReport[];
 }
 
-const funnelsData: Record<string, { title: string; steps: FunnelStep[] }> = {
-  "funil-1": {
-    title: "Funil 1 — Lançamentos & Incorporação",
-    steps: [
-      { name: "Novos Leads", count: 186, percentage: 100, color: "bg-blue-500" },
-      { name: "Qualificação & Contato", count: 142, percentage: 76.3, color: "bg-connect-blue" },
-      { name: "Visita Agendada", count: 58, percentage: 31.2, color: "bg-sky-600" },
-      { name: "Proposta Enviada", count: 24, percentage: 12.9, color: "bg-[#D9BB4C]" },
-      { name: "Venda Fechada", count: 12, percentage: 6.45, color: "bg-emerald-500" },
-    ],
-  },
-  "funil-2": {
-    title: "Funil 2 — Prontos & Avulsos",
-    steps: [
-      { name: "Novos Leads", count: 85, percentage: 100, color: "bg-blue-500" },
-      { name: "Qualificação & Contato", count: 64, percentage: 75.3, color: "bg-connect-blue" },
-      { name: "Visita ao Imóvel", count: 32, percentage: 37.6, color: "bg-sky-600" },
-      { name: "Proposta / Financiamento", count: 14, percentage: 16.5, color: "bg-[#D9BB4C]" },
-      { name: "Contrato Assinado", count: 6, percentage: 7.05, color: "bg-emerald-500" },
-    ],
-  },
-};
+/** Funil de Vendas (5.3 item 6): barras por etapa com % de conversão entre etapas. */
+export function SalesFunnelBarChart({ funnels }: SalesFunnelBarChartProps) {
+  const [index, setIndex] = useState(0);
 
-export function SalesFunnelBarChart() {
-  const [currentFunnelKey, setCurrentFunnelKey] = useState<"funil-1" | "funil-2">("funil-1");
+  // Mantém o índice válido quando a lista de funis muda (ex.: troca de período)
+  useEffect(() => {
+    if (index > funnels.length - 1) setIndex(0);
+  }, [funnels.length, index]);
 
-  const funnel = funnelsData[currentFunnelKey];
+  const funnel = funnels[index];
+  const hasLeads = Boolean(funnel && funnel.totalLeads > 0);
 
   return (
     <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-      {/* 1. CABEÇALHO DO FUNIL COM NAVEGAÇÃO ‹ FUNIL X › + ÍCONE ⓘ (5.3) */}
       <div className="flex items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-bold text-foreground">Funil de Vendas</h3>
-          <button
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            title="Cálculo determinístico de conversão por etapa"
-            aria-label="Informações sobre o funil"
+          <span
+            className="text-muted-foreground"
+            title="Leads captados no período, por etapa atual. A % indica a conversão em relação à etapa anterior."
+            aria-label="Leads captados no período, por etapa atual. A % indica a conversão em relação à etapa anterior."
           >
             <Info className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Navegação ‹ Funil 1 › */}
-        <div className="flex items-center gap-1.5 bg-muted rounded-lg p-1 text-xs">
-          <button
-            onClick={() => setCurrentFunnelKey("funil-1")}
-            className="p-1 rounded hover:bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-            disabled={currentFunnelKey === "funil-1"}
-            aria-label="Funil anterior"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-
-          <span className="font-semibold text-foreground px-1.5 truncate max-w-[140px]">
-            {currentFunnelKey === "funil-1" ? "Funil 1" : "Funil 2"}
           </span>
-
-          <button
-            onClick={() => setCurrentFunnelKey("funil-2")}
-            className="p-1 rounded hover:bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-            disabled={currentFunnelKey === "funil-2"}
-            aria-label="Próximo funil"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
         </div>
+
+        {funnels.length > 0 && (
+          <div className="flex items-center gap-1.5 bg-muted rounded-lg p-1 text-xs">
+            <button
+              onClick={() => setIndex((i) => Math.max(0, i - 1))}
+              className="p-1 rounded hover:bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+              disabled={index === 0}
+              aria-label="Funil anterior"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <span className="font-semibold text-foreground px-1.5 truncate max-w-[140px]" title={funnel?.nome}>
+              {funnel?.nome || `Funil ${index + 1}`}
+            </span>
+            <button
+              onClick={() => setIndex((i) => Math.min(funnels.length - 1, i + 1))}
+              className="p-1 rounded hover:bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+              disabled={index >= funnels.length - 1}
+              aria-label="Próximo funil"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* 2. BARRAS HORIZONTAIS COM GRADIENTE PRIMÁRIO (5.3) */}
-      <div className="space-y-4">
-        {funnel.steps.map((step) => (
-          <div key={step.name} className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 truncate">
-                <span className={`w-2.5 h-2.5 rounded-full ${step.color} flex-shrink-0`} />
-                <span className="font-semibold text-foreground truncate">{step.name}</span>
-                <span className="text-[11px] text-muted-foreground font-medium">
-                  ({step.count} leads)
+      {!funnel || !hasLeads ? (
+        <EmptyState
+          icon={Filter}
+          title={funnels.length === 0 ? "Nenhum funil ativo" : "Nenhum lead neste funil no período"}
+          description="As etapas e taxas de conversão aparecem conforme os leads avançam no Kanban."
+          className="min-h-[256px]"
+        />
+      ) : (
+        <div className="space-y-4">
+          {funnel.stages.map((stage) => (
+            <div key={stage.id} className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: stage.cor }} />
+                  <span className="font-semibold text-foreground truncate">{stage.nome}</span>
+                  <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">
+                    ({stage.count} {stage.count === 1 ? "lead" : "leads"})
+                  </span>
+                </div>
+                <span
+                  className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-connect-blue/10 text-connect-blue border border-connect-blue/20 whitespace-nowrap"
+                  title="Conversão em relação à etapa anterior"
+                >
+                  {stage.conversionPct.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
                 </span>
               </div>
 
-              {/* Pílula com % de conversão à direita (5.3) */}
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-connect-blue/10 text-connect-blue border border-connect-blue/20">
-                {step.percentage}%
-              </span>
+              <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-connect-blue to-connect-deep-blue transition-all duration-700 ease-out motion-reduce:transition-none"
+                  style={{ width: `${stage.reached > 0 ? Math.max(stage.sharePct, 4) : 0}%` }}
+                />
+              </div>
             </div>
-
-            {/* Barra de progresso horizontal com gradiente */}
-            <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-connect-blue to-[#0E51A0] transition-all duration-700 ease-out"
-                style={{ width: `${Math.max(step.percentage, 4)}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

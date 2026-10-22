@@ -7,6 +7,8 @@ import { SaleItem } from "./types";
 interface VendasTableProps {
   sales: SaleItem[];
   hideValues?: boolean;
+  /** "Editar pagamento" só aparece para a diretoria */
+  canManagePayments?: boolean;
   onViewDetails: (sale: SaleItem) => void;
   onViewReceipt: (sale: SaleItem) => void;
   onEditPayment: (sale: SaleItem) => void;
@@ -15,6 +17,7 @@ interface VendasTableProps {
 export function VendasTable({
   sales,
   hideValues = false,
+  canManagePayments = false,
   onViewDetails,
   onViewReceipt,
   onEditPayment,
@@ -33,9 +36,9 @@ export function VendasTable({
   };
 
   return (
-    <div className="bg-white dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1C2537] rounded-2xl shadow-sm overflow-hidden space-y-4">
+    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden space-y-4">
       {/* Table Sub-bar: Counter, Per Page, Pagination */}
-      <div className="p-4 border-b border-slate-200 dark:border-[#1C2537] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+      <div className="p-4 border-b border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-3">
           <span className="font-bold text-slate-800 dark:text-white">
             {sales.length} vendas registradas
@@ -48,7 +51,7 @@ export function VendasTable({
                 setPageSize(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="bg-slate-100 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] text-slate-800 dark:text-slate-200 rounded-lg px-2 py-1 font-semibold focus:outline-none"
+              className="bg-muted border border-border text-slate-800 dark:text-slate-200 rounded-lg px-2 py-1 font-semibold focus:outline-none"
             >
               <option value={10}>10 por página</option>
               <option value={25}>25 por página</option>
@@ -61,7 +64,7 @@ export function VendasTable({
           <span className="text-slate-500 font-medium">
             Página {currentPage} de {totalPages}
           </span>
-          <div className="flex items-center bg-slate-100 dark:bg-[#080C14] border border-slate-200 dark:border-[#1F2937] rounded-lg p-0.5">
+          <div className="flex items-center bg-muted border border-border rounded-lg p-0.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
@@ -84,7 +87,7 @@ export function VendasTable({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="border-b border-slate-200 dark:border-[#1C2537] bg-slate-50/70 dark:bg-[#080C14] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <tr className="border-b border-border bg-muted/50 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               <th className="py-3 px-4">Data / Cód.</th>
               <th className="py-3 px-4">Cliente</th>
               <th className="py-3 px-4">Empreendimento</th>
@@ -99,7 +102,7 @@ export function VendasTable({
               <th className="py-3 px-4 text-center">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-[#1C2537]/60">
+          <tbody className="divide-y divide-border">
             {paginatedSales.length === 0 ? (
               <tr>
                 <td colSpan={12} className="py-12 text-center text-slate-400">
@@ -108,9 +111,10 @@ export function VendasTable({
               </tr>
             ) : (
               paginatedSales.map((sale) => {
-                const corretorSplit = sale.splits.find((s) => s.categoria.includes("Corretor"));
-                const corretorValor = corretorSplit ? corretorSplit.valor : (sale.comissaoTotal * 0.45);
-                const imposto = sale.impostoValor || (sale.comissaoTotal * 0.06);
+                const corretorValor = sale.splits
+                  .filter((s) => s.tipo === "CORRETOR_TITULAR" || s.tipo === "CO_CORRETOR")
+                  .reduce((acc, s) => acc + s.valor, 0);
+                const imposto = sale.impostoValor;
 
                 return (
                   <tr
@@ -138,7 +142,9 @@ export function VendasTable({
                         {sale.imovelNome}
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        {sale.construtora || "Platz Empreendimentos"} • Unid. {sale.unidadeNumero}
+                        {[sale.construtora, sale.unidadeNumero && `Unid. ${sale.unidadeNumero}`]
+                          .filter(Boolean)
+                          .join(" • ") || "—"}
                       </div>
                     </td>
 
@@ -150,12 +156,14 @@ export function VendasTable({
                     {/* Imposto */}
                     <td className="py-3 px-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       <div>{formatCurrency(imposto)}</div>
-                      <span className="text-[10px] text-slate-400">(6%)</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        ({sale.impostoPercentual.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)
+                      </span>
                     </td>
 
                     {/* Próx. Pagamento */}
                     <td className="py-3 px-4 text-slate-700 dark:text-slate-300 whitespace-nowrap font-mono">
-                      {sale.proximoPagamento || "10/10/2026"}
+                      {sale.proximoPagamento || "—"}
                     </td>
 
                     {/* Corretor (avatar + nome; rótulos "CORRETOR 1/2" quando dividido) */}
@@ -183,17 +191,17 @@ export function VendasTable({
 
                     {/* Gerente */}
                     <td className="py-3 px-4 text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                      {sale.gerente || "Mariana Oliveira"}
+                      {sale.gerente || "—"}
                     </td>
 
                     {/* Gestor */}
                     <td className="py-3 px-4 text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                      {sale.gestor || "Diretoria Platz"}
+                      {sale.gestor || "—"}
                     </td>
 
                     {/* Captador */}
                     <td className="py-3 px-4 text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                      {sale.captador || "Rafael Mendes"}
+                      {sale.captador || "—"}
                     </td>
 
                     {/* Comissão Corretor (cor primária) */}
@@ -207,19 +215,19 @@ export function VendasTable({
                         onClick={() =>
                           setOpenActionId(openActionId === sale.id ? null : sale.id)
                         }
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161F30] transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-muted transition-colors"
                       >
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
 
                       {openActionId === sale.id && (
-                        <div className="absolute right-4 top-10 z-20 w-44 bg-white dark:bg-[#0E1624] border border-slate-200 dark:border-[#1F2937] rounded-xl shadow-xl py-1 text-left">
+                        <div className="absolute right-4 top-10 z-20 w-44 bg-card border border-border rounded-xl shadow-xl animate-fade-in py-1 text-left">
                           <button
                             onClick={() => {
                               onViewDetails(sale);
                               setOpenActionId(null);
                             }}
-                            className="w-full px-3 py-1.5 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:bg-connect-blue hover:text-white transition-colors"
+                            className="w-full px-3 py-1.5 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             Ver detalhes
@@ -229,21 +237,23 @@ export function VendasTable({
                               onViewReceipt(sale);
                               setOpenActionId(null);
                             }}
-                            className="w-full px-3 py-1.5 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:bg-connect-blue hover:text-white transition-colors"
+                            className="w-full px-3 py-1.5 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
                           >
                             <FileText className="w-3.5 h-3.5" />
                             Ver recibo
                           </button>
-                          <button
-                            onClick={() => {
-                              onEditPayment(sale);
-                              setOpenActionId(null);
-                            }}
-                            className="w-full px-3 py-1.5 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:bg-connect-blue hover:text-white transition-colors"
-                          >
-                            <CreditCard className="w-3.5 h-3.5" />
-                            Editar pagamento
-                          </button>
+                          {canManagePayments && (
+                            <button
+                              onClick={() => {
+                                onEditPayment(sale);
+                                setOpenActionId(null);
+                              }}
+                              className="w-full px-3 py-1.5 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              Editar pagamento
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>

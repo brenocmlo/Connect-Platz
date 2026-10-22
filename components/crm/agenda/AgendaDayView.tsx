@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Clock, User, MapPin, CheckCircle2, Calendar } from "lucide-react";
-import { AppointmentItem, getTypeConfig } from "./types";
+import { AppointmentItem, getTypeConfig, localDateKey } from "./types";
 
 interface AgendaDayViewProps {
   appointments: AppointmentItem[];
@@ -18,9 +18,9 @@ export function AgendaDayView({
   onNewAppointment,
 }: AgendaDayViewProps) {
   // Filter appointments for the day
-  const dateStr = currentDate.toISOString().slice(0, 10);
+  const dateStr = localDateKey(currentDate);
   const dayApps = appointments.filter((a) => {
-    return a.dataInicio.startsWith(dateStr);
+    return localDateKey(a.dataInicio) === dateStr;
   });
 
   // Sort by start time
@@ -28,8 +28,8 @@ export function AgendaDayView({
 
   if (dayApps.length === 0) {
     return (
-      <div className="bg-white dark:bg-[#0A0E17] border border-slate-200 dark:border-[#1C2537] rounded-2xl p-12 text-center space-y-4 shadow-sm">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-100 dark:bg-[#161F30] flex items-center justify-center text-slate-400">
+      <div className="bg-card border border-border rounded-2xl p-12 text-center space-y-4 shadow-sm">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-muted flex items-center justify-center text-slate-400">
           <Calendar className="w-7 h-7" />
         </div>
         <div>
@@ -66,9 +66,11 @@ export function AgendaDayView({
         return (
           <div
             key={app.id}
-            className={`border-l-[3px] ${config.border} ${config.bgTint} border-y border-r border-slate-200/80 dark:border-[#1C2537] rounded-xl p-4 transition-all duration-200 hover:shadow-md bg-white dark:bg-[#0A0E17]`}
+            // A cor da borda esquerda vai via style para não ser sobrescrita por border-border no dark mode
+            style={{ borderLeftColor: config.rawHex }}
+            className="bg-card border border-border border-l-[3px] rounded-xl overflow-hidden transition-all duration-200 hover:shadow-md animate-in fade-in-0 slide-in-from-bottom-2"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className={`p-4 ${config.bgTint} flex flex-col sm:flex-row sm:items-center justify-between gap-3`}>
               {/* Left Details */}
               <div className="space-y-2 flex-1 min-w-0">
                 {/* Meta Row: Type Pill + Time Range */}
@@ -130,22 +132,22 @@ export function AgendaDayView({
 
                 {/* Outcome note if recorded */}
                 {app.resultadoVisita && (
-                  <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#0F1624] border border-slate-200 dark:border-[#1C2537] text-xs">
+                  <div className="p-2.5 rounded-lg bg-muted/50 border border-border text-xs">
                     <span className="text-[10px] font-bold uppercase text-platz-gold block mb-0.5">
                       Desfecho Registrado:
                     </span>
-                    <p className="text-slate-700 dark:text-slate-300">{app.resultadoVisita}</p>
+                    <p className="text-foreground">{app.resultadoVisita}</p>
                   </div>
                 )}
               </div>
 
               {/* Right: Responsible Avatar + Action */}
-              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-[#1F2937]">
+              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-connect-blue text-white text-[11px] font-bold flex items-center justify-center">
                     {app.user?.nome ? app.user.nome.charAt(0) : "CP"}
                   </div>
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <span className="text-xs font-medium text-foreground">
                     {app.user?.nome || "Corretor"}
                   </span>
                 </div>
@@ -153,7 +155,7 @@ export function AgendaDayView({
                 {app.status === "AGENDADO" && (
                   <button
                     onClick={() => onOpenOutcomeModal(app)}
-                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#111827] hover:bg-connect-blue hover:text-white border border-slate-200 dark:border-[#1F2937] text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#111827] hover:bg-connect-blue hover:text-white border border-border text-foreground text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                     Registrar Parecer

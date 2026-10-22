@@ -2,19 +2,21 @@
 
 import React, { useState, useRef } from "react";
 import { UploadCloud, Link2, FileCheck2, Loader2 } from "lucide-react";
-import { PropertyMaterialItem } from "./PropertyMaterialsModal";
+import { MAX_MATERIAL_BYTES, MaterialCategoria, formatBytes } from "./usePropertyMaterials";
 
 interface AddMaterialFormProps {
-  onSuccess: (newItem: PropertyMaterialItem) => void;
+  onAddFile: (file: File, titulo: string, categoria: MaterialCategoria) => Promise<unknown>;
+  onAddLink: (url: string, titulo: string, categoria: MaterialCategoria) => Promise<unknown>;
+  onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function AddMaterialForm({ onSuccess, onCancel }: AddMaterialFormProps) {
+export function AddMaterialForm({ onAddFile, onAddLink, onSuccess, onCancel }: AddMaterialFormProps) {
   const [uploadMode, setUploadMode] = useState<"file" | "link">("file");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
-  const [newCategory, setNewCategory] = useState<PropertyMaterialItem["categoria"]>("BOOK");
+  const [newCategory, setNewCategory] = useState<MaterialCategoria>("BOOK");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -23,6 +25,12 @@ export function AddMaterialForm({ onSuccess, onCancel }: AddMaterialFormProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_MATERIAL_BYTES) {
+      setSelectedFile(null);
+      setUploadError(`"${file.name}" tem ${formatBytes(file.size)} e excede o limite de 25 MB.`);
+      e.target.value = "";
+      return;
+    }
     setSelectedFile(file);
     setUploadError(null);
     if (!newTitle) {
@@ -35,60 +43,27 @@ export function AddMaterialForm({ onSuccess, onCancel }: AddMaterialFormProps) {
     e.preventDefault();
     setUploadError(null);
 
-    if (uploadMode === "file") {
-      if (!selectedFile) {
-        setUploadError("Selecione um arquivo PDF ou documento para anexar.");
-        return;
+    if (uploadMode === "file" && !selectedFile) {
+      setUploadError("Selecione um arquivo PDF ou documento para anexar.");
+      return;
+    }
+    if (uploadMode === "link" && !/^https:\/\//i.test(newUrl.trim())) {
+      setUploadError("Informe um link https do documento ou repositório em nuvem.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      if (uploadMode === "file" && selectedFile) {
+        await onAddFile(selectedFile, newTitle.trim() || selectedFile.name, newCategory);
+      } else {
+        await onAddLink(newUrl.trim(), newTitle.trim() || "Documento", newCategory);
       }
-
-      setUploading(true);
-      try {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        formData.append("folder", "materials");
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || "Erro no upload do arquivo.");
-        }
-
-        const uploadedFile = data.firstFile;
-        const newItem: PropertyMaterialItem = {
-          id: `mat-${Date.now()}`,
-          titulo: newTitle.trim() || selectedFile.name,
-          categoria: newCategory,
-          tamanho: uploadedFile.formattedSize || "1.5 MB",
-          dataAtualizacao: "Agora",
-          url: uploadedFile.url,
-          tipo: "pdf",
-        };
-
-        onSuccess(newItem);
-      } catch (err: any) {
-        setUploadError(err.message || "Falha ao enviar arquivo.");
-      } finally {
-        setUploading(false);
-      }
-    } else {
-      if (!newUrl.trim()) {
-        setUploadError("Informe a URL do documento ou repositório em nuvem.");
-        return;
-      }
-      const newItem: PropertyMaterialItem = {
-        id: `mat-${Date.now()}`,
-        titulo: newTitle.trim() || "Documento Oficial",
-        categoria: newCategory,
-        tamanho: "Link Web",
-        dataAtualizacao: "Agora",
-        url: newUrl.trim(),
-        tipo: "link",
-      };
-      onSuccess(newItem);
+      onSuccess();
+    } catch (err: any) {
+      setUploadError(err.message || "Falha ao salvar o material.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -127,7 +102,7 @@ export function AddMaterialForm({ onSuccess, onCancel }: AddMaterialFormProps) {
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
-            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx"
             className="hidden"
           />
           <div
@@ -139,7 +114,7 @@ export function AddMaterialForm({ onSuccess, onCancel }: AddMaterialFormProps) {
                 <FileCheck2 className="w-5 h-5 text-emerald-500" />
                 <span className="truncate max-w-[320px]">{selectedFile.name}</span>
                 <span className="text-[10px] text-muted-foreground">
-                  ({(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)
+                  ({formatBytes(selectedFile.size)})
                 </span>
               </div>
             ) : (
@@ -149,7 +124,7 @@ export function AddMaterialForm({ onSuccess, onCancel }: AddMaterialFormProps) {
                   Clique para selecionar o PDF, planta ou documento
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  Suporta PDF, DOCX, XLSX e Imagens (até 25 MB)
+                  PDF, DOCX, XLSX, PNG, JPG ou WEBP (até 25 MB)
                 </p>
               </div>
             )}
@@ -208,7 +183,7 @@ export function AddMaterialForm({ onSuccess, onCancel }: AddMaterialFormProps) {
           {uploading ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Enviando arquivo...</span>
+              <span>{uploadMode === "file" ? "Enviando arquivo..." : "Salvando..."}</span>
             </>
           ) : (
             <span>Salvar Anexo</span>

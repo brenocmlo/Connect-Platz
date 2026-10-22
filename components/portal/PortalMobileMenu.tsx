@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, MessageCircle, UserRound, X } from "lucide-react";
 import type { DirectoryCity, NavigateFn } from "./types";
 import { PortalLogo } from "./PortalUI";
-import { ANCHOR_LINKS, cityLabel, scrollToId, waLink } from "./portalUtils";
+import { ANCHOR_LINKS, cityLabel, scrollToId } from "./portalUtils";
+import { useWaLink } from "./PortalSettingsContext";
 
 interface PortalMobileMenuProps {
   open: boolean;
@@ -20,6 +21,7 @@ const GROUPS = [
 ];
 
 export function PortalMobileMenu({ open, onClose, cities, onNavigate }: PortalMobileMenuProps) {
+  const waLink = useWaLink();
   const [expanded, setExpanded] = useState<string | null>("Comprar");
 
   useEffect(() => {
@@ -124,6 +126,7 @@ export function PortalMobileMenu({ open, onClose, cities, onNavigate }: PortalMo
               ))}
             </nav>
 
+            {waLink && (
             <div className="grid gap-2 border-t border-white/10 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <a
                 href={waLink("Olá! Gostaria de informações sobre imóveis com a Connect Platz.")}
@@ -135,6 +138,7 @@ export function PortalMobileMenu({ open, onClose, cities, onNavigate }: PortalMo
                 Falar com corretor
               </a>
             </div>
+            )}
           </motion.aside>
         </>
       )}

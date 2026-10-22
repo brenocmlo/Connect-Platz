@@ -13,6 +13,8 @@ export interface CommissionReceiptData {
   imovelNome: string;
   unidadeNumero?: string;
   compradorNome: string;
+  /** CNPJ da imobiliária (Configurações > Empresa). Omitido quando não informado. */
+  empresaCnpj?: string | null;
 }
 
 export function generateCommissionReceiptPdf(data: CommissionReceiptData) {
@@ -73,7 +75,7 @@ export function generateCommissionReceiptPdf(data: CommissionReceiptData) {
     headStyles: { fillColor: [217, 187, 76], textColor: [10, 14, 23] },
     head: [["Propriedade", "Unidade", "Comprador / Titular"]],
     body: [
-      [data.imovelNome, data.unidadeNumero || "Unidade Padrão", data.compradorNome],
+      [data.imovelNome, data.unidadeNumero || "—", data.compradorNome],
     ],
   });
 
@@ -95,7 +97,7 @@ export function generateCommissionReceiptPdf(data: CommissionReceiptData) {
 
   doc.line(110, finalY + 35, 196, finalY + 35);
   doc.text("Diretoria Financeira Connect Platz", 110, finalY + 40);
-  doc.text("CNPJ: 00.000.000/0001-00", 110, finalY + 45);
+  if (data.empresaCnpj) doc.text(`CNPJ: ${data.empresaCnpj}`, 110, finalY + 45);
 
   // DOWNLOAD DO ARQUIVO PDF
   doc.save(`Recibo_Comissao_${data.codigoVenda}_${data.beneficiarioNome.replace(/\s+/g, "_")}.pdf`);

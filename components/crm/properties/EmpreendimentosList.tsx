@@ -32,18 +32,18 @@ export function EmpreendimentosList({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-black text-white flex items-center gap-2">
+          <h2 className="text-lg font-black text-foreground flex items-center gap-2">
             <Building2 className="w-5 h-5 text-connect-blue" />
             Empreendimentos & Lançamentos
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Gerencie condomínios, edifícios, matrizes de andares e links públicos de espelho.
           </p>
         </div>
 
         <button
           onClick={onOpenNewModal}
-          className="bg-connect-blue hover:bg-[#0D478F] text-white text-xs font-extrabold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-connect-blue/20 transition-all hover:scale-105"
+          className="bg-connect-blue hover:bg-connect-deep-blue text-white text-xs font-extrabold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-connect-blue/20 transition-all hover:scale-105"
         >
           <Plus className="w-4 h-4" />
           Novo Empreendimento
@@ -51,10 +51,10 @@ export function EmpreendimentosList({
       </div>
 
       {empreendimentos.length === 0 ? (
-        <div className="bg-[#0A0E17] border border-[#1C2537] rounded-3xl p-12 text-center text-slate-400 space-y-4">
-          <Building2 className="w-12 h-12 text-slate-600 mx-auto" />
-          <h3 className="text-base font-bold text-white">Nenhum empreendimento cadastrado</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+        <div className="bg-card border border-border rounded-3xl p-12 text-center text-muted-foreground space-y-4">
+          <Building2 className="w-12 h-12 text-muted-foreground/60 mx-auto" />
+          <h3 className="text-base font-bold text-foreground">Nenhum empreendimento cadastrado</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             Cadastre seu primeiro edifício ou condomínio com geração automática de unidades e espelho de vendas.
           </p>
           <button
@@ -77,7 +77,7 @@ export function EmpreendimentosList({
             return (
               <div
                 key={emp.id}
-                className="bg-[#0A0E17] border border-[#1C2537] hover:border-connect-blue/50 rounded-2xl overflow-hidden shadow-xl transition-all flex flex-col"
+                className="bg-card border border-border hover:border-connect-blue/50 rounded-2xl overflow-hidden shadow-xl transition-all flex flex-col"
               >
                 {/* Imagem com Badges e Toggle da Landing Page */}
                 <div className="relative h-48 overflow-hidden">
@@ -105,7 +105,7 @@ export function EmpreendimentosList({
                       className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all ${
                         isNaLanding
                           ? "bg-emerald-500/90 text-white border border-emerald-400/50"
-                          : "bg-slate-900/90 text-slate-400 border border-slate-700"
+                          : "bg-black/60 text-white/80 border border-white/20"
                       }`}
                       title="Clique para ativar/desativar este empreendimento na Landing Page"
                     >
@@ -129,37 +129,37 @@ export function EmpreendimentosList({
                 {/* Conteúdo do Card */}
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                   <div>
-                    <h3 className="text-lg font-black text-white">{emp.nome}</h3>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                    <h3 className="text-lg font-black text-foreground">{emp.nome}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                       {emp.descricao || "Empreendimento com infraestrutura completa de lazer e segurança."}
                     </p>
 
                     {/* Ficha Resumida do Espelho */}
-                    <div className="grid grid-cols-4 gap-2 bg-[#080C14] border border-[#1C2537] p-2.5 rounded-xl text-center text-xs mt-3">
+                    <div className="grid grid-cols-4 gap-2 bg-muted/40 border border-border p-2.5 rounded-xl text-center text-xs mt-3">
                       <div>
-                        <p className="text-slate-500 font-bold text-[10px]">TOTAL</p>
-                        <p className="font-extrabold text-white">{totalUnits}</p>
+                        <p className="text-muted-foreground font-bold text-[10px]">TOTAL</p>
+                        <p className="font-extrabold text-foreground">{totalUnits}</p>
                       </div>
                       <div>
-                        <p className="text-emerald-400 font-bold text-[10px]">DISPONÍVEIS</p>
-                        <p className="font-extrabold text-emerald-300">{disponiveis}</p>
+                        <p className="text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">DISPONÍVEIS</p>
+                        <p className="font-extrabold text-emerald-600 dark:text-emerald-300">{disponiveis}</p>
                       </div>
                       <div>
-                        <p className="text-amber-400 font-bold text-[10px]">RESERVADAS</p>
-                        <p className="font-extrabold text-amber-300">{reservadas}</p>
+                        <p className="text-amber-600 dark:text-amber-400 font-bold text-[10px]">RESERVADAS</p>
+                        <p className="font-extrabold text-amber-600 dark:text-amber-300">{reservadas}</p>
                       </div>
                       <div>
-                        <p className="text-red-400 font-bold text-[10px]">VENDIDAS</p>
-                        <p className="font-extrabold text-red-300">{vendidas}</p>
+                        <p className="text-red-600 dark:text-red-400 font-bold text-[10px]">VENDIDAS</p>
+                        <p className="font-extrabold text-red-600 dark:text-red-300">{vendidas}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Ações: Ver Espelho & Compartilhar */}
-                  <div className="pt-3 border-t border-[#1C2537] flex items-center gap-2">
+                  <div className="pt-3 border-t border-border flex items-center gap-2">
                     <button
                       onClick={() => onOpenEspelho(emp)}
-                      className="flex-1 bg-connect-blue/20 hover:bg-connect-blue text-blue-300 hover:text-white border border-connect-blue/40 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                      className="flex-1 bg-connect-blue/20 hover:bg-connect-blue text-connect-blue hover:text-white border border-connect-blue/40 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all"
                     >
                       <Layers className="w-4 h-4" />
                       Ver Espelho de Vendas
@@ -167,7 +167,7 @@ export function EmpreendimentosList({
 
                     <button
                       onClick={() => handleCopyLink(emp)}
-                      className="bg-[#111827] hover:bg-[#1C2537] border border-[#1C2537] text-white p-2.5 rounded-xl transition-all"
+                      className="bg-muted hover:bg-muted/70 border border-border text-foreground p-2.5 rounded-xl transition-all"
                       title="Copiar link público do espelho para o cliente"
                     >
                       {copiedId === emp.id ? (
@@ -180,7 +180,7 @@ export function EmpreendimentosList({
                     <button
                       type="button"
                       onClick={() => onOpenEspelho(emp)}
-                      className="bg-[#111827] hover:bg-[#1C2537] border border-[#1C2537] text-white p-2.5 rounded-xl transition-all"
+                      className="bg-muted hover:bg-muted/70 border border-border text-foreground p-2.5 rounded-xl transition-all"
                       title="Visualizar espelho de vendas no CRM"
                     >
                       <Eye className="w-4 h-4" />

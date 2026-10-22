@@ -6,4 +6,3 @@ export * from "./AgendaMonthView";
 export * from "./AppointmentCard";
 export * from "./NewAppointmentModal";
 export * from "./VisitOutcomeModal";
-export * from "./sampleAppointments";

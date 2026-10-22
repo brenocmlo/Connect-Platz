@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { PortalHeader } from "@/components/portal/PortalHeader";
 import { PortalHero } from "@/components/portal/PortalHero";
 import { PortalCategories } from "@/components/portal/PortalCategories";
@@ -12,6 +12,7 @@ import { PortalContactModal } from "@/components/portal/PortalContactModal";
 import { PortalFooter } from "@/components/portal/PortalFooter";
 import { PortalFloatingWhatsApp } from "@/components/portal/PortalFloatingWhatsApp";
 import { usePortalProperties } from "@/components/portal/usePortalProperties";
+import { PortalSettingsProvider } from "@/components/portal/PortalSettingsContext";
 import { cityLabel, inferPropertyType, isTemporada, scrollToId } from "@/components/portal/portalUtils";
 import type { PortalFilters, PropertyItem } from "@/components/portal/types";
 
@@ -19,7 +20,25 @@ import type { PortalFilters, PropertyItem } from "@/components/portal/types";
 export default function LandingPage() {
   const portal = usePortalProperties();
   const [selectedProperty, setSelectedProperty] = useState<PropertyItem | null>(null);
-  const closeModal = useCallback(() => setSelectedProperty(null), []);
+  const closeModal = useCallback(() => {
+    setSelectedProperty(null);
+    // Remove ?imovel= da URL ao fechar a ficha aberta por link direto
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("imovel")) {
+      url.searchParams.delete("imovel");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
+  }, []);
+
+  // Link direto da ficha: /?imovel=<slug> abre o imóvel publicado correspondente
+  const { properties, loading } = portal;
+  useEffect(() => {
+    if (loading) return;
+    const slug = new URLSearchParams(window.location.search).get("imovel");
+    if (!slug) return;
+    const match = properties.find((p) => p.slug === slug);
+    if (match) setSelectedProperty(match);
+  }, [loading, properties]);
 
   const showResults = (partial: Partial<PortalFilters>) => {
     portal.applyFilters(partial);
@@ -30,6 +49,7 @@ export default function LandingPage() {
     showResults({ modalidade, localizacao: cidade ?? "" });
 
   return (
+    <PortalSettingsProvider>
     <div className="min-h-[100dvh] bg-portal-mist text-portal-ink [color-scheme:light] dark:[color-scheme:dark]">
       <PortalHeader cities={portal.directoryCities} onNavigate={navigateTo} />
 
@@ -72,5 +92,6 @@ export default function LandingPage() {
 
       <PortalContactModal property={selectedProperty} onClose={closeModal} />
     </div>
+    </PortalSettingsProvider>
   );
 }

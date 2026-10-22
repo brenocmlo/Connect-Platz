@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, User, Phone, Mail, Building, DollarSign, Tag, Flame, MapPin } from "lucide-react";
+import { X, User, Phone, Mail, Building, DollarSign, Tag, MapPin, Loader2 } from "lucide-react";
 import { CepInput, CpfInput } from "@/components/crm/primitives";
 import { LocationData } from "@/lib/services/location";
 
@@ -25,9 +25,9 @@ export interface NewLeadFormData {
 interface NewLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (leadData: NewLeadFormData) => void;
+  /** Deve resolver `true` quando o lead foi gravado; em falha o modal permanece aberto. */
+  onSubmit: (leadData: NewLeadFormData) => Promise<boolean> | boolean | void;
   availableStages?: { id: string; nome: string }[];
-  currentFunnel?: string;
 }
 
 export function NewLeadModal({
@@ -35,7 +35,6 @@ export function NewLeadModal({
   onClose,
   onSubmit,
   availableStages = [],
-  currentFunnel = "Lançamentos de Médio & Alto Padrão",
 }: NewLeadModalProps) {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -44,17 +43,17 @@ export function NewLeadModal({
   const [cep, setCep] = useState("");
   const [bairro, setBairro] = useState("");
   const [cidade, setCidade] = useState("");
-  const [funil, setFunil] = useState(currentFunnel);
   const [empreendimento, setEmpreendimento] = useState("");
-  const [temperatura, setTemperatura] = useState<"FRIO" | "MORNO" | "QUENTE">("MORNO");
   const [origem, setOrigem] = useState("Manual / Corretor");
   const [renda, setRenda] = useState("");
-  const [stageId, setStageId] = useState(availableStages[0]?.id || "stage-1");
+  const [stageId, setStageId] = useState(availableStages[0]?.id || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [observacoes, setObservacoes] = useState("");
 
+  // Etapas chegam da API depois da montagem: garante uma etapa válida selecionada
   React.useEffect(() => {
-    if (currentFunnel) setFunil(currentFunnel);
-  }, [currentFunnel]);
+    if (!availableStages.some((s) => s.id === stageId)) setStageId(availableStages[0]?.id || "");
+  }, [availableStages, stageId]);
 
   if (!isOpen) return null;
 
@@ -63,11 +62,12 @@ export function NewLeadModal({
     setCidade(`${addr.cidade} - ${addr.uf}`);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome.trim() || !telefone.trim()) return;
+    if (!nome.trim() || !telefone.trim() || isSubmitting) return;
 
-    onSubmit({
+    setIsSubmitting(true);
+    const ok = await onSubmit({
       nome: nome.trim(),
       telefone: telefone.trim(),
       email: email.trim() || undefined,
@@ -76,13 +76,13 @@ export function NewLeadModal({
       bairro: bairro.trim() || undefined,
       cidade: cidade.trim() || undefined,
       empreendimentoInteresse: empreendimento.trim() || undefined,
-      temperatura,
       origem,
       rendaDeclarada: renda ? Number(renda.replace(/\D/g, "")) : undefined,
-      stageId,
-      funil,
+      stageId: stageId || undefined,
       observacoes: observacoes.trim() || undefined,
     });
+    setIsSubmitting(false);
+    if (ok === false) return; // erro já exibido em toast; mantém os dados digitados
 
     // Reset
     setNome("");
@@ -252,66 +252,23 @@ export function NewLeadModal({
             )}
           </div>
 
-          {/* Temperatura e Origem */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div>
-              <label className="block text-foreground font-semibold mb-1 flex items-center gap-1">
-                <Flame className="w-3.5 h-3.5 text-[#D9BB4C]" /> Temperatura
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: "FRIO" as const, label: "🧊 Frio", active: "bg-sky-500/15 border-sky-500/40 text-sky-400 font-bold" },
-                  { id: "MORNO" as const, label: "☕ Morno", active: "bg-amber-500/15 border-amber-500/40 text-amber-400 font-bold" },
-                  { id: "QUENTE" as const, label: "🔥 Quente", active: "bg-red-500/15 border-red-500/40 text-red-400 font-bold" },
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTemperatura(t.id)}
-                    className={`py-1.5 rounded-lg border text-center transition-all ${
-                      temperatura === t.id ? t.active : "border-border text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-foreground font-semibold mb-1 flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-muted-foreground" /> Canal de Origem
-              </label>
-              <select
-                value={origem}
-                onChange={(e) => setOrigem(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-              >
-                <option value="Manual / Corretor">Manual / Corretor</option>
-                <option value="Meta Ads">Meta Ads (Instagram / Facebook)</option>
-                <option value="Google Ads">Google Ads</option>
-                <option value="Catálogo Site">Catálogo do Site</option>
-                <option value="Indicação">Indicação</option>
-                <option value="WhatsApp">WhatsApp Direto</option>
-                <option value="Portal Imobiliário">Portal Imobiliário (Zap/OLX)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Funil de Destino */}
+          {/* Canal de Origem (o score/temperatura é calculado automaticamente pelo servidor) */}
           <div>
-            <label className="block text-foreground font-semibold mb-1">
-              Funil de Vendas
+            <label className="block text-foreground font-semibold mb-1 flex items-center gap-1">
+              <Tag className="w-3.5 h-3.5 text-muted-foreground" /> Canal de Origem
             </label>
             <select
-              value={funil}
-              onChange={(e) => setFunil(e.target.value)}
+              value={origem}
+              onChange={(e) => setOrigem(e.target.value)}
               className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
             >
-              <option value="Lançamentos de Médio & Alto Padrão">Lançamentos de Médio & Alto Padrão</option>
-              <option value="Imóveis Prontos & Avulsos">Imóveis Prontos & Avulsos</option>
-              <option value="Aluguel de Temporada (Veraneio)">Aluguel de Temporada (Veraneio)</option>
-              <option value="Programa Minha Casa Minha Vida">Programa Minha Casa Minha Vida</option>
+              <option value="Manual / Corretor">Manual / Corretor</option>
+              <option value="Meta Ads">Meta Ads (Instagram / Facebook)</option>
+              <option value="Google Ads">Google Ads</option>
+              <option value="Catálogo Site">Catálogo do Site</option>
+              <option value="Indicação">Indicação</option>
+              <option value="WhatsApp">WhatsApp Direto</option>
+              <option value="Portal Imobiliário">Portal Imobiliário (Zap/OLX)</option>
             </select>
           </div>
 
@@ -340,8 +297,10 @@ export function NewLeadModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white font-bold shadow-md shadow-connect-blue/20 hover:scale-[1.02] active:scale-95 transition-all"
+              disabled={isSubmitting}
+              className="px-5 py-2 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white font-bold shadow-md shadow-connect-blue/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:hover:scale-100 flex items-center gap-1.5"
             >
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Cadastrar Lead
             </button>
           </div>

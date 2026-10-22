@@ -1,24 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { container } from "@/lib/container";
+import { RoletaService } from "@/lib/services/roleta";
+import { verifyWebhookKey } from "@/lib/services/webhook-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    // Validação de Secret Token para execução por Vercel Cron, GitHub Actions ou worker externo
-    const authHeader = req.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET || "connect_platz_cron_secret_2026";
-
-    if (authHeader !== `Bearer ${cronSecret}` && req.headers.get("x-cron-secret") !== cronSecret) {
-      // Permite requisições internas em ambiente local de desenvolvimento
-      if (process.env.NODE_ENV === "production") {
-        return NextResponse.json({ error: "Acesso não autorizado ao Cron Worker" }, { status: 401 });
-      }
-    }
+    // Secret obrigatório (Authorization: Bearer, x-cron-secret, x-api-key ou ?token=)
+    const denied = verifyWebhookKey(req, "CRON_SECRET", req.headers.get("x-cron-secret"));
+    if (denied) return denied;
 
     const organizations = await prisma.organization.findMany({
-      select: { id: true, nome: true, bolsaoTimeoutMin: true },
+      select: { id: true, nome: true, bolsaoTimeoutMin: true, operatingStart: true, operatingEnd: true },
     });
 
     const report = [];
@@ -27,12 +22,9 @@ export async function GET(req: NextRequest) {
       // 1. Processar transbordos de SLA estourado
       const transbordoResults = await container.processSlaTransbordoUseCase.execute(org.id);
 
-      // 2. Liberar leads da Fila Noturna se for após as 09:00
-      const now = new Date();
-      const currentHour = now.getHours();
-
+      // 2. Liberar a Fila Noturna dentro do expediente da organização (fuso America/Fortaleza)
       let nightQueueReleased = 0;
-      if (currentHour >= 9 && currentHour < 22) {
+      if (RoletaService.isWithinOperatingHours(org.operatingStart, org.operatingEnd)) {
         const nightLeads = await prisma.lead.findMany({
           where: {
             organizationId: org.id,

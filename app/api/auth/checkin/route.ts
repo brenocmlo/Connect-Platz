@@ -1,24 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken } from "@/lib/auth/jwt";
+import { getRequestSession } from "@/lib/auth/session";
 import { container } from "@/lib/container";
 
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization");
-    const cookieToken = req.cookies.get("connect_platz_token")?.value;
-    const token = authHeader?.replace("Bearer ", "") || cookieToken;
-
-    if (!token) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
-
-    const session = verifySessionToken(token);
+    const session = getRequestSession(req);
     if (!session) {
       return NextResponse.json({ error: "Sessão inválida ou expirada." }, { status: 401 });
     }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     // Registrar check-in através da abstração do repositório
     const checkIn = await container.userRepository.registerCheckIn(
@@ -36,24 +25,8 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    const isDbDown =
-      error?.message?.includes("Can't reach database server") ||
-      error?.message?.includes("localhost:5432") ||
-      error?.code === "P1001";
-
-    if (isDbDown) {
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Check-in diário realizado com sucesso (modo offline/resiliente)! Você está ativo na Roleta de Leads.",
-          checkIn: { id: "checkin-demo", userId: "user-robson-1", date: new Date() },
-        },
-        { status: 200 }
-      );
-    }
-
     return NextResponse.json(
-      { error: error.message || "Erro ao realizar check-in." },
+      { error: error?.message || "Erro ao realizar check-in." },
       { status: 500 }
     );
   }

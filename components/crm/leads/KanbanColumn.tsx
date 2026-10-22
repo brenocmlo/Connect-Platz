@@ -14,7 +14,7 @@ interface KanbanColumnProps {
   onSelectLead: (lead: LeadDetail) => void;
   onDragStart: (e: React.DragEvent, leadId: string) => void;
   onDragEnd: () => void;
-  onDropLead: (leadId: string, stageId: string) => void;
+  onDropLead: (leadId: string, stageId: string) => void | Promise<unknown>;
   onAdvanceStage?: (leadId: string) => void;
   onChangeStage?: (leadId: string, stageId: string) => void;
   onMoveToBolsao?: (leadId: string) => void;

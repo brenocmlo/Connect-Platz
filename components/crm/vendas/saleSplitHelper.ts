@@ -1,114 +1,97 @@
-import { SplitItem, SaleItem } from "./types";
+// Cálculo 100% determinístico do split de comissões (usado pelo modal e pela API).
+// Fluxo: VGV × % bruta = comissão bruta → − imposto = base líquida →
+// cada participante recebe % da base líquida (± desconto/bônus) → imobiliária fica com o restante.
 
-interface SplitCalculationParams {
-  vgvValue: number;
-  percentualComissao: number;
-  corretor1: string;
-  corretor1Pct: number;
-  hasCorretor2: boolean;
-  corretor2: string;
-  corretor2Pct: number;
-  gerente: string;
-  gerentePct: number;
-  gestor: string;
-  gestorPct: number;
-  captador: string;
-  captadorPct: number;
-  descontoCorretor: number;
-  bonusCorretor: number;
+export type ParticipantRole = "CORRETOR_1" | "CORRETOR_2" | "GERENTE" | "GESTOR" | "CAPTADOR";
+
+/** Mapeamento papel na venda → CommissionBeneficiaryType do Prisma. */
+export const ROLE_TO_BENEFICIARY: Record<ParticipantRole, string> = {
+  CORRETOR_1: "CORRETOR_TITULAR",
+  CORRETOR_2: "CO_CORRETOR",
+  GERENTE: "GERENTE",
+  GESTOR: "DIRETOR",
+  CAPTADOR: "CAPTACAO",
+};
+
+export const ROLE_LABEL: Record<ParticipantRole, string> = {
+  CORRETOR_1: "Corretor 1",
+  CORRETOR_2: "Corretor 2",
+  GERENTE: "Gerente",
+  GESTOR: "Gestor / Sócio",
+  CAPTADOR: "Captador",
+};
+
+/** Rótulo amigável a partir do beneficiarioTipo persistido. */
+export const BENEFICIARY_LABEL: Record<string, string> = {
+  CORRETOR_TITULAR: "Corretor 1",
+  CO_CORRETOR: "Corretor 2",
+  GERENTE: "Gerente",
+  DIRETOR: "Gestor / Sócio",
+  CAPTACAO: "Captador",
+  IMOBILIARIA: "Imobiliária",
+  PARCEIRO_EXTERNO: "Parceiro Externo",
+};
+
+export interface ParticipantInput {
+  role: ParticipantRole;
+  userId?: string | null;
+  nome: string;
+  percentual: number; // % sobre a base líquida
+  desconto?: number; // R$
+  bonus?: number; // R$
 }
 
-export function calculateSaleValues(params: SplitCalculationParams) {
-  const comissaoTotalBruta = (params.vgvValue * params.percentualComissao) / 100;
-  const impostoEstimado = comissaoTotalBruta * 0.06;
-  const baseLiquida = comissaoTotalBruta - impostoEstimado;
+export interface SplitCalculationParams {
+  vgvValue: number;
+  percentualComissao: number; // % bruta sobre o VGV
+  impostoPercentual: number; // % sobre a comissão bruta
+  participants: ParticipantInput[];
+}
 
-  const valorCorretor1 =
-    baseLiquida * (params.corretor1Pct / 100) - params.descontoCorretor + params.bonusCorretor;
-  const valorCorretor2 = params.hasCorretor2 ? baseLiquida * (params.corretor2Pct / 100) : 0;
-  const valorGerente = baseLiquida * (params.gerentePct / 100);
-  const valorGestor = baseLiquida * (params.gestorPct / 100);
-  const valorCaptador = baseLiquida * (params.captadorPct / 100);
+export interface CalculatedParticipant extends ParticipantInput {
+  valor: number;
+}
 
-  const somaParticipantes =
-    valorCorretor1 + valorCorretor2 + valorGerente + valorGestor + valorCaptador;
-  const receitaImobiliaria = Math.max(0, comissaoTotalBruta - impostoEstimado - somaParticipantes);
+export interface SaleCalculation {
+  comissaoTotalBruta: number;
+  impostoEstimado: number;
+  baseLiquida: number;
+  participants: CalculatedParticipant[];
+  somaParticipantes: number;
+  percentualParticipantes: number; // % da base líquida alocada a participantes
+  receitaImobiliaria: number; // restante da base líquida
+  percentualImobiliaria: number;
+  excedente: number; // > 0 quando a soma passa de 100% da base líquida
+  isOverAllocated: boolean;
+}
+
+const round2 = (n: number) => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100;
+const safe = (n: number | undefined) => (Number.isFinite(n) ? Number(n) : 0);
+
+export function calculateSaleValues(params: SplitCalculationParams): SaleCalculation {
+  const comissaoTotalBruta = round2((safe(params.vgvValue) * safe(params.percentualComissao)) / 100);
+  const impostoEstimado = round2((comissaoTotalBruta * safe(params.impostoPercentual)) / 100);
+  const baseLiquida = round2(comissaoTotalBruta - impostoEstimado);
+
+  const participants = params.participants.map((p) => ({
+    ...p,
+    valor: round2((baseLiquida * safe(p.percentual)) / 100 - safe(p.desconto) + safe(p.bonus)),
+  }));
+
+  const somaParticipantes = round2(participants.reduce((acc, p) => acc + p.valor, 0));
+  const restante = round2(baseLiquida - somaParticipantes);
+  const isOverAllocated = restante < -0.004 || participants.some((p) => p.valor < 0);
 
   return {
     comissaoTotalBruta,
     impostoEstimado,
     baseLiquida,
-    valorCorretor1,
-    valorCorretor2,
-    valorGerente,
-    valorGestor,
-    valorCaptador,
-    receitaImobiliaria,
+    participants,
+    somaParticipantes,
+    percentualParticipantes: baseLiquida > 0 ? round2((somaParticipantes / baseLiquida) * 100) : 0,
+    receitaImobiliaria: Math.max(0, restante),
+    percentualImobiliaria: baseLiquida > 0 ? round2((Math.max(0, restante) / baseLiquida) * 100) : 0,
+    excedente: restante < 0 ? round2(-restante) : 0,
+    isOverAllocated,
   };
-}
-
-export function buildSaleSplits(
-  params: SplitCalculationParams,
-  calculated: ReturnType<typeof calculateSaleValues>
-): SplitItem[] {
-  return [
-    {
-      id: `sp-imob-${Date.now()}`,
-      beneficiario: "Connect Platz Imobiliária",
-      categoria: "Imobiliária",
-      percentual: Math.round(
-        (calculated.receitaImobiliaria / calculated.comissaoTotalBruta) * 100
-      ),
-      valor: calculated.receitaImobiliaria,
-      status: "PAGO",
-    },
-    {
-      id: `sp-c1-${Date.now()}`,
-      beneficiario: params.corretor1,
-      categoria: "Corretor 1",
-      percentual: params.corretor1Pct,
-      valor: calculated.valorCorretor1,
-      status: "PENDENTE",
-      pix: "lucas.corretor@pix.com",
-    },
-    ...(params.hasCorretor2
-      ? [
-          {
-            id: `sp-c2-${Date.now()}`,
-            beneficiario: params.corretor2,
-            categoria: "Corretor 2",
-            percentual: params.corretor2Pct,
-            valor: calculated.valorCorretor2,
-            status: "PENDENTE" as const,
-            pix: "segundo.corretor@pix.com",
-          },
-        ]
-      : []),
-    {
-      id: `sp-ger-${Date.now()}`,
-      beneficiario: params.gerente,
-      categoria: "Gerente",
-      percentual: params.gerentePct,
-      valor: calculated.valorGerente,
-      status: "PENDENTE",
-      pix: "mariana.gerente@pix.com",
-    },
-    {
-      id: `sp-ges-${Date.now()}`,
-      beneficiario: params.gestor,
-      categoria: "Gestor",
-      percentual: params.gestorPct,
-      valor: calculated.valorGestor,
-      status: "PENDENTE",
-    },
-    {
-      id: `sp-cap-${Date.now()}`,
-      beneficiario: params.captador,
-      categoria: "Captador",
-      percentual: params.captadorPct,
-      valor: calculated.valorCaptador,
-      status: "PENDENTE",
-      pix: "rafael.captador@pix.com",
-    },
-  ];
 }

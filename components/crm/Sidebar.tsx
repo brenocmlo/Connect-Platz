@@ -32,7 +32,8 @@ interface NavItem {
   icon: React.ElementType;
   badge?: string;
   isExternal?: boolean;
-  adminOnly?: boolean;
+  adminOnly?: boolean; // somente ADMINISTRADOR/DIRETOR
+  managerOnly?: boolean; // ADMINISTRADOR/DIRETOR/GERENTE
 }
 
 // 5.2 Ordem dos itens oficiais da Sidebar Connect Platz
@@ -51,9 +52,9 @@ const navItems: NavItem[] = [
   { label: "Empreendimentos", href: "/crm/empreendimentos", icon: Building2 },
   { label: "Ranking", href: "/crm/ranking", icon: Trophy, badge: "Top" },
   { label: "Relatórios BI", href: "/crm/relatorios", icon: BarChart3 },
-  { label: "Equipe", href: "/crm/equipes", icon: Users2, adminOnly: true },
-  { label: "Integrações", href: "/crm/integracoes", icon: Layers, adminOnly: true },
-  { label: "Log e Auditoria", href: "/crm/auditoria", icon: ShieldCheck, adminOnly: true },
+  { label: "Equipe", href: "/crm/equipes", icon: Users2, managerOnly: true },
+  { label: "Integrações", href: "/crm/integracoes", icon: Layers, managerOnly: true },
+  { label: "Log e Auditoria", href: "/crm/auditoria", icon: ShieldCheck, managerOnly: true },
   { label: "Configurações", href: "/crm/configuracoes", icon: Settings },
 ];
 
@@ -127,6 +128,9 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
         {navItems.map((item) => {
           if (item.adminOnly && user && user.role !== "ADMINISTRADOR" && user.role !== "DIRETOR") {
+            return null;
+          }
+          if (item.managerOnly && user && user.role === "CORRETOR") {
             return null;
           }
 

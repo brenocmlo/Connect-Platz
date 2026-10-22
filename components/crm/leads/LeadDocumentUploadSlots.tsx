@@ -1,50 +1,49 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Upload, CheckCircle2, FileText, Trash2 } from "lucide-react";
+import { Upload, CheckCircle2, FileText, Trash2, Loader2 } from "lucide-react";
+import { useLeadDocuments } from "@/components/crm/lead-drawer/useLeadDocuments";
 
 interface DocumentSlot {
-  id: string;
+  id: string; // gravado em LeadDocument.tipo
   label: string;
-  uploaded: boolean;
-  fileName?: string;
 }
 
-const initialDocs: DocumentSlot[] = [
-  { id: "rg", label: "Documento de Identidade (RG/CNH)", uploaded: true, fileName: "cnh_frente_verso.pdf" },
-  { id: "cpf", label: "CPF", uploaded: true, fileName: "cpf_regular.pdf" },
-  { id: "renda", label: "Comprovante de Renda / Holerite", uploaded: false },
-  { id: "estado_civil", label: "Certidão de Estado Civil", uploaded: false },
-  { id: "fgts", label: "Extrato do FGTS", uploaded: false },
-  { id: "irpf", label: "Declaração de IRPF + Recibo", uploaded: false },
+const DOC_SLOTS: DocumentSlot[] = [
+  { id: "identidade", label: "Documento de Identidade (RG/CNH)" },
+  { id: "cpf", label: "CPF" },
+  { id: "comprovante_renda", label: "Comprovante de Renda / Holerite" },
+  { id: "certidao_estado_civil", label: "Certidão de Estado Civil" },
+  { id: "fgts", label: "Extrato do FGTS" },
+  { id: "irpf", label: "Declaração de IRPF + Recibo" },
 ];
 
-export function LeadDocumentUploadSlots() {
-  const [docs, setDocs] = useState<DocumentSlot[]>(initialDocs);
+export function LeadDocumentUploadSlots({ leadId }: { leadId: string }) {
+  const { documents, isLoading, busy, error, upload, remove } = useLeadDocuments(leadId);
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const docs = DOC_SLOTS.map((slot) => {
+    const doc = documents.find((d) => d.tipo === slot.id);
+    return { ...slot, uploaded: Boolean(doc), fileName: doc?.nomeArquivo, docId: doc?.id };
+  });
 
   const handleTriggerUpload = (slotId: string) => {
     setActiveSlotId(slotId);
     fileInputRef.current?.click();
   };
 
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0 && activeSlotId) {
-      const file = e.target.files[0];
-      setDocs((prev) =>
-        prev.map((d) =>
-          d.id === activeSlotId ? { ...d, uploaded: true, fileName: file.name } : d
-        )
-      );
-      e.target.value = "";
-    }
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !activeSlotId) return;
+    const previous = docs.find((d) => d.id === activeSlotId)?.docId;
+    const ok = await upload([file], activeSlotId);
+    if (ok && previous) await remove(previous); // substituição do documento do slot
   };
 
-  const handleRemoveDoc = (slotId: string) => {
-    setDocs((prev) =>
-      prev.map((d) => (d.id === slotId ? { ...d, uploaded: false, fileName: undefined } : d))
-    );
+  const handleRemoveDoc = (docId?: string) => {
+    if (docId) remove(docId);
   };
 
   return (
@@ -59,11 +58,20 @@ export function LeadDocumentUploadSlots() {
       />
 
       <div className="text-[11px] text-muted-foreground flex items-center justify-between">
-        <span>Formatos suportados: PDF, PNG, JPG (até 10 MB)</span>
+        <span className="flex items-center gap-1.5">
+          {(isLoading || busy) && <Loader2 className="w-3 h-3 animate-spin text-connect-blue" />}
+          Formatos suportados: PDF, PNG, JPG (até 10 MB)
+        </span>
         <span className="font-semibold text-foreground">
           {docs.filter((d) => d.uploaded).length} de {docs.length} enviados
         </span>
       </div>
+
+      {error && (
+        <p className="text-[11px] text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-2.5 py-1.5">
+          {error}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {docs.map((doc) => (
@@ -97,7 +105,8 @@ export function LeadDocumentUploadSlots() {
               {doc.uploaded && (
                 <button
                   type="button"
-                  onClick={() => handleRemoveDoc(doc.id)}
+                  onClick={() => handleRemoveDoc(doc.docId)}
+                  disabled={busy}
                   className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
                   title="Remover documento"
                 >
@@ -107,9 +116,10 @@ export function LeadDocumentUploadSlots() {
               <button
                 type="button"
                 onClick={() => handleTriggerUpload(doc.id)}
+                disabled={busy}
                 className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${
                   doc.uploaded
-                    ? "text-emerald-600 hover:bg-emerald-500/10"
+                    ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                     : "bg-connect-blue/10 text-connect-blue hover:bg-connect-blue/20"
                 }`}
                 title={doc.uploaded ? "Substituir documento" : "Fazer upload de arquivo"}

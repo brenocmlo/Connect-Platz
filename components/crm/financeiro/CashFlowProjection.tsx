@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
+import { LineChart as LineChartIcon } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -9,23 +10,28 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useCrm } from "@/components/crm/CrmContext";
+import type { CashFlowItem } from "./CashFlowTable";
+import { computeProjection } from "./cashFlowMetrics";
 
-const projectionData = [
-  { mes: "Hoje", saldo: 145000, receitas: 180000, despesas: 35000 },
-  { mes: "+15 dias", saldo: 168000, receitas: 210000, despesas: 42000 },
-  { mes: "+30 dias", saldo: 215000, receitas: 275000, despesas: 60000 },
-  { mes: "+60 dias", saldo: 290000, receitas: 360000, despesas: 70000 },
-  { mes: "+90 dias", saldo: 385000, receitas: 470000, despesas: 85000 },
-];
+interface CashFlowProjectionProps {
+  /** Lançamentos reais do Fluxo de Caixa (pagos e pendentes). */
+  entries: CashFlowItem[];
+}
 
-export function CashFlowProjection() {
+export function CashFlowProjection({ entries }: CashFlowProjectionProps) {
+  const { hideValues } = useCrm();
+  const projectionData = useMemo(() => computeProjection(entries), [entries]);
+  const money = (v: unknown) =>
+    hideValues ? "••••••" : `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
   return (
     <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h3 className="text-base font-bold text-foreground">Projeção de Fluxo de Caixa (90 Dias)</h3>
           <p className="text-xs text-muted-foreground">
-            Evolução de faturamento, comissões de terceiros e saldo operacional líquido projetado.
+            Saldo liquidado atual somado aos títulos pendentes (a receber e a pagar) por data de vencimento.
           </p>
         </div>
 
@@ -45,6 +51,15 @@ export function CashFlowProjection() {
         </div>
       </div>
 
+      {entries.length === 0 ? (
+        <div className="h-72 flex flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+          <div className="p-3 rounded-full bg-connect-blue/10 text-connect-blue">
+            <LineChartIcon className="w-5 h-5" />
+          </div>
+          <span className="text-sm font-semibold text-foreground">Sem lançamentos para projetar</span>
+          <span className="text-xs">A projeção é calculada a partir das contas a pagar e a receber cadastradas.</span>
+        </div>
+      ) : (
       <div className="h-72 w-full pt-4">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={projectionData}>
@@ -66,7 +81,7 @@ export function CashFlowProjection() {
             <YAxis
               stroke="#94A3B8"
               fontSize={11}
-              tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`}
+              tickFormatter={(v) => (hideValues ? "•••" : `R$ ${(v / 1000).toFixed(0)}k`)}
             />
             <Tooltip
               content={({ active, payload, label }) => {
@@ -76,15 +91,15 @@ export function CashFlowProjection() {
                       <span className="font-bold text-muted-foreground block border-b border-border/50 pb-1">{label}</span>
                       <div className="flex items-center justify-between gap-3 text-emerald-500 font-semibold">
                         <span>Receitas:</span>
-                        <span>R$ {Number(payload.find(p => p.dataKey === 'receitas')?.value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                        <span>{money(payload.find((p) => p.dataKey === "receitas")?.value)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3 text-red-500 font-semibold">
                         <span>Despesas:</span>
-                        <span>R$ {Number(payload.find(p => p.dataKey === 'despesas')?.value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                        <span>{money(payload.find((p) => p.dataKey === "despesas")?.value)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3 text-amber-500 dark:text-[#F8DA56] font-extrabold pt-1 border-t border-border/50">
                         <span>Saldo Líquido:</span>
-                        <span>R$ {Number(payload.find(p => p.dataKey === 'saldo')?.value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                        <span>{money(payload.find((p) => p.dataKey === "saldo")?.value)}</span>
                       </div>
                     </div>
                   );
@@ -119,6 +134,7 @@ export function CashFlowProjection() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+      )}
     </div>
   );
 }

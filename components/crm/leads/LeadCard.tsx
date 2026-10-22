@@ -19,6 +19,9 @@ import { LeadCardMenu } from "./LeadCardMenu";
 import { useCrm } from "@/components/crm/CrmContext";
 import { FunnelColumn } from "./KanbanBoard";
 import { getNextStage, findLeadStageIndex } from "./leadCalculations";
+import { SlaBadge } from "@/components/crm/SlaBadge";
+import { buildWhatsAppUrl, defaultLeadGreeting, normalizeBrPhone } from "@/lib/utils/phone";
+import { registerFirstContact } from "./leadsApi";
 
 interface LeadCardProps {
   lead: LeadDetail;
@@ -66,7 +69,7 @@ export function LeadCard({
   };
 
   const getRelativeTime = (dateStr?: string | null) => {
-    if (!dateStr) return "há 12 min";
+    if (!dateStr) return "";
     try {
       const date = new Date(dateStr);
       const diffMs = Date.now() - date.getTime();
@@ -81,17 +84,9 @@ export function LeadCard({
     }
   };
 
-  const rawPhone = lead.telefone.replace(/\D/g, "");
-  const whatsappUrl = `https://wa.me/55${rawPhone}`;
-
-  // Score determinístico
-  const scoreValue =
-    lead.score ??
-    (lead.temperatura === "QUENTE" ? 85 : lead.temperatura === "MORNO" ? 60 : 38);
-
-  const opportunityValueFormatted = lead.opportunityValue
-    ? formatMoney(lead.opportunityValue)
-    : "R$ 380.000,00";
+  const rawPhone = normalizeBrPhone(lead.telefone);
+  const whatsappUrl = buildWhatsAppUrl(lead.telefone, defaultLeadGreeting(lead.nome));
+  const awaitingFirstContact = !lead.firstContactAt && !lead.isBolsao;
 
   const nextStage = getNextStage(lead, stages);
   const currentStageIdx = findLeadStageIndex(lead, stages);
@@ -132,7 +127,7 @@ export function LeadCard({
           onOpenDetails={() => onSelectLead(lead)}
           onEdit={() => (onEditLead ? onEditLead(lead) : onSelectLead(lead))}
           onAdvanceStage={() => onAdvanceStage && onAdvanceStage(lead.id)}
-          onAddReminder={() => alert(`Lembrete adicionado para ${lead.nome}`)}
+          onAddReminder={() => (onScheduleVisit ? onScheduleVisit(lead) : onSelectLead(lead))}
           onScheduleVisit={() => (onScheduleVisit ? onScheduleVisit(lead) : onSelectLead(lead))}
           onOpenWhatsApp={() => onOpenWhatsApp && onOpenWhatsApp(lead)}
           onMoveToBolsao={() => onMoveToBolsao && onMoveToBolsao(lead.id)}
@@ -160,7 +155,8 @@ export function LeadCard({
 
           <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <a
-              href={`tel:${rawPhone}`}
+              href={`tel:+55${rawPhone}`}
+              onClick={() => registerFirstContact(lead, "ligacao")}
               className="p-1 rounded-md text-connect-blue hover:bg-connect-blue/10 transition-colors"
               title="Ligar"
               aria-label="Ligar para lead"
@@ -183,6 +179,7 @@ export function LeadCard({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
+                onClick={() => registerFirstContact(lead, "whatsapp")}
                 className="p-1 rounded-md text-[#22C55E] hover:bg-[#22C55E]/10 transition-colors"
                 title="Abrir WhatsApp Web"
                 aria-label="Chamar no WhatsApp"
@@ -206,16 +203,18 @@ export function LeadCard({
           </div>
         )}
 
-        {/* Oportunidade */}
-        <div className="flex items-center gap-1.5">
-          <Building2 className="w-3.5 h-3.5 text-muted-foreground/70 flex-shrink-0" />
-          <span className="truncate">
-            Oportunidade:{" "}
-            <strong className="text-foreground font-bold">
-              {hideValues ? "••••" : opportunityValueFormatted}
-            </strong>
-          </span>
-        </div>
+        {/* Oportunidade (somente quando informada) */}
+        {lead.opportunityValue ? (
+          <div className="flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 text-muted-foreground/70 flex-shrink-0" />
+            <span className="truncate">
+              Oportunidade:{" "}
+              <strong className="text-foreground font-bold">
+                {hideValues ? "••••" : formatMoney(lead.opportunityValue)}
+              </strong>
+            </span>
+          </div>
+        ) : null}
 
         {/* Campanha */}
         {lead.campaignName && (
@@ -230,8 +229,9 @@ export function LeadCard({
           <div className="flex items-center gap-1.5 truncate text-[10px]">
             <Building2 className="w-3 h-3 text-muted-foreground/70 flex-shrink-0" />
             <span className="truncate">
-              {lead.empreendimentoInteresse || "Reserva dos Lagos"} •{" "}
-              {lead.cidadeInteresse || lead.bairrosInteresse?.[0] || "Centro"}
+              {[lead.empreendimentoInteresse, lead.cidadeInteresse || lead.bairrosInteresse?.[0]]
+                .filter(Boolean)
+                .join(" • ")}
             </span>
           </div>
         )}
@@ -239,7 +239,7 @@ export function LeadCard({
         {/* Data de captação */}
         <div className="flex items-center gap-1.5 text-[10px]">
           <Calendar className="w-3 h-3 text-muted-foreground/70 flex-shrink-0" />
-          <span>Captado em: {new Date(lead.createdAt || Date.now()).toLocaleDateString("pt-BR")}</span>
+          <span>Captado em: {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString("pt-BR") : "—"}</span>
         </div>
       </div>
 
@@ -253,7 +253,9 @@ export function LeadCard({
         )}
 
         {/* Status de prioridade / temperatura */}
-        {lead.temperatura === "QUENTE" && <LeadTag variant="hot">Cliente Quente</LeadTag>}
+        {lead.temperatura === "QUENTE" && !lead.tags?.includes("Cliente Quente") && (
+          <LeadTag variant="hot">Cliente Quente</LeadTag>
+        )}
         {lead.slaBreached && <LeadTag variant="urgent">Urgente</LeadTag>}
 
         {/* Tags personalizadas */}
@@ -264,16 +266,27 @@ export function LeadCard({
         ))}
 
         {/* Origem */}
-        <LeadTag variant="origin">{lead.source}</LeadTag>
+        <LeadTag variant="origin">{lead.sourceLabel || lead.source}</LeadTag>
       </div>
 
       {/* 4. SCORE BADGE & COMPROMISSOS */}
       <div className="flex items-center justify-between border-t border-border/60 pt-2 text-xs">
-        <ScoreBadge score={scoreValue} size="sm" />
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          <ScoreBadge score={lead.score} size="sm" />
+          {/* SLA de primeiro contato: pulsa quando o lead está há mais de 15 min sem contato */}
+          {awaitingFirstContact && (
+            <SlaBadge
+              dueAt={lead.slaDueAt}
+              breached={lead.slaBreached}
+              createdAt={lead.createdAt}
+              firstContactAt={lead.firstContactAt ?? null}
+            />
+          )}
+        </div>
 
-        <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
+        <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium flex-shrink-0">
           <Bell className="w-3 h-3 text-muted-foreground/80" />
-          <span>Compromissos ({lead.compromissosCount || 1})</span>
+          <span>Compromissos ({lead.compromissosCount || 0})</span>
         </div>
       </div>
 
@@ -295,7 +308,7 @@ export function LeadCard({
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         ) : (
-          <div className="flex-1 py-1 px-2 rounded-lg bg-emerald-500/10 text-emerald-500 text-[10px] font-bold flex items-center justify-center gap-1">
+          <div className="flex-1 py-1 px-2 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center justify-center gap-1">
             <CheckCircle2 className="w-3 h-3" />
             <span>Etapa Final</span>
           </div>

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { useCrm } from "@/components/crm/CrmContext";
+import { buildWhatsAppUrl } from "@/lib/utils/phone";
+import { registerFirstContact } from "./leadsApi";
 
 interface WhatsAppTemplatesModalProps {
   isOpen: boolean;
@@ -140,7 +142,6 @@ export function WhatsAppTemplatesModal({
 
   if (!isOpen || !lead) return null;
 
-  const cleanPhone = lead.telefone.replace(/\D/g, "");
 
   const handleSelectTemplate = (tpl: TemplateOption) => {
     setSelectedTemplateId(tpl.id);
@@ -158,9 +159,9 @@ export function WhatsAppTemplatesModal({
   };
 
   const handleOpenWhatsApp = () => {
-    const encoded = encodeURIComponent(customText);
-    const url = `https://wa.me/55${cleanPhone}?text=${encoded}`;
-    window.open(url, "_blank");
+    const url = buildWhatsAppUrl(lead.telefone, customText);
+    window.open(url, "_blank", "noopener,noreferrer");
+    registerFirstContact(lead, "whatsapp");
     onClose();
   };
 

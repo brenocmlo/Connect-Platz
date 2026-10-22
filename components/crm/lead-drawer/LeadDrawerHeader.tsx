@@ -4,6 +4,8 @@ import React from "react";
 import { X, MessageSquare, Phone, AlertTriangle, UserCheck, Flame } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { SlaBadge } from "@/components/crm/SlaBadge";
+import { buildWhatsAppUrl, defaultLeadGreeting, normalizeBrPhone } from "@/lib/utils/phone";
+import { registerFirstContact } from "@/components/crm/leads/leadsApi";
 
 interface LeadDrawerHeaderProps {
   lead: LeadDetail;
@@ -26,8 +28,8 @@ export function LeadDrawerHeader({
       .join("");
   };
 
-  const rawPhone = lead.telefone.replace(/\D/g, "");
-  const whatsappUrl = `https://wa.me/55${rawPhone}`;
+  const rawPhone = normalizeBrPhone(lead.telefone);
+  const whatsappUrl = buildWhatsAppUrl(lead.telefone, defaultLeadGreeting(lead.nome));
 
   return (
     <div className="p-5 border-b border-border bg-card">
@@ -72,6 +74,7 @@ export function LeadDrawerHeader({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <a
             href={`tel:${rawPhone}`}
+            onClick={() => registerFirstContact(lead, "ligacao")}
             className="p-2 rounded-xl border border-border bg-background hover:bg-connect-blue/10 text-connect-blue transition-colors shadow-xs"
             title="Ligar para o lead"
             aria-label="Ligar para o lead"
@@ -92,6 +95,7 @@ export function LeadDrawerHeader({
           ) : (
             <a
               href={whatsappUrl}
+              onClick={() => registerFirstContact(lead, "whatsapp")}
               target="_blank"
               rel="noreferrer"
               className="bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all"

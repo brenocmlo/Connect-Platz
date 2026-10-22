@@ -1,32 +1,20 @@
+import { businessDay } from "@/lib/utils/businessDay";
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken } from "@/lib/auth/jwt";
+import { getRequestSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.cookies.get("connect_platz_token")?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Não autenticado: Cookie de sessão ausente." },
-        { status: 401 }
-      );
-    }
-
-    const session = verifySessionToken(token);
+    const session = getRequestSession(req);
     if (!session) {
-      return NextResponse.json(
-        { error: "Sessão inválida ou expirada." },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Sessão inválida ou expirada." }, { status: 401 });
     }
 
     // Busca o estado mais recente do usuário no PostgreSQL
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const today = businessDay();
 
       const dbUser = await prisma.user.findUnique({
         where: { id: session.userId },
@@ -38,6 +26,7 @@ export async function GET(req: NextRequest) {
           status: true,
           organizationId: true,
           creci: true,
+          isActive: true,
           photoUrl: true,
           checkIns: {
             where: { date: today },
@@ -47,7 +36,7 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      if (dbUser) {
+      if (dbUser && dbUser.isActive) {
         return NextResponse.json(
           {
             user: {
@@ -65,25 +54,11 @@ export async function GET(req: NextRequest) {
           { status: 200 }
         );
       }
-    } catch {
-      // Fallback gracioso com os dados validados criptograficamente da sessão JWT
+    } catch (dbErr: any) {
+      return NextResponse.json({ error: "Serviço temporariamente indisponível." }, { status: 503 });
     }
 
-    // Retorna a sessão segura validada pelo JWT
-    return NextResponse.json(
-      {
-        user: {
-          id: session.userId,
-          nome: session.nome,
-          email: session.email,
-          role: session.role,
-          status: "DISPONIVEL",
-          organizationId: session.organizationId,
-          hasCheckedInToday: true,
-        },
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ error: "Usuário não encontrado ou inativo." }, { status: 401 });
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Erro ao recuperar sessão." },

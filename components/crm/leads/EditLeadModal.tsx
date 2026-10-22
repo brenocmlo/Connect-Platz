@@ -1,24 +1,26 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, User, FileText, Plus, MapPin } from "lucide-react";
+import { X, User, FileText, Plus, MapPin, Loader2 } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { LeadDocumentUploadSlots } from "./LeadDocumentUploadSlots";
 import { CpfInput, CepInput } from "@/components/crm/primitives";
 import { LocationData } from "@/lib/services/location";
+import { LEAD_SOURCE_CODES, LEAD_SOURCE_LABELS } from "./leadSource";
 
 interface EditLeadModalProps {
   isOpen: boolean;
   lead: LeadDetail | null;
   stages?: { id: string; nome: string }[];
   onClose: () => void;
-  onSave: (updated: LeadDetail) => void;
+  /** Resolve `true` quando a API confirmou a gravação; em falha o modal permanece aberto. */
+  onSave: (updated: LeadDetail) => Promise<boolean> | boolean | void;
 }
 
 export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLeadModalProps) {
   const [activeTab, setActiveTab] = useState<"info" | "docs">("info");
   const [formData, setFormData] = useState<Partial<LeadDetail>>({});
-  const [selectedFunnel, setSelectedFunnel] = useState("Lançamentos de Médio & Alto Padrão");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (lead) {
@@ -35,10 +37,13 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ ...lead, ...formData } as LeadDetail);
-    onClose();
+    if (isSaving) return;
+    setIsSaving(true);
+    const ok = await onSave({ ...lead, ...formData } as LeadDetail);
+    setIsSaving(false);
+    if (ok !== false) onClose();
   };
 
   return (
@@ -59,15 +64,6 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
           </div>
 
           <div className="flex items-center gap-2">
-            <select
-              value={selectedFunnel}
-              onChange={(e) => setSelectedFunnel(e.target.value)}
-              className="bg-background border border-border text-[11px] font-semibold rounded-lg px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-connect-blue"
-            >
-              <option>Lançamentos de Médio & Alto Padrão</option>
-              <option>Imóveis Prontos & Avulsos</option>
-              <option>Aluguel de Temporada</option>
-            </select>
 
             <button
               onClick={onClose}
@@ -83,7 +79,7 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
         <div className="p-3.5 bg-muted/40 border-b border-border flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-connect-blue text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-              {lead.corretor?.nome ? lead.corretor.nome[0] : "R"}
+              {lead.corretor?.nome ? lead.corretor.nome[0] : "—"}
             </div>
             <div className="min-w-0">
               <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
@@ -102,23 +98,11 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
               onChange={(e) => setFormData({ ...formData, stageId: e.target.value })}
               className="bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-connect-blue"
             >
-              {stages && stages.length > 0 ? (
-                stages.map((st) => (
-                  <option key={st.id} value={st.id}>
-                    {st.nome}
-                  </option>
-                ))
-              ) : (
-                <>
-                  <option value="stage-1">Novo Lead</option>
-                  <option value="stage-2">Primeiro Contato</option>
-                  <option value="stage-3">Visita Agendada</option>
-                  <option value="stage-4">Proposta Enviada</option>
-                  <option value="stage-5">Análise de Crédito</option>
-                  <option value="stage-6">Fechado / Ganho</option>
-                  <option value="stage-7">Encerrado</option>
-                </>
-              )}
+              {(stages || []).map((st) => (
+                <option key={st.id} value={st.id}>
+                  {st.nome}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -234,10 +218,11 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
                     Estado Civil
                   </label>
                   <select
-                    value={formData.estadoCivil || "SOLTEIRO"}
+                    value={formData.estadoCivil || ""}
                     onChange={(e) => setFormData({ ...formData, estadoCivil: e.target.value })}
                     className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-connect-blue"
                   >
+                    <option value="">Não informado</option>
                     <option value="SOLTEIRO">Solteiro(a)</option>
                     <option value="CASADO">Casado(a)</option>
                     <option value="UNIAO_ESTAVEL">União Estável</option>
@@ -266,17 +251,18 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
                     Origem
                   </label>
                   <select
-                    value={formData.source || "Meta Ads"}
+                    value={formData.source || "MANUAL_CORRETOR"}
                     onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                     className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-connect-blue"
                   >
-                    <option value="Meta Ads">Meta Ads</option>
-                    <option value="Google Ads">Google Ads</option>
+                    {LEAD_SOURCE_CODES.map((code) => (
+                      <option key={code} value={code}>
+                        {LEAD_SOURCE_LABELS[code]}
+                      </option>
+                    ))}
                     <option value="WhatsApp">WhatsApp</option>
                     <option value="Landing Page">Landing Page</option>
-                    <option value="Catálogo">Catálogo</option>
                     <option value="Orgânico">Orgânico</option>
-                    <option value="MANUAL_CORRETOR">Manual Corretor</option>
                   </select>
                 </div>
               </div>
@@ -296,7 +282,7 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
               </div>
             </div>
           ) : (
-            <LeadDocumentUploadSlots />
+            <LeadDocumentUploadSlots leadId={lead.id} />
           )}
 
           {/* 5. RODAPÉ FIXO: Cancelar (ghost) + Salvar Alterações (primário) */}
@@ -310,8 +296,10 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg text-xs font-bold bg-connect-blue hover:bg-connect-deep-blue text-white shadow-sm shadow-connect-blue/20 transition-all hover:scale-[1.02] active:scale-95"
+              disabled={isSaving}
+              className="px-4 py-2 rounded-lg text-xs font-bold bg-connect-blue hover:bg-connect-deep-blue text-white shadow-sm shadow-connect-blue/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 flex items-center gap-1.5"
             >
+              {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Salvar Alterações
             </button>
           </div>

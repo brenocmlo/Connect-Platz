@@ -15,74 +15,95 @@ import {
   Shield,
 } from "lucide-react";
 
+export type InviteRole = "CORRETOR" | "GERENTE" | "DIRETOR";
+
 export interface InviteCollaboratorData {
   nome: string;
   email: string;
-  role: "CORRETOR" | "GERENTE";
+  role: InviteRole;
   creci?: string;
   telefone?: string;
   senhaTemporaria: string;
-  exigirTrocaPrimeiroAcesso: boolean;
 }
 
 interface InviteCollaboratorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvite: (data: InviteCollaboratorData) => void;
+  /** Deve lançar erro (com mensagem) se o cadastro falhar; o modal só fecha após sucesso. */
+  onInvite: (data: InviteCollaboratorData) => Promise<void>;
+  /** Administrador/Diretor podem cadastrar gestores; Gerente cadastra apenas corretores. */
+  canInviteManagers?: boolean;
+}
+
+/** Senha provisória aleatória (crypto) com 12 caracteres. */
+function generateTempPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const bytes = new Uint32Array(8);
+  crypto.getRandomValues(bytes);
+  const random = Array.from(bytes, (b) => chars[b % chars.length]).join("");
+  return `Cp@${random}!`;
 }
 
 export function InviteCollaboratorModal({
   isOpen,
   onClose,
   onInvite,
+  canInviteManagers = false,
 }: InviteCollaboratorModalProps) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"CORRETOR" | "GERENTE">("CORRETOR");
+  const [role, setRole] = useState<InviteRole>("CORRETOR");
   const [creci, setCreci] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [senhaTemporaria, setSenhaTemporaria] = useState("Platz@2026");
+  const [senhaTemporaria, setSenhaTemporaria] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [exigirTroca, setExigirTroca] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleGeneratePassword = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-    let randomPart = "";
-    for (let i = 0; i < 4; i++) {
-      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    const generated = `Platz@${randomPart}!`;
-    setSenhaTemporaria(generated);
+    setSenhaTemporaria(generateTempPassword());
     setShowPassword(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome.trim() || !email.trim() || !senhaTemporaria.trim()) return;
+    if (senhaTemporaria.trim().length < 8) {
+      setError("A senha provisória deve ter no mínimo 8 caracteres.");
+      return;
+    }
 
-    onInvite({
-      nome: nome.trim(),
-      email: email.trim(),
-      role,
-      creci: creci.trim() || undefined,
-      telefone: telefone.trim() || undefined,
-      senhaTemporaria: senhaTemporaria.trim(),
-      exigirTrocaPrimeiroAcesso: exigirTroca,
-    });
-
-    // Reset
-    setNome("");
-    setEmail("");
-    setCreci("");
-    setTelefone("");
-    setSenhaTemporaria("Platz@2026");
-    onClose();
+    setSubmitting(true);
+    setError(null);
+    try {
+      await onInvite({
+        nome: nome.trim(),
+        email: email.trim(),
+        role,
+        creci: creci.trim() || undefined,
+        telefone: telefone.trim() || undefined,
+        senhaTemporaria: senhaTemporaria.trim(),
+      });
+      // Reset somente após sucesso confirmado pela API
+      setNome("");
+      setEmail("");
+      setCreci("");
+      setTelefone("");
+      setRole("CORRETOR");
+      setSenhaTemporaria("");
+      setShowPassword(false);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível cadastrar o colaborador.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border pb-3.5">
@@ -109,6 +130,11 @@ export function InviteCollaboratorModal({
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          {error && (
+            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300">
+              {error}
+            </div>
+          )}
           {/* Nome e Cargo */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
@@ -145,11 +171,12 @@ export function InviteCollaboratorModal({
               </label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as any)}
+                onChange={(e) => setRole(e.target.value as InviteRole)}
                 className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
               >
                 <option value="CORRETOR">Corretor (Leads próprios & Agenda)</option>
-                <option value="GERENTE">Gerente de Equipe (Time & BI)</option>
+                {canInviteManagers && <option value="GERENTE">Gerente de Equipe (Time & BI)</option>}
+                {canInviteManagers && <option value="DIRETOR">Diretor (Gestão completa)</option>}
               </select>
             </div>
           </div>
@@ -163,7 +190,7 @@ export function InviteCollaboratorModal({
               </label>
               <input
                 type="tel"
-                placeholder="(85) 99999-0000"
+                placeholder="(00) 00000-0000"
                 value={telefone}
                 onChange={(e) => setTelefone(e.target.value)}
                 className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
@@ -177,7 +204,7 @@ export function InviteCollaboratorModal({
               </label>
               <input
                 type="text"
-                placeholder="Ex: 24510-F"
+                placeholder="Ex.: 00000-F"
                 value={creci}
                 onChange={(e) => setCreci(e.target.value)}
                 className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
@@ -206,6 +233,7 @@ export function InviteCollaboratorModal({
               <input
                 type={showPassword ? "text" : "password"}
                 required
+                minLength={8}
                 value={senhaTemporaria}
                 onChange={(e) => setSenhaTemporaria(e.target.value)}
                 className="w-full bg-background border border-border rounded-xl pl-3 pr-10 py-2.5 text-foreground font-mono font-bold tracking-wider focus:outline-none focus:ring-2 focus:ring-connect-blue"
@@ -220,25 +248,12 @@ export function InviteCollaboratorModal({
               </button>
             </div>
 
-            {/* Checkbox Forçar Troca */}
-            <label className="flex items-start gap-2 pt-1 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={exigirTroca}
-                onChange={(e) => setExigirTroca(e.target.checked)}
-                className="w-4 h-4 mt-0.5 rounded text-connect-blue focus:ring-connect-blue"
-              />
-              <span className="text-[11px] text-muted-foreground leading-tight">
-                <strong className="text-foreground">Exigir alteração de senha no primeiro login:</strong>{" "}
-                O corretor será conduzido a criar uma senha definitiva pessoal assim que se conectar.
-              </span>
-            </label>
-
             {/* Callout Informativo */}
             <div className="flex items-start gap-2 p-2.5 rounded-lg bg-connect-blue/5 border border-connect-blue/20 text-[11px] text-muted-foreground">
               <Info className="w-4 h-4 text-connect-blue shrink-0 mt-0.5" />
               <span>
-                Esta senha provisória será associada ao e-mail informado. O profissional receberá a orientação para utilizar esta credencial de entrada inicial.
+                Nenhum e-mail é enviado automaticamente: compartilhe esta senha provisória com o profissional por um canal seguro e
+                oriente-o a trocá-la em Configurações &gt; Minha Conta no primeiro acesso.
               </span>
             </div>
           </div>
@@ -248,16 +263,18 @@ export function InviteCollaboratorModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-muted-foreground hover:bg-muted font-semibold transition-colors"
+              disabled={submitting}
+              className="px-4 py-2 rounded-lg text-muted-foreground hover:bg-muted font-semibold transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-extrabold flex items-center gap-2 shadow-md shadow-connect-blue/20 transition-all hover:scale-[1.01]"
+              disabled={submitting}
+              className="disabled:opacity-60 px-5 py-2.5 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white font-extrabold flex items-center gap-2 shadow-md shadow-connect-blue/20 transition-all hover:scale-[1.01]"
             >
               <Send className="w-3.5 h-3.5 text-platz-gold" />
-              Disparar Convite & Senha
+              {submitting ? "Cadastrando..." : "Cadastrar Colaborador"}
             </button>
           </div>
         </form>

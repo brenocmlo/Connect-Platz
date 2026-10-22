@@ -27,8 +27,10 @@ export interface PropertyCardData {
   estagioObra?: string | null;
   valorVenda?: number | null;
   valorDiaria?: number | null;
+  endereco?: string | null;
   bairro?: string | null;
   cidade?: string | null;
+  estado?: string | null;
   descricao?: string | null;
   fotos?: string[];
   caracteristicas?: {
@@ -43,6 +45,11 @@ export interface PropertyCardData {
   units?: any[];
   construtora?: string | null;
   codigoRef?: string | null;
+  cep?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  isActive?: boolean;
+  _count?: { materials?: number; sales?: number };
 }
 
 interface PropertyProductCardProps {
@@ -203,8 +210,8 @@ export function PropertyProductCard({
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow backdrop-blur-md flex items-center gap-1 border transition-colors ${
                 isNaLanding
-                  ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/50"
-                  : "bg-black/60 text-slate-400 border-slate-700/60"
+                  ? "bg-emerald-600/90 text-white border-emerald-400/50"
+                  : "bg-black/60 text-white/80 border-white/20"
               }`}
             >
               <Globe className="w-3 h-3 text-emerald-400" />
@@ -218,7 +225,7 @@ export function PropertyProductCard({
               <MapPin className="w-3.5 h-3.5 text-platz-gold" />
               {property.bairro || "Centro"}, {property.cidade || "Fortaleza"}
             </span>
-            <span className="text-[11px] font-mono text-slate-200/90 drop-shadow">
+            <span className="text-[11px] font-mono text-white/90 drop-shadow">
               {refCode}
             </span>
           </div>

@@ -57,6 +57,7 @@ export function EditPropertyImageModal({
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("folder", "properties");
 
       const res = await fetch("/api/upload", {
         method: "POST",
@@ -111,7 +112,8 @@ export function EditPropertyImageModal({
         onSuccess(updated);
         onClose();
       } else {
-        alert("Erro ao salvar foto do imóvel.");
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Erro ao salvar foto do imóvel.");
       }
     } catch (err) {
       console.error("Erro ao atualizar imagem do imóvel:", err);
@@ -122,7 +124,7 @@ export function EditPropertyImageModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
       <div className="bg-card border border-border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header do Modal */}
         <div className="p-5 border-b border-border flex items-center justify-between">

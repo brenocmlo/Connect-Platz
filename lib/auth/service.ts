@@ -1,3 +1,4 @@
+import { businessDay } from "@/lib/utils/businessDay";
 import { prisma } from "../db/prisma";
 import { hashPassword, verifyPassword } from "./password";
 import { signSessionToken, SessionPayload } from "./jwt";
@@ -38,8 +39,7 @@ export class AuthService {
     }
 
     // Verificar se realizou check-in hoje
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = businessDay();
 
     const checkInToday = await prisma.checkIn.findFirst({
       where: {

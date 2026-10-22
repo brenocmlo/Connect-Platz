@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { Bath, BedDouble, Car, ChevronLeft, ChevronRight, MapPin, MessageCircle, Ruler } from "lucide-react";
 import type { PropertyItem } from "./types";
-import { FALLBACK_PHOTO, formatPrice, isTemporada, waLink } from "./portalUtils";
+import { FALLBACK_PHOTO, formatPrice, isTemporada } from "./portalUtils";
+import { useWaLink } from "./PortalSettingsContext";
 
 export type { PropertyItem } from "./types";
 
@@ -65,6 +66,7 @@ function PhotoSlider({ property, onSelect }: { property: PropertyItem; onSelect:
 }
 
 export function PortalPropertyCard({ property, onSelect, className = "" }: PortalPropertyCardProps) {
+  const waLink = useWaLink();
   const c = property.caracteristicas || {};
   const specs = [
     { icon: BedDouble, value: c.quartos, label: "quartos" },
@@ -117,6 +119,7 @@ export function PortalPropertyCard({ property, onSelect, className = "" }: Porta
           >
             Ver detalhes
           </button>
+          {waLink && (
           <a
             href={waLink(`Olá! Gostaria de informações sobre o imóvel "${property.nome}" (${price}).`)}
             target="_blank"
@@ -126,6 +129,7 @@ export function PortalPropertyCard({ property, onSelect, className = "" }: Porta
           >
             <MessageCircle className="h-4 w-4" />
           </a>
+          )}
         </div>
       </div>
     </article>

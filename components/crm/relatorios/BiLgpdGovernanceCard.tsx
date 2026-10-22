@@ -1,47 +1,24 @@
 "use client";
 
 import React, { useState } from "react";
-import * as XLSX from "xlsx";
-import {
-  ShieldCheck,
-  Download,
-  Filter,
-  UserX,
-} from "lucide-react";
-import { CLOSED_LEADS_FOR_REMARKETING } from "./biData";
+import { ShieldCheck, Download, UserX } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
+import { EmptyState } from "@/components/crm/primitives/EmptyState";
+import { exportLgpdXlsx } from "./biExport";
+import type { BiLgpdClosedLead } from "./types";
 
-export function BiLgpdGovernanceCard() {
+/** Leads encerrados (dados reais de /api/relatorios) para reativação/descarte conforme LGPD. */
+export function BiLgpdGovernanceCard({ leads }: { leads: BiLgpdClosedLead[] }) {
   const { setActionMessage } = useCrm();
   const [selectedReason, setSelectedReason] = useState<string>("all");
 
-  const reasons = Array.from(
-    new Set(CLOSED_LEADS_FOR_REMARKETING.map((l) => l.motivo))
-  );
+  const reasons = Array.from(new Set(leads.map((l) => l.motivo)));
 
-  const filteredLeads =
-    selectedReason === "all"
-      ? CLOSED_LEADS_FOR_REMARKETING
-      : CLOSED_LEADS_FOR_REMARKETING.filter((l) => l.motivo === selectedReason);
+  const filteredLeads = selectedReason === "all" ? leads : leads.filter((l) => l.motivo === selectedReason);
 
   const handleExportLgpd = () => {
-    const exportData = filteredLeads.map((l) => ({
-      Nome: l.nome,
-      Telefone: l.telefone,
-      Email: l.email,
-      Motivo: l.motivo,
-      "Data Encerramento": l.dataEncerramento,
-      "Empreendimento de Interesse": l.interesse,
-      "Último Corretor": l.corretorUltimo,
-      "Dias Inativo": l.diasInativo,
-      "Consentimento LGPD": "Opt-in Base de Descarte",
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Leads LGPD");
-    XLSX.writeFile(workbook, "Leads_Descarte_Remarketing_LGPD.xlsx");
-
+    if (filteredLeads.length === 0) return;
+    exportLgpdXlsx(filteredLeads);
     setActionMessage("Exportação LGPD concluída com sucesso!");
     setTimeout(() => setActionMessage(null), 4000);
   };
@@ -59,7 +36,7 @@ export function BiLgpdGovernanceCard() {
               Governança LGPD & Remarketing de Descarte
             </h3>
             <p className="text-[11px] text-muted-foreground">
-              Leads encerrados com consentimento para futuras campanhas de reativação
+              Leads encerrados disponíveis para reativação ou descarte
             </p>
           </div>
         </div>
@@ -71,7 +48,7 @@ export function BiLgpdGovernanceCard() {
             onChange={(e) => setSelectedReason(e.target.value)}
             className="text-xs bg-muted/60 border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none"
           >
-            <option value="all">Todos os Motivos ({CLOSED_LEADS_FOR_REMARKETING.length})</option>
+            <option value="all">Todos os Motivos ({leads.length})</option>
             {reasons.map((r) => (
               <option key={r} value={r}>
                 {r}
@@ -81,6 +58,7 @@ export function BiLgpdGovernanceCard() {
 
           <button
             onClick={handleExportLgpd}
+            disabled={filteredLeads.length === 0}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition-colors shadow-xs"
           >
             <Download className="w-3.5 h-3.5 text-platz-gold" />
@@ -88,6 +66,14 @@ export function BiLgpdGovernanceCard() {
           </button>
         </div>
       </div>
+
+      {filteredLeads.length === 0 && (
+        <EmptyState
+          icon={UserX}
+          title="Nenhum lead encerrado"
+          description="Leads marcados como perdidos/encerrados aparecerão aqui para reativação ou descarte."
+        />
+      )}
 
       {/* Grid de Cards de Contatos Encerrados */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -103,9 +89,9 @@ export function BiLgpdGovernanceCard() {
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
-              <span>{lead.telefone}</span>
-              <span>{lead.email}</span>
+            <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground font-mono">
+              <span className="shrink-0">{lead.telefone || "—"}</span>
+              <span className="truncate" title={lead.email}>{lead.email}</span>
             </div>
 
             <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px]">

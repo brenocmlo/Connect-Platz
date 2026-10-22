@@ -8,7 +8,7 @@ import { PropertyStatCards } from "@/components/crm/properties/PropertyStatCards
 import { PropertyListSection } from "@/components/crm/properties/PropertyListSection";
 import { SiteSettingsTab } from "@/components/crm/properties/SiteSettingsTab";
 import { PropertyCardData } from "@/components/crm/properties/PropertyProductCard";
-import { EspelhoVendasModal, EmpreendimentoData } from "@/components/crm/properties/EspelhoVendasModal";
+import { PropertyDetailsModal } from "@/components/crm/properties/PropertyDetailsModal";
 import { PublishLandingModal } from "@/components/crm/properties/PublishLandingModal";
 import { PropertyMaterialsModal } from "@/components/crm/properties/PropertyMaterialsModal";
 import { NewEmpreendimentoModal } from "@/components/crm/properties/NewEmpreendimentoModal";
@@ -16,29 +16,40 @@ import { NewImovelAvulsoModal } from "@/components/crm/properties/NewImovelAvuls
 import { EditPropertyImageModal } from "@/components/crm/properties/EditPropertyImageModal";
 
 export default function EmpreendimentosPage() {
-  const { setActionMessage } = useCrm();
+  const { user, setActionMessage } = useCrm();
+  const canManage = ["ADMINISTRADOR", "DIRETOR", "GERENTE"].includes(user?.role || "");
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"LISTA" | "CONFIG_SITE">("LISTA");
   const [properties, setProperties] = useState<PropertyCardData[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modais
-  const [selectedEspelhoProperty, setSelectedEspelhoProperty] = useState<EmpreendimentoData | null>(null);
+  const [selectedDetailsProperty, setSelectedDetailsProperty] = useState<PropertyCardData | null>(null);
   const [publishModalProperty, setPublishModalProperty] = useState<PropertyCardData | null>(null);
   const [materialsProperty, setMaterialsProperty] = useState<PropertyCardData | null>(null);
   const [editImageProperty, setEditImageProperty] = useState<PropertyCardData | null>(null);
   const [isNewEmpModalOpen, setIsNewEmpModalOpen] = useState(false);
   const [isNewAvulsoModalOpen, setIsNewAvulsoModalOpen] = useState(false);
 
+  const notify = (msg: string, ms = 3500) => {
+    setActionMessage(msg);
+    setTimeout(() => setActionMessage(null), ms);
+  };
+
+  const readError = async (res: Response, fallback: string) =>
+    ((await res.json().catch(() => null)) as { error?: string } | null)?.error || fallback;
+
   const loadProperties = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/properties");
-      if (res.ok) {
-        const data = await res.json();
-        setProperties(data.properties || []);
-      }
-    } catch (err) {
+      setLoadError(null);
+      const res = await fetch("/api/properties", { cache: "no-store" });
+      if (!res.ok) throw new Error(await readError(res, "Não foi possível carregar o catálogo."));
+      const data = await res.json();
+      setProperties(data.properties || []);
+    } catch (err: any) {
       console.error("Erro ao carregar propriedades:", err);
+      setLoadError(err.message || "Não foi possível carregar o catálogo.");
     } finally {
       setLoading(false);
     }
@@ -48,69 +59,60 @@ export default function EmpreendimentosPage() {
     loadProperties();
   }, []);
 
+  // Atualização otimista: aplica, chama a API e desfaz em caso de erro
   const handleToggleLandingPage = async (id: string, current: boolean) => {
+    if (!canManage) return notify("Apenas gestores podem alterar a vitrine.");
+    const apply = (value: boolean) => {
+      setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, exibirNaLandingPage: value } : p)));
+      setPublishModalProperty((prev) => (prev && prev.id === id ? { ...prev, exibirNaLandingPage: value } : prev));
+    };
+    apply(!current);
     try {
       const res = await fetch(`/api/properties/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ exibirNaLandingPage: !current }),
       });
-
-      if (res.ok) {
-        setProperties((prev) =>
-          prev.map((p) =>
-            p.id === id ? { ...p, exibirNaLandingPage: !current } : p
-          )
-        );
-        if (publishModalProperty && publishModalProperty.id === id) {
-          setPublishModalProperty((prev) =>
-            prev ? { ...prev, exibirNaLandingPage: !current } : null
-          );
-        }
-        setActionMessage(
-          !current
-            ? "Imóvel ATIVADO na Landing Page com sucesso!"
-            : "Imóvel OCULTADO da Landing Page."
-        );
-        setTimeout(() => setActionMessage(null), 3500);
-      }
-    } catch (err) {
-      console.error(err);
+      if (!res.ok) throw new Error(await readError(res, "Não foi possível alterar a vitrine."));
+      notify(!current ? "Imóvel publicado na vitrine com sucesso!" : "Imóvel ocultado da vitrine.");
+    } catch (err: any) {
+      apply(current);
+      notify(err.message || "Não foi possível alterar a vitrine.");
     }
   };
 
   const handleDeleteProperty = async (id: string) => {
+    if (!canManage) return notify("Apenas gestores podem excluir imóveis.");
     if (!confirm("Deseja realmente remover este imóvel do catálogo?")) return;
     try {
       const res = await fetch(`/api/properties/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setProperties((prev) => prev.filter((p) => p.id !== id));
-        setActionMessage("Imóvel removido com sucesso!");
-        setTimeout(() => setActionMessage(null), 3000);
-      }
-    } catch (err) {
-      console.error(err);
+      if (!res.ok) throw new Error(await readError(res, "Não foi possível excluir o imóvel."));
+      const data = await res.json();
+      // Desativado (vendas vinculadas) ou excluído: em ambos os casos sai do catálogo ativo
+      setProperties((prev) => prev.filter((p) => p.id !== id));
+      notify(data.deactivated ? data.message : "Imóvel excluído com sucesso!", data.deactivated ? 6000 : 3000);
+    } catch (err: any) {
+      notify(err.message || "Não foi possível excluir o imóvel.");
     }
   };
 
-  // Cálculos de métricas da Seção 5.6
+  // Métricas reais do catálogo (Seção 5.6) — sem valores de exemplo
   const empreendimentos = properties.filter((p) => p.tipoCadastro !== "AVULSO");
-  const totalEmpreendimentos = empreendimentos.length || 8;
-  const totalAtivos = properties.filter((p) => p.exibirNaLandingPage !== false).length || 6;
-  const totalConstrutoras = Math.max(
-    4,
-    new Set(properties.map((p) => p.construtora || p.bairro)).size
-  );
-  const totalVgv = properties.reduce((acc, p) => acc + (Number(p.valorVenda) || 850000), 0);
+  const totalEmpreendimentos = empreendimentos.length;
+  const totalAtivos = properties.filter((p) => p.exibirNaLandingPage !== false).length;
+  const totalConstrutoras = new Set(
+    properties.map((p) => (p.construtora || "").trim().toLowerCase()).filter(Boolean)
+  ).size;
+  const totalVgv = properties.reduce((acc, p) => acc + (Number(p.valorVenda) || 0), 0);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fadeIn">
       {/* 1. Header do Catálogo com botão tint Ver Site e CTA (Seção 5.6) */}
       <PageHeader
         title="Empreendimentos & Catálogo"
-        subtitle="Gerencie condomínios, matrizes de andares, espelhos de vendas e presença na Landing Page."
-        actionLabel="Novo Empreendimento"
-        onActionClick={() => setIsNewEmpModalOpen(true)}
+        subtitle="Gerencie lançamentos, condomínios, materiais de vendas e presença na vitrine pública."
+        actionLabel={canManage ? "Novo Empreendimento" : undefined}
+        onActionClick={canManage ? () => setIsNewEmpModalOpen(true) : undefined}
       >
         {/* Botão tint 🌐 Ver meu Site (Seção 5.6) */}
         <a
@@ -140,6 +142,7 @@ export default function EmpreendimentosPage() {
             <Building2 className="w-4 h-4 text-connect-blue" />
             <span>Lista de Empreendimentos</span>
           </button>
+          {canManage && (
           <button
             type="button"
             onClick={() => setActiveMainTab("CONFIG_SITE")}
@@ -152,6 +155,7 @@ export default function EmpreendimentosPage() {
             <Globe className="w-4 h-4 text-emerald-500" />
             <span>Configurações Site</span>
           </button>
+          )}
         </div>
 
         <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
@@ -174,17 +178,28 @@ export default function EmpreendimentosPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-connect-blue mx-auto mb-3" />
           Carregando catálogo de empreendimentos...
         </div>
-      ) : activeMainTab === "LISTA" ? (
+      ) : loadError ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/5 py-12 text-center text-xs">
+          <p className="font-semibold text-red-600 dark:text-red-400">{loadError}</p>
+          <button
+            type="button"
+            onClick={loadProperties}
+            className="rounded-lg bg-connect-blue px-4 py-2 font-bold text-white transition-all hover:scale-[1.02]"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : activeMainTab === "LISTA" || !canManage ? (
         <PropertyListSection
           properties={properties}
-          onOpenDetails={(prop) => setSelectedEspelhoProperty(prop as any)}
+          onOpenDetails={(prop) => setSelectedDetailsProperty(prop)}
           onOpenPublishModal={(prop) => setPublishModalProperty(prop)}
           onOpenMaterials={(prop) => setMaterialsProperty(prop)}
           onOpenEditImage={(prop) => setEditImageProperty(prop)}
-          onOpenNewEmpModal={() => setIsNewEmpModalOpen(true)}
-          onOpenNewAvulsoModal={() => setIsNewAvulsoModalOpen(true)}
+          onOpenNewEmpModal={canManage ? () => setIsNewEmpModalOpen(true) : undefined}
+          onOpenNewAvulsoModal={canManage ? () => setIsNewAvulsoModalOpen(true) : undefined}
           onToggleLandingPage={handleToggleLandingPage}
-          onDeleteProperty={handleDeleteProperty}
+          onDeleteProperty={canManage ? handleDeleteProperty : undefined}
         />
       ) : (
         <SiteSettingsTab
@@ -200,8 +215,7 @@ export default function EmpreendimentosPage() {
         onClose={() => setIsNewEmpModalOpen(false)}
         onSuccess={() => {
           loadProperties();
-          setActionMessage("Empreendimento cadastrado com sucesso!");
-          setTimeout(() => setActionMessage(null), 4000);
+          notify("Empreendimento cadastrado com sucesso!", 4000);
         }}
       />
 
@@ -210,8 +224,7 @@ export default function EmpreendimentosPage() {
         onClose={() => setIsNewAvulsoModalOpen(false)}
         onSuccess={() => {
           loadProperties();
-          setActionMessage("Imóvel avulso cadastrado com sucesso!");
-          setTimeout(() => setActionMessage(null), 4000);
+          notify("Imóvel avulso cadastrado com sucesso!", 4000);
         }}
       />
 
@@ -223,14 +236,14 @@ export default function EmpreendimentosPage() {
           setProperties((prev) =>
             prev.map((p) => (p.id === updated.id ? updated : p))
           );
-          setActionMessage("Foto de capa do imóvel atualizada com sucesso!");
-          setTimeout(() => setActionMessage(null), 3500);
+          notify("Foto de capa do imóvel atualizada com sucesso!");
         }}
       />
 
-      <EspelhoVendasModal
-        property={selectedEspelhoProperty}
-        onClose={() => setSelectedEspelhoProperty(null)}
+      <PropertyDetailsModal
+        property={selectedDetailsProperty}
+        onClose={() => setSelectedDetailsProperty(null)}
+        onOpenMaterials={(prop) => setMaterialsProperty(prop)}
       />
 
       <PublishLandingModal

@@ -1,3 +1,4 @@
+import { businessDay } from "../lib/utils/businessDay";
 import { PrismaClient, Role, CorretorStatus, PropertyModality, PriceRange } from "@prisma/client";
 import { hashPassword } from "../lib/auth/password";
 
@@ -85,8 +86,7 @@ async function main() {
     });
 
     // Check-in de hoje para o corretor ficar disponível na roleta
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = businessDay();
     await prisma.checkIn.upsert({
       where: { userId_date: { userId: user.id, date: today } },
       update: {},

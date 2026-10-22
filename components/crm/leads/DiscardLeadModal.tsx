@@ -37,12 +37,6 @@ export function DiscardLeadModal({
 
     // Registra na trilha de auditoria
     logAuditEvent({
-      usuario: {
-        id: "current-user",
-        nome: "Robson Carvalho",
-        email: "robson@connectplatz.com.br",
-        role: "ADMINISTRADOR",
-      },
       acao: "Encerramento / Descarte de Lead",
       tipoAcao: "UPDATE",
       modulo: "LEADS",

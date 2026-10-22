@@ -54,7 +54,7 @@ export function PropertyMenu({
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/espelho/${propertyId}`;
+    const url = `${window.location.origin}/#imoveis`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => {
@@ -100,7 +100,7 @@ export function PropertyMenu({
             className="w-full text-left px-3 py-2 text-foreground hover:bg-connect-blue hover:text-white flex items-center gap-2.5 transition-colors"
           >
             <Eye className="w-4 h-4 text-connect-blue group-hover:text-white" />
-            <span>Ver Espelho / Detalhes</span>
+            <span>Ver Ficha / Detalhes</span>
           </button>
 
           {/* 2. Alterar Foto / Capa do Imóvel */}

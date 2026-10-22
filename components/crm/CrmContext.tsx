@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useCrmNotifications } from "./useCrmNotifications";
 
 export interface UserSession {
   id: string;
@@ -84,33 +85,8 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
 
-  // Notificações em tempo real
-  const [notifications, setNotifications] = useState<CrmNotification[]>([
-    {
-      id: "notif-1",
-      title: "Novo Lead Meta Ads",
-      message: "Lead 'Eduardo Matos' recebido via criativo Villa Platz Beach.",
-      type: "lead",
-      read: false,
-      createdAt: "Há 10 min",
-    },
-    {
-      id: "notif-2",
-      title: "Alerta de SLA Estourado",
-      message: "O lead 'Camila Vasconcelos' está há mais de 20 min sem contato inicial.",
-      type: "sla",
-      read: false,
-      createdAt: "Há 25 min",
-    },
-    {
-      id: "notif-3",
-      title: "Reserva de Veraneio Confirmada",
-      message: "Reserva #408 confirmada com pagamento via PIX para o condomínio Solarium.",
-      type: "booking",
-      read: true,
-      createdAt: "Há 2 horas",
-    },
-  ]);
+  // Notificações reais (leads recebidos, SLA estourado, compromissos do dia)
+  const { notifications, markNotificationsAsRead } = useCrmNotifications(Boolean(token));
 
   useEffect(() => {
     // Inicializar Tema Light/Dark
@@ -155,6 +131,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
           const data = await res.json();
           if (data?.user) {
             setUser(data.user);
+            // Flag de sessão ativa (o token real trafega só no cookie HttpOnly)
             setToken("cookie-session");
           } else {
             setUser(null);
@@ -239,9 +216,6 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const markNotificationsAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
 
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -251,7 +225,6 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch("/api/auth/checkin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         if (user) {
@@ -275,10 +248,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch("/api/auth/status", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {

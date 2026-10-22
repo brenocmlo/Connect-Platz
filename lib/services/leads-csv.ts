@@ -2,6 +2,7 @@
 // Utilitários para Exportação e Importação determinística de Leads em formato CSV para o Connect Platz CRM
 
 import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { sourceLabel } from "@/components/crm/leads/leadSource";
 
 /**
  * Exporta uma lista de leads para arquivo CSV com codificação UTF-8 com BOM
@@ -35,13 +36,13 @@ export function exportLeadsToCsv(leads: LeadDetail[], fileNamePrefix = "leads_co
       escapeCsv(lead.nome),
       escapeCsv(lead.telefone),
       escapeCsv(lead.email || ""),
-      escapeCsv(lead.stage?.nome || lead.stageId || "Novo"),
-      lead.temperatura || "MORNO",
-      lead.score ?? 50,
-      escapeCsv(lead.corretor?.nome || "Bolsão Geral"),
+      escapeCsv(lead.stage?.nome || ""),
+      lead.temperatura || "",
+      lead.score ?? "",
+      escapeCsv(lead.corretor?.nome || (lead.isBolsao ? "Bolsão" : "")),
       escapeCsv(lead.empreendimentoInteresse || ""),
       lead.rendaDeclarada ? lead.rendaDeclarada.toString() : "",
-      lead.source || "OUTROS",
+      escapeCsv(lead.sourceLabel || sourceLabel(lead.source)),
       lead.slaBreached ? "SIM" : "NÃO",
       lead.compromissosCount || 0,
       lead.createdAt ? new Date(lead.createdAt).toLocaleDateString("pt-BR") : "",
@@ -115,14 +116,15 @@ export function parseLeadsCsv(content: string): ParsedCsvLead[] {
     const rawCols = lines[i].split(separator).map((col) => col.replace(/^["']|["']$/g, "").trim());
     if (rawCols.length === 0 || rawCols.every((c) => c === "")) continue;
 
-    const nome = nameIdx !== -1 && rawCols[nameIdx] ? rawCols[nameIdx] : `Lead Importado #${i}`;
+    const nome = nameIdx !== -1 && rawCols[nameIdx] ? rawCols[nameIdx] : "";
     const telefone = phoneIdx !== -1 && rawCols[phoneIdx] ? rawCols[phoneIdx] : "";
     const email = emailIdx !== -1 && rawCols[emailIdx] ? rawCols[emailIdx] : undefined;
     const empreendimento = propIdx !== -1 && rawCols[propIdx] ? rawCols[propIdx] : undefined;
     const renda = rendaIdx !== -1 && rawCols[rendaIdx] ? rawCols[rendaIdx] : undefined;
-    const origem = originIdx !== -1 && rawCols[originIdx] ? rawCols[originIdx] : "IMPORTADO_CSV";
+    const origem = originIdx !== -1 && rawCols[originIdx] ? rawCols[originIdx] : "Importação CSV";
 
-    if (nome || telefone) {
+    // Nome e telefone são obrigatórios no cadastro (sem nomes/telefones fictícios)
+    if (nome && telefone) {
       results.push({ nome, telefone, email, empreendimento, renda, origem });
     }
   }

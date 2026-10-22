@@ -1,45 +1,48 @@
 export interface SplitItem {
   id: string;
   beneficiario: string;
+  /** Rótulo amigável (Corretor 1, Gerente, Imobiliária...) */
   categoria: string;
+  /** CommissionBeneficiaryType persistido */
+  tipo?: string;
+  userId?: string | null;
   percentual: number;
   valor: number;
-  status: "PAGO" | "PENDENTE";
+  status: "PAGO" | "PENDENTE" | "CANCELADO";
   pix?: string;
-  dataPagamento?: string;
-}
-
-export interface SaleParticipant {
-  cargo: "Corretor 1" | "Corretor 2" | "Gerente" | "Gestor" | "Captador";
-  nome: string;
-  percentual: number;
-  valor: number;
-  desconto?: number;
-  bonus?: number;
-  avatarUrl?: string;
+  dataVencimento?: string;
+  dataPagamento?: string | null;
 }
 
 export interface SaleItem {
   id: string;
   codigoVenda: string;
   imovelNome: string;
-  construtora?: string;
-  unidadeNumero: string;
+  construtora?: string | null;
+  unidadeNumero?: string | null;
   compradorNome: string;
+  corretorId?: string;
   corretorTitular: string;
   segundoCorretor?: string;
   gerente?: string;
   gestor?: string;
   captador?: string;
+  /** dd/mm/aaaa (exibição) */
   dataVenda: string;
+  /** aaaa-mm-dd (cálculos de período) */
+  dataVendaIso: string;
   vgv: number;
-  valorAvaliacao?: number;
+  valorAvaliacao?: number | null;
   comissaoTotal: number;
-  impostoValor?: number;
-  impostoPercentual?: number;
-  proximoPagamento?: string;
+  percentualComissao?: number;
+  impostoValor: number;
+  impostoPercentual: number;
+  proximoPagamento?: string | null;
   meioPagamento: string;
-  status: "APROVADA" | "EM_ANALISE" | "PAGA" | "CANCELADA";
+  /** "ativa" | "cancelada" (Sale.status) */
+  status: string;
+  /** "pendente" | "parcial" | "paga" (Sale.statusComissao) */
+  statusComissao: string;
   splits: SplitItem[];
 }
 
