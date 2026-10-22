@@ -9,6 +9,7 @@ WORKDIR /app
 
 # Forçar instalação de devDependencies (TypeScript, types) mesmo se NODE_ENV=production no Coolify
 ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
@@ -22,6 +23,11 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Garantir NODE_ENV padrão limpo e limitar uso de memória para evitar OOM no VPS do Coolify
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 
 # Suporte a variáveis de build no Coolify
 ARG NEXT_PUBLIC_APP_URL
@@ -38,8 +44,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Instalar Prisma CLI global para suporte a db push e migrações automáticas
-RUN npm install -g prisma
+# Instalar Prisma CLI compatível com Node 20 para suporte a db push e migrações
+RUN npm install -g prisma@5.22.0
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
