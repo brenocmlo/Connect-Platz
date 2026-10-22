@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ShieldCheck, Lock, Mail, ArrowRight, Building2, Sparkles } from "lucide-react";
+import { Lock, Mail, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("robson@connectplatz.com.br");
-  const [password, setPassword] = useState("ConnectPlatz2026@");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +27,7 @@ export default function LoginPage() {
         throw new Error(data.error || "Falha na autenticação");
       }
 
-      // Redirecionamento completo para garantir despacho imediato dos cookies HTTP
+      // Redirecionamento completo para despacho imediato dos cookies de sessão
       window.location.href = "/crm";
     } catch (err: any) {
       setError(err.message || "Erro de conexão com o servidor.");
@@ -46,10 +45,6 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Card Header */}
         <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-connect-blue/15 border border-connect-blue/40 text-blue-400 text-[11px] sm:text-xs font-semibold uppercase tracking-wider mb-3 sm:mb-4">
-            <ShieldCheck className="w-3.5 h-3.5 text-connect-blue shrink-0" />
-            <span>Autenticação Segura • RLS</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             CONNECT <span className="text-[#D9BB4C]">PLATZ</span>
           </h1>
@@ -78,6 +73,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                   placeholder="seu.email@connectplatz.com.br"
                   className="w-full bg-[#0D131F] border border-[#1F2937] focus:border-connect-blue rounded-xl pl-10 pr-4 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-connect-blue transition-all"
                 />
@@ -91,13 +87,27 @@ export default function LoginPage() {
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                   placeholder="••••••••••••"
-                  className="w-full bg-[#0D131F] border border-[#1F2937] focus:border-connect-blue rounded-xl pl-10 pr-4 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-connect-blue transition-all"
+                  className="w-full bg-[#0D131F] border border-[#1F2937] focus:border-connect-blue rounded-xl pl-10 pr-11 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-connect-blue transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors p-1 rounded-md focus:outline-none focus:ring-1 focus:ring-connect-blue cursor-pointer"
+                  aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
               <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1">
                 Protegido por hash bcrypt salt rounds 12.
@@ -119,35 +129,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Credentials Help (Tap to auto-fill) */}
-          <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-[#1F2937] text-xs text-slate-400 space-y-2">
-            <p className="font-semibold text-slate-300 text-center">Toque para preencher (Demonstração):</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("robson@connectplatz.com.br");
-                  setPassword("ConnectPlatz2026@");
-                }}
-                className="p-2 rounded-lg bg-[#0D131F] border border-[#1F2937] hover:border-connect-blue text-left transition-colors cursor-pointer"
-              >
-                <div className="font-bold text-[#D9BB4C] text-[11px]">Admin / Gestor</div>
-                <div className="text-[10px] text-slate-400 truncate">robson@...</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("lucas.corretor@connectplatz.com.br");
-                  setPassword("ConnectPlatz2026@");
-                }}
-                className="p-2 rounded-lg bg-[#0D131F] border border-[#1F2937] hover:border-connect-blue text-left transition-colors cursor-pointer"
-              >
-                <div className="font-bold text-blue-400 text-[11px]">Corretor</div>
-                <div className="text-[10px] text-slate-400 truncate">lucas...@...</div>
-              </button>
-            </div>
-          </div>
         </div>
 
         <div className="text-center mt-5 sm:mt-6 text-[11px] sm:text-xs text-slate-500">
