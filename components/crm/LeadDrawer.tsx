@@ -16,6 +16,10 @@ export interface LeadDetail {
   email?: string | null;
   cpf?: string | null;
   rg?: string | null;
+  cep?: string | null;
+  logradouro?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
   estadoCivil?: string | null;
   regimeCasamento?: string | null;
   profissao?: string | null;

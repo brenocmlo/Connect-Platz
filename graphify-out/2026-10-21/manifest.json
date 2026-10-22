@@ -108,9 +108,9 @@
     "semantic_hash": ""
   },
   "app/crm/equipes/page.tsx": {
-    "mtime": 1791823350.6550891,
-    "seen": 1791823633.179601,
-    "ast_hash": "c229a7be7cd7516f56cb5b2f9060a11d",
+    "mtime": 1792592757.0620298,
+    "seen": 1792592925.0084522,
+    "ast_hash": "916b8482672baa51155a3ba9a1289312",
     "semantic_hash": ""
   },
   "app/crm/fluxo-de-caixa/page.tsx": {
@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "app/crm/leads/page.tsx": {
-    "mtime": 1791423260.907013,
-    "seen": 1791423882.483671,
-    "ast_hash": "2c745b87d1dc58736fadd67aca895bb4",
+    "mtime": 1792435938.5388522,
+    "seen": 1792592925.00882,
+    "ast_hash": "37150441fac34aa3a33261055dc8573b",
     "semantic_hash": ""
   },
   "app/crm/page.tsx": {
@@ -222,9 +222,9 @@
     "semantic_hash": ""
   },
   "components/crm/LeadDrawer.tsx": {
-    "mtime": 1791423750.6689777,
-    "seen": 1791423882.4854841,
-    "ast_hash": "82d286dfbc1b9d75e0a0039791a2202e",
+    "mtime": 1792624924.279227,
+    "seen": 1792625058.1699,
+    "ast_hash": "fc8a06fcb41248cbb9ec7a1ca4e11be9",
     "semantic_hash": ""
   },
   "components/crm/PageHeader.tsx": {
@@ -270,10 +270,10 @@
     "semantic_hash": "d51f551459e27d7b77addc2f61e921da"
   },
   "components/crm/agenda/AgendaHeader.tsx": {
-    "mtime": 1790893230.2173808,
-    "seen": 1791241244.8820128,
-    "ast_hash": "00cc07b0b08489117e1040aed0875115",
-    "semantic_hash": "00cc07b0b08489117e1040aed0875115"
+    "mtime": 1792439655.4018192,
+    "seen": 1792592925.0107,
+    "ast_hash": "97ee04d5602a9ffb19b957f66190c1c1",
+    "semantic_hash": ""
   },
   "components/crm/agenda/AgendaMonthView.tsx": {
     "mtime": 1792001409.2721746,
@@ -282,16 +282,16 @@
     "semantic_hash": ""
   },
   "components/crm/agenda/AgendaWeekView.tsx": {
-    "mtime": 1790893244.8673186,
-    "seen": 1791241244.882016,
-    "ast_hash": "ac39084391657bd2416d8d6cc54d6a90",
-    "semantic_hash": "ac39084391657bd2416d8d6cc54d6a90"
+    "mtime": 1792441280.5446048,
+    "seen": 1792592925.010795,
+    "ast_hash": "449b4db35ec09be0dd5381646c08c727",
+    "semantic_hash": ""
   },
   "components/crm/agenda/AppointmentCard.tsx": {
-    "mtime": 1790893259.524807,
-    "seen": 1791241244.882018,
-    "ast_hash": "f12b1463711e6e47cf6887525d1fd67b",
-    "semantic_hash": "f12b1463711e6e47cf6887525d1fd67b"
+    "mtime": 1792624549.9344094,
+    "seen": 1792625058.171034,
+    "ast_hash": "c5cd2f663de04adfd15a0d666d2b65aa",
+    "semantic_hash": ""
   },
   "components/crm/agenda/NewAppointmentModal.tsx": {
     "mtime": 1790888920.9548447,
@@ -414,10 +414,10 @@
     "semantic_hash": "f8c9247924d104c8211d4d0d7ca3cd3b"
   },
   "components/crm/equipes/RoletaDistributionPanel.tsx": {
-    "mtime": 1791042121.4390054,
-    "seen": 1791241244.882056,
-    "ast_hash": "50fde37091034cf676b3b9aacfbe96e8",
-    "semantic_hash": "50fde37091034cf676b3b9aacfbe96e8"
+    "mtime": 1792592742.3734574,
+    "seen": 1792592925.013809,
+    "ast_hash": "dde8e1c8f84c26f4d29c99298e5e4a4e",
+    "semantic_hash": ""
   },
   "components/crm/financeiro/CashFlowProjection.tsx": {
     "mtime": 1791041191.746365,
@@ -474,9 +474,9 @@
     "semantic_hash": "bb449809746d2638a62ed00f56c277a8"
   },
   "components/crm/lead-drawer/LeadDetailsSections.tsx": {
-    "mtime": 1791246325.8011363,
-    "seen": 1791320512.863047,
-    "ast_hash": "68fbb5779b6f56fb7bcb1a56a91d9c60",
+    "mtime": 1792435915.4716609,
+    "seen": 1792592925.015394,
+    "ast_hash": "ffe4c790afe65a06f169d96526f57325",
     "semantic_hash": ""
   },
   "components/crm/lead-drawer/LeadDocsTab.tsx": {
@@ -504,10 +504,10 @@
     "semantic_hash": "0f31f85c3e1cc0186e53a7f19a0da55c"
   },
   "components/crm/lead-drawer/LeadInfoTab.tsx": {
-    "mtime": 1790814032.9074924,
-    "seen": 1791241244.882078,
-    "ast_hash": "8dc9fb7a0aadab826d577bf0b8725988",
-    "semantic_hash": "8dc9fb7a0aadab826d577bf0b8725988"
+    "mtime": 1792592837.6550577,
+    "seen": 1792592925.016077,
+    "ast_hash": "e59d2b9a8254b366116fb7112556cec4",
+    "semantic_hash": ""
   },
   "components/crm/lead-drawer/LeadTimelineTab.tsx": {
     "mtime": 1790814043.0152736,
@@ -528,10 +528,10 @@
     "semantic_hash": "5c8e99447ec8465bb2042f929afbf4c4"
   },
   "components/crm/leads/EditLeadModal.tsx": {
-    "mtime": 1790912632.3668027,
-    "seen": 1791241244.882085,
-    "ast_hash": "52297c8b816bf3a82e65e2cf7e2c3500",
-    "semantic_hash": "52297c8b816bf3a82e65e2cf7e2c3500"
+    "mtime": 1792624713.1587458,
+    "seen": 1792625058.1765451,
+    "ast_hash": "2b9e8fed1acfb108a54aad003955d288",
+    "semantic_hash": ""
   },
   "components/crm/leads/KanbanBoard.tsx": {
     "mtime": 1792001247.9981322,
@@ -600,9 +600,9 @@
     "semantic_hash": "e931daf9963156189a84768b7942ee00"
   },
   "components/crm/leads/NewLeadModal.tsx": {
-    "mtime": 1791421154.9378998,
-    "seen": 1791421480.299428,
-    "ast_hash": "8e80c4aa618bf1e5c421fdd1b58b0e98",
+    "mtime": 1792624650.0078576,
+    "seen": 1792625058.1782231,
+    "ast_hash": "f4d04f62c7959c68995d7bbe67586479",
     "semantic_hash": ""
   },
   "components/crm/leads/leadCalculations.ts": {
@@ -684,10 +684,10 @@
     "semantic_hash": ""
   },
   "components/crm/primitives/index.ts": {
-    "mtime": 1790822767.6718307,
-    "seen": 1791241244.882124,
-    "ast_hash": "b06e68214756a8b4a8161e0a60e376d5",
-    "semantic_hash": "b06e68214756a8b4a8161e0a60e376d5"
+    "mtime": 1792624519.6391382,
+    "seen": 1792625058.179852,
+    "ast_hash": "7706f6564b1bda4c956f0f5d33625da6",
+    "semantic_hash": ""
   },
   "components/crm/properties/EmpreendimentosList.tsx": {
     "mtime": 1790816501.3302426,
@@ -714,21 +714,21 @@
     "semantic_hash": "bafc7e9fdbddf417fbc2a3447997b42a"
   },
   "components/crm/properties/NewEmpreendimentoModal.tsx": {
-    "mtime": 1790816832.2065678,
-    "seen": 1791241244.8821309,
-    "ast_hash": "87f60f6f08125744b944346ef7de453f",
-    "semantic_hash": "87f60f6f08125744b944346ef7de453f"
+    "mtime": 1792439809.6066797,
+    "seen": 1792592925.020313,
+    "ast_hash": "22eca0afa73206dbed14059ec8b1d891",
+    "semantic_hash": ""
   },
   "components/crm/properties/NewImovelAvulsoModal.tsx": {
-    "mtime": 1790816874.886225,
-    "seen": 1791241244.882132,
-    "ast_hash": "32cf5814af0bd7368ef2494732be23fc",
-    "semantic_hash": "32cf5814af0bd7368ef2494732be23fc"
+    "mtime": 1792441008.727307,
+    "seen": 1792592925.020316,
+    "ast_hash": "dbcb07c81e52cf2a4a74731e3e39d3ad",
+    "semantic_hash": ""
   },
   "components/crm/properties/PropertyListSection.tsx": {
-    "mtime": 1791818180.3969395,
-    "seen": 1791818624.399355,
-    "ast_hash": "9a35c43359fd340a927931f10a2ebded",
+    "mtime": 1792436130.496606,
+    "seen": 1792592925.0204108,
+    "ast_hash": "9af7ced2e0f186347d5dd211e7929ecd",
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyMenu.tsx": {
@@ -738,9 +738,9 @@
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyProductCard.tsx": {
-    "mtime": 1791818156.9284809,
-    "seen": 1791818624.399471,
-    "ast_hash": "99b8e3f7f543c8ad10f5f65e3a03456b",
+    "mtime": 1792436187.7850535,
+    "seen": 1792592925.020596,
+    "ast_hash": "7cab9c33d2870b567c4d9d799d56eed4",
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyStatCards.tsx": {
@@ -876,10 +876,10 @@
     "semantic_hash": "86c1a439954e28d6bc981d52400835f0"
   },
   "components/portal/PortalContactModal.tsx": {
-    "mtime": 1791241376.1872194,
-    "seen": 1791241508.7797341,
-    "ast_hash": "597e67b8f94bb98dd795e5da19bdde36",
-    "semantic_hash": "597e67b8f94bb98dd795e5da19bdde36"
+    "mtime": 1792625815.2235851,
+    "seen": 1792625918.633367,
+    "ast_hash": "cd3cc9832c4737a9a465ef1c5043cee3",
+    "semantic_hash": ""
   },
   "components/portal/PortalCreditSimulator.tsx": {
     "mtime": 1791241376.1908793,
@@ -984,10 +984,10 @@
     "semantic_hash": "502b3469ea6cdfbb238403a4bc7503bc"
   },
   "lib/application/usecases/DistributeLeadUseCase.ts": {
-    "mtime": 1790809782.054927,
-    "seen": 1791241244.882196,
-    "ast_hash": "37d90ea80616b761f5d3f5687ac1f9b4",
-    "semantic_hash": "37d90ea80616b761f5d3f5687ac1f9b4"
+    "mtime": 1792592708.3494976,
+    "seen": 1792592925.026133,
+    "ast_hash": "ee32c04634cd709e051f71efc06d1d07",
+    "semantic_hash": ""
   },
   "lib/application/usecases/IngestLeadUseCase.ts": {
     "mtime": 1790809788.9772408,
@@ -1050,10 +1050,10 @@
     "semantic_hash": "d05e5d28544d6208d89101bb4c77d1da"
   },
   "lib/core/interfaces/IDistributionStrategy.ts": {
-    "mtime": 1790809722.5571387,
-    "seen": 1791241244.8822138,
-    "ast_hash": "0c939e620ed44d60704da376df540f37",
-    "semantic_hash": "0c939e620ed44d60704da376df540f37"
+    "mtime": 1792592687.710409,
+    "seen": 1792592925.0270982,
+    "ast_hash": "174b6616d80492666a262fc7910cada1",
+    "semantic_hash": ""
   },
   "lib/core/interfaces/ILeadRepository.ts": {
     "mtime": 1790809931.8112874,
@@ -1098,10 +1098,10 @@
     "semantic_hash": "a7874c53bcfe3185c05cdc3ac94a7850"
   },
   "lib/domain/distribution/RoundRobinDistributionStrategy.ts": {
-    "mtime": 1790809757.1169808,
-    "seen": 1791241244.8822248,
-    "ast_hash": "4ddc9530b4a9cf56ca587f5194d7183b",
-    "semantic_hash": "4ddc9530b4a9cf56ca587f5194d7183b"
+    "mtime": 1792592695.2831933,
+    "seen": 1792592925.0277271,
+    "ast_hash": "3114950d20e74e2fc545918d610a073f",
+    "semantic_hash": ""
   },
   "lib/infrastructure/repositories/PrismaBookingRepository.ts": {
     "mtime": 1790809752.1992693,
@@ -1182,9 +1182,9 @@
     "semantic_hash": "cfd4883cfb0b970cf3f5daf4d97bbdaa"
   },
   "public/sw.js": {
-    "mtime": 1791675280.5834908,
-    "seen": 1791675478.74839,
-    "ast_hash": "d08122b20d1970df9a81d70b6881e8cd",
+    "mtime": 1792176777.022152,
+    "seen": 1792592925.029378,
+    "ast_hash": "94a4ab2bf9ce552cde319ba20655a8b3",
     "semantic_hash": ""
   },
   "scripts/capture_homologacao.py": {
@@ -1632,15 +1632,15 @@
     "semantic_hash": ""
   },
   "components/crm/leads/LeadsModalsContainer.tsx": {
-    "mtime": 1791423185.408361,
-    "seen": 1791423882.4935381,
-    "ast_hash": "98f61685418c612d8941d227ab4b037f",
+    "mtime": 1792436092.8663933,
+    "seen": 1792592925.017956,
+    "ast_hash": "d7db85777ce7cbf8af8c03f45b89d934",
     "semantic_hash": ""
   },
   "components/crm/leads/useLeadsActions.ts": {
-    "mtime": 1791420772.3531322,
-    "seen": 1791421480.299608,
-    "ast_hash": "f82d7c1b968599ce407316887140350b",
+    "mtime": 1792436066.455184,
+    "seen": 1792592925.018513,
+    "ast_hash": "6de5becd385cc80d19a1e10ace698fee",
     "semantic_hash": ""
   },
   "components/crm/vendas/CommissionReceiptModal.tsx": {
@@ -1662,9 +1662,9 @@
     "semantic_hash": ""
   },
   "components/crm/leads/WhatsAppTemplatesModal.tsx": {
-    "mtime": 1791422083.5214646,
-    "seen": 1791423882.4938219,
-    "ast_hash": "2ca251ad35b3938be938fec0585e7f6b",
+    "mtime": 1792592783.617313,
+    "seen": 1792592925.0183308,
+    "ast_hash": "d9172a00bbd414fe88cac8fa689bab55",
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyMaterialsModal.tsx": {
@@ -1848,9 +1848,9 @@
     "semantic_hash": ""
   },
   "docker-compose.yml": {
-    "mtime": 1791832853.278012,
-    "seen": 1791832980.2161028,
-    "ast_hash": "3364eaacb67e04368bb43b2bf7c1fda0",
+    "mtime": 1792626454.509652,
+    "seen": 1792627017.9800918,
+    "ast_hash": "ca67226a705d9e8d24b156e3b4267ed0",
     "semantic_hash": ""
   },
   "docker-entrypoint.sh": {
@@ -1881,6 +1881,48 @@
     "mtime": 1792022332.602095,
     "seen": 1792022409.40659,
     "ast_hash": "8370c9c784fed1e15284c8b33479eb99",
+    "semantic_hash": ""
+  },
+  "components/crm/lead-drawer/LeadFinancingConveyor.tsx": {
+    "mtime": 1792624832.2495716,
+    "seen": 1792625058.17598,
+    "ast_hash": "95d467dd390d6d6cd4a0cc2810a61c58",
+    "semantic_hash": ""
+  },
+  "lib/services/location.ts": {
+    "mtime": 1792624441.512364,
+    "seen": 1792625058.190144,
+    "ast_hash": "1091c626210d9fd57819f3cebe54ebd8",
+    "semantic_hash": ""
+  },
+  "app/api/compliance/cnpj/[cnpj]/route.ts": {
+    "mtime": 1792624480.5201507,
+    "seen": 1792625058.165378,
+    "ast_hash": "8df318161bbfb1670f6279995b60b0f7",
+    "semantic_hash": ""
+  },
+  "app/api/location/cep/[cep]/route.ts": {
+    "mtime": 1792624450.9688642,
+    "seen": 1792625058.166125,
+    "ast_hash": "8e56fddb51c61a99e77ca7522ea55ea3",
+    "semantic_hash": ""
+  },
+  "components/crm/primitives/CepInput.tsx": {
+    "mtime": 1792624491.8225338,
+    "seen": 1792625058.178936,
+    "ast_hash": "849f3e8654da1d62c4a47c4ebf0736fe",
+    "semantic_hash": ""
+  },
+  "components/crm/primitives/CpfInput.tsx": {
+    "mtime": 1792624971.2958384,
+    "seen": 1792625058.1789389,
+    "ast_hash": "5a337fef667deef63078028617ec6ded",
+    "semantic_hash": ""
+  },
+  "lib/services/compliance.ts": {
+    "mtime": 1792624472.2547486,
+    "seen": 1792625058.1899579,
+    "ast_hash": "094c743861a6315d537d735ed94670c2",
     "semantic_hash": ""
   }
 }

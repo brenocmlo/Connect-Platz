@@ -15,6 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { LeadDetail } from "../LeadDrawer";
+import { validateCpf } from "@/lib/services/compliance";
 
 interface LeadFinancingConveyorProps {
   lead: LeadDetail;
@@ -101,6 +102,8 @@ export function LeadFinancingConveyor({ lead }: LeadFinancingConveyorProps) {
     setTimeout(() => setActionFeedback(null), 3000);
   };
 
+  const isCpfValid = lead.cpf ? validateCpf(lead.cpf) : null;
+
   return (
     <div className="bg-[#0F1624] border border-[#1C2537] rounded-2xl p-5 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1C2537] pb-3">
@@ -110,9 +113,24 @@ export function LeadFinancingConveyor({ lead }: LeadFinancingConveyorProps) {
             Sub-esteira de Dossiê Bancário & Financiamento
           </h3>
         </div>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-connect-blue/15 text-connect-blue border border-connect-blue/30 w-fit">
-          Etapa {currentStepIdx + 1} de {financingSteps.length}
-        </span>
+        <div className="flex items-center gap-2">
+          {lead.cpf ? (
+            isCpfValid ? (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> CPF Validado
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-950 text-red-400 border border-red-800 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" /> CPF Inconsistente
+              </span>
+            )
+          ) : (
+            <span className="text-[10px] text-slate-500 font-medium">CPF não cadastrado</span>
+          )}
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-connect-blue/15 text-connect-blue border border-connect-blue/30 w-fit">
+            Etapa {currentStepIdx + 1} de {financingSteps.length}
+          </span>
+        </div>
       </div>
 
       {actionFeedback && (

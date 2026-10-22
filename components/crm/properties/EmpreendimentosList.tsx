@@ -177,15 +177,14 @@ export function EmpreendimentosList({
                       )}
                     </button>
 
-                    <a
-                      href={`/espelho/${emp.slug}`}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => onOpenEspelho(emp)}
                       className="bg-[#111827] hover:bg-[#1C2537] border border-[#1C2537] text-white p-2.5 rounded-xl transition-all"
-                      title="Abrir espelho público"
+                      title="Visualizar espelho de vendas no CRM"
                     >
                       <Eye className="w-4 h-4" />
-                    </a>
+                    </button>
                   </div>
                 </div>
               </div>

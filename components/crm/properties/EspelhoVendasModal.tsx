@@ -122,19 +122,11 @@ export function EspelhoVendasModal({
             <button
               onClick={handleCopyLink}
               className="bg-[#111827] hover:bg-[#1C2537] border border-[#1C2537] text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition-all"
+              title="Copiar link público para enviar a clientes"
             >
               <Share2 className="w-3.5 h-3.5 text-[#D9BB4C]" />
-              Copiar Link Público
+              Copiar Link para Cliente
             </button>
-            <a
-              href={`/espelho/${property.slug}`}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-connect-blue hover:bg-[#0D478F] text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition-all"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              Ver Externo
-            </a>
           </div>
         </div>
 

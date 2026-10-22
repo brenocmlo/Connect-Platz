@@ -1,12 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, User, Phone, Mail, Building, DollarSign, Tag, Flame } from "lucide-react";
+import { X, User, Phone, Mail, Building, DollarSign, Tag, Flame, MapPin } from "lucide-react";
+import { CepInput, CpfInput } from "@/components/crm/primitives";
+import { LocationData } from "@/lib/services/location";
 
 export interface NewLeadFormData {
   nome: string;
   telefone: string;
   email?: string;
+  cpf?: string;
+  cep?: string;
+  bairro?: string;
+  cidade?: string;
   empreendimentoInteresse?: string;
   temperatura?: "FRIO" | "MORNO" | "QUENTE";
   origem?: string;
@@ -34,6 +40,10 @@ export function NewLeadModal({
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [cep, setCep] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
   const [funil, setFunil] = useState(currentFunnel);
   const [empreendimento, setEmpreendimento] = useState("");
   const [temperatura, setTemperatura] = useState<"FRIO" | "MORNO" | "QUENTE">("MORNO");
@@ -48,6 +58,11 @@ export function NewLeadModal({
 
   if (!isOpen) return null;
 
+  const handleAddressFound = (addr: LocationData) => {
+    setBairro(addr.bairro);
+    setCidade(`${addr.cidade} - ${addr.uf}`);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome.trim() || !telefone.trim()) return;
@@ -56,6 +71,10 @@ export function NewLeadModal({
       nome: nome.trim(),
       telefone: telefone.trim(),
       email: email.trim() || undefined,
+      cpf: cpf.trim() || undefined,
+      cep: cep.trim() || undefined,
+      bairro: bairro.trim() || undefined,
+      cidade: cidade.trim() || undefined,
       empreendimentoInteresse: empreendimento.trim() || undefined,
       temperatura,
       origem,
@@ -69,6 +88,10 @@ export function NewLeadModal({
     setNome("");
     setTelefone("");
     setEmail("");
+    setCpf("");
+    setCep("");
+    setBairro("");
+    setCidade("");
     setEmpreendimento("");
     setRenda("");
     setObservacoes("");
@@ -172,6 +195,29 @@ export function NewLeadModal({
             </div>
           </div>
 
+          {/* CPF e CEP com Autocompletar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-foreground font-semibold mb-1">CPF (Opcional)</label>
+              <CpfInput value={cpf} onChange={(val) => setCpf(val)} />
+            </div>
+
+            <div>
+              <label className="block text-foreground font-semibold mb-1">CEP de Residência (Opcional)</label>
+              <CepInput
+                value={cep}
+                onChange={setCep}
+                onAddressFound={handleAddressFound}
+              />
+              {bairro && cidade && (
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium truncate flex items-center gap-1">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  {bairro}, {cidade}
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Renda e Etapa Inicial */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
@@ -213,39 +259,22 @@ export function NewLeadModal({
                 <Flame className="w-3.5 h-3.5 text-[#D9BB4C]" /> Temperatura
               </label>
               <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setTemperatura("FRIO")}
-                  className={`py-1.5 rounded-lg border text-center transition-all ${
-                    temperatura === "FRIO"
-                      ? "bg-sky-500/15 border-sky-500/40 text-sky-400 font-bold"
-                      : "border-border text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  🧊 Frio
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTemperatura("MORNO")}
-                  className={`py-1.5 rounded-lg border text-center transition-all ${
-                    temperatura === "MORNO"
-                      ? "bg-amber-500/15 border-amber-500/40 text-amber-400 font-bold"
-                      : "border-border text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  ☕ Morno
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTemperatura("QUENTE")}
-                  className={`py-1.5 rounded-lg border text-center transition-all ${
-                    temperatura === "QUENTE"
-                      ? "bg-red-500/15 border-red-500/40 text-red-400 font-bold"
-                      : "border-border text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  🔥 Quente
-                </button>
+                {[
+                  { id: "FRIO" as const, label: "🧊 Frio", active: "bg-sky-500/15 border-sky-500/40 text-sky-400 font-bold" },
+                  { id: "MORNO" as const, label: "☕ Morno", active: "bg-amber-500/15 border-amber-500/40 text-amber-400 font-bold" },
+                  { id: "QUENTE" as const, label: "🔥 Quente", active: "bg-red-500/15 border-red-500/40 text-red-400 font-bold" },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTemperatura(t.id)}
+                    className={`py-1.5 rounded-lg border text-center transition-all ${
+                      temperatura === t.id ? t.active : "border-border text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
             </div>
 

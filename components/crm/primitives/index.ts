@@ -8,3 +8,5 @@ export { SegmentedToggle } from "./SegmentedToggle";
 export { FilterSheet } from "./FilterSheet";
 export { EmptyState } from "./EmptyState";
 export { ToastFeedback } from "./ToastFeedback";
+export { CepInput } from "./CepInput";
+export { CpfInput } from "./CpfInput";

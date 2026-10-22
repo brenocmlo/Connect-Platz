@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, User, FileText, Plus } from "lucide-react";
+import { X, User, FileText, Plus, MapPin } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { LeadDocumentUploadSlots } from "./LeadDocumentUploadSlots";
+import { CpfInput, CepInput } from "@/components/crm/primitives";
+import { LocationData } from "@/lib/services/location";
 
 interface EditLeadModalProps {
   isOpen: boolean;
@@ -25,6 +27,13 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
   }, [lead]);
 
   if (!isOpen || !lead) return null;
+
+  const handleAddressFound = (addr: LocationData) => {
+    setFormData((prev) => ({
+      ...prev,
+      bairrosInteresse: [addr.bairro, `${addr.cidade} - ${addr.uf}`],
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,14 +197,22 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
 
                 <div>
                   <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-                    CPF
+                    CPF (Validação Automática)
                   </label>
-                  <input
-                    type="text"
-                    placeholder="000.000.000-00"
+                  <CpfInput
                     value={formData.cpf || ""}
-                    onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                    className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-connect-blue font-mono"
+                    onChange={(cpfVal) => setFormData({ ...formData, cpf: cpfVal })}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    CEP de Residência
+                  </label>
+                  <CepInput
+                    value={formData.cep || ""}
+                    onChange={(cepVal) => setFormData({ ...formData, cep: cepVal })}
+                    onAddressFound={handleAddressFound}
                   />
                 </div>
 

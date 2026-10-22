@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { Clock, User, MapPin, CheckCircle2 } from "lucide-react";
+import { Clock, User, MapPin, CheckCircle2, Navigation, Compass } from "lucide-react";
 import { AppointmentItem, getTypeConfig } from "./types";
+import { getWazeNavigationUrl, getGoogleMapsNavigationUrl } from "@/lib/services/location";
 
 export type { AppointmentItem };
 
@@ -13,6 +14,13 @@ interface AppointmentCardProps {
 
 export function AppointmentCard({ app, onOpenOutcomeModal }: AppointmentCardProps) {
   const config = getTypeConfig(app.tipo);
+
+  const destinationQuery = app.property
+    ? `${app.property.nome}, ${app.property.bairro || "Fortaleza"}, Ceará`
+    : `${app.titulo}, Fortaleza, Ceará`;
+
+  const wazeUrl = getWazeNavigationUrl({ address: destinationQuery });
+  const mapsUrl = getGoogleMapsNavigationUrl({ address: destinationQuery });
 
   return (
     <div
@@ -77,6 +85,30 @@ export function AppointmentCard({ app, onOpenOutcomeModal }: AppointmentCardProp
               <span>
                 {app.property.nome} • {app.property.bairro || "Fortaleza"}
               </span>
+            </div>
+          )}
+
+          {/* Atalhos Rápidos de GPS & Navegação para Visita */}
+          {app.tipo === "VISITA" && (
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-[#1C2537]">
+              <a
+                href={wazeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-1 px-2 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 font-bold text-[10px] border border-sky-500/20 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Navigation className="w-3 h-3" />
+                <span>Waze</span>
+              </a>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-1 px-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-500/20 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Compass className="w-3 h-3" />
+                <span>Google Maps</span>
+              </a>
             </div>
           )}
 
