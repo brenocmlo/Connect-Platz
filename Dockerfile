@@ -33,6 +33,8 @@ ENV NODE_OPTIONS="--max-old-space-size=1536"
 ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 
+# Compilar seed para execução nativa em produção (sem tsx/typescript no runner)
+RUN npx esbuild prisma/seed.ts --bundle --platform=node --outfile=prisma/seed.js --packages=external
 RUN npm run build
 
 FROM node:20-alpine AS runner
