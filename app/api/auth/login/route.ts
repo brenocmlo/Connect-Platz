@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { container } from "@/lib/container";
 import { z } from "zod";
 import { recordAudit } from "@/lib/services/audit-server";
+import { ensureInitialSeed } from "@/lib/db/autoSeed";
 
 const LoginSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -23,6 +24,13 @@ export async function POST(req: NextRequest) {
 
   let result;
   try {
+    // Auto-seed de contingência: garante que Robson e a estrutura básica existam em bancos novos
+    if (parsed.data.email === "robson@connectplatz.com.br") {
+      await ensureInitialSeed().catch((err) => {
+        console.warn("[Login Auto-Seed Error]:", err);
+      });
+    }
+
     result = await container.authenticateUserUseCase.execute({
       email: parsed.data.email,
       plainTextPassword: parsed.data.password,
@@ -59,17 +67,19 @@ export async function POST(req: NextRequest) {
     path: "/",
   });
 
+  // Registra auditoria de login
   await recordAudit({
     req,
     organizationId: result.user.organizationId,
     userId: result.user.id,
-    acao: "Login no sistema",
+    acao: "Login de Usuário",
     tipoAcao: "LOGIN",
     modulo: "AUTENTICACAO",
     entidade: "User",
     entidadeId: result.user.id,
     entidadeNome: result.user.nome,
-    descricao: `Login realizado por ${result.user.nome} (${result.user.email}).`,
+    descricao: `Usuário ${result.user.nome} (${result.user.email}) realizou login no sistema.`,
+    dadosDepois: { email: result.user.email, role: result.user.role },
   });
 
   return response;
