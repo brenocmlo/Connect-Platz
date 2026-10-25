@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Award, Gift, Calendar, CheckCircle2, Trash2, Plus, Loader2, AlertTriangle } from "lucide-react";
 import { GOAL_METRIC_LABELS, GoalIncentive, GoalInput, GoalMetric } from "./types";
+import { NumericInput } from "@/components/crm/primitives/NumericInput";
 
 interface AdminGoalModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ const inputClass =
   "w-full bg-background border border-border rounded-lg p-2.5 text-foreground font-medium placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 const labelClass = "block text-foreground font-bold mb-1";
 
-/** Dialog de cadastro/edição de meta (somente gestores). */
+/** Dialog de cadastro/edição de meta (somente administradores). */
 export function AdminGoalModal({ isOpen, onClose, currentGoal, onSave, onDelete }: AdminGoalModalProps) {
   const [form, setForm] = useState<GoalInput>(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -145,13 +146,13 @@ export function AdminGoalModal({ isOpen, onClose, currentGoal, onSave, onDelete 
             </div>
             <div>
               <label className={labelClass}>Objetivo *</label>
-              <input
-                type="number"
+              <NumericInput
                 required
                 min={form.metrica === "VGV" ? 0.01 : 1}
-                step={form.metrica === "VGV" ? "0.01" : "1"}
+                allowDecimals={form.metrica === "VGV"}
                 value={form.objetivo}
-                onChange={(e) => set("objetivo", Number(e.target.value))}
+                onChange={(val) => set("objetivo", val)}
+                placeholder="0"
                 className={`${inputClass} font-mono font-bold`}
               />
             </div>

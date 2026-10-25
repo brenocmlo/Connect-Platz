@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
 import { CountUpNumber } from "@/components/crm/CountUpNumber";
 import { TrendBadge } from "@/components/crm/primitives/TrendBadge";
+import { NumericInput } from "@/components/crm/primitives/NumericInput";
 
 interface BookingItem {
   id: string;
@@ -273,19 +274,19 @@ export default function TemporadaVeraneioPage() {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-muted-foreground font-semibold mb-1">Valor da Diária (R$)</label>
-                  <input
-                    type="number"
+                  <NumericInput
                     value={valorDiaria}
-                    onChange={(e) => setValorDiaria(Number(e.target.value))}
+                    onChange={setValorDiaria}
+                    placeholder="0,00"
                     className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-connect-blue"
                   />
                 </div>
                 <div>
                   <label className="block text-muted-foreground font-semibold mb-1">Taxa Limpeza (R$)</label>
-                  <input
-                    type="number"
+                  <NumericInput
                     value={taxaLimpeza}
-                    onChange={(e) => setTaxaLimpeza(Number(e.target.value))}
+                    onChange={setTaxaLimpeza}
+                    placeholder="0,00"
                     className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-connect-blue"
                   />
                 </div>

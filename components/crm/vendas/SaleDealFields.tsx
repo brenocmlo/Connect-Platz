@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { Building2, UserPlus, Users } from "lucide-react";
 import { SearchCombobox } from "@/components/crm/agenda/SearchCombobox";
 import { LookupLead, LookupProperty } from "@/components/crm/agenda/useCrmLookups";
+import { NumericInput } from "@/components/crm/primitives/NumericInput";
 
 export interface SaleDealState {
   propertyId: string | null;
@@ -176,38 +177,35 @@ export function SaleDealFields({ deal, onChange, leads, properties, loading }: S
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="col-span-2 sm:col-span-1">
           <label className={labelClass}>VGV da Venda (R$) *</label>
-          <input
-            type="number"
+          <NumericInput
             required
             min={1}
-            step="0.01"
-            value={deal.vgv || ""}
-            onChange={(e) => onChange({ vgv: Number(e.target.value) || 0 })}
+            value={deal.vgv}
+            onChange={(vgv) => onChange({ vgv })}
+            placeholder="0,00"
             className={`${fieldClass} font-mono font-bold`}
           />
         </div>
         <div>
           <label className={labelClass}>% Comissão Bruta *</label>
-          <input
-            type="number"
+          <NumericInput
             required
             min={0.01}
             max={100}
-            step="0.01"
             value={deal.percentualComissao}
-            onChange={(e) => onChange({ percentualComissao: Number(e.target.value) || 0 })}
+            onChange={(percentualComissao) => onChange({ percentualComissao })}
+            placeholder="0"
             className={`${fieldClass} font-mono font-bold`}
           />
         </div>
         <div>
           <label className={labelClass}>% Imposto</label>
-          <input
-            type="number"
+          <NumericInput
             min={0}
             max={100}
-            step="0.01"
             value={deal.impostoPercentual}
-            onChange={(e) => onChange({ impostoPercentual: Math.max(0, Number(e.target.value) || 0) })}
+            onChange={(impostoPercentual) => onChange({ impostoPercentual })}
+            placeholder="0"
             className={`${fieldClass} font-mono`}
           />
         </div>

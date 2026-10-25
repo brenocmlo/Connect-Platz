@@ -5,6 +5,7 @@ import { X, CheckCircle2 } from "lucide-react";
 import { accountsByType, getAccount } from "@/lib/services/dre";
 import { localDateKey } from "@/components/crm/agenda/types";
 import { PAYMENT_METHOD_OPTIONS } from "./paymentMethods";
+import { NumericInput } from "@/components/crm/primitives/NumericInput";
 
 /** Payload aceito por POST /api/financeiro. */
 export interface NewCashFlowPayload {
@@ -100,13 +101,12 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
             </div>
             <div>
               <label className="block text-muted-foreground font-semibold mb-1">Valor (R$)</label>
-              <input
-                type="number"
+              <NumericInput
                 required
                 min={0.01}
-                step="0.01"
-                value={valor || ""}
-                onChange={(e) => setValor(Number(e.target.value))}
+                value={valor}
+                onChange={setValor}
+                placeholder="0,00"
                 className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-mono font-bold focus:outline-none focus:ring-2 focus:ring-connect-blue"
               />
             </div>

@@ -10,3 +10,4 @@ export { EmptyState } from "./EmptyState";
 export { ToastFeedback } from "./ToastFeedback";
 export { CepInput } from "./CepInput";
 export { CpfInput } from "./CpfInput";
+export { NumericInput } from "./NumericInput";

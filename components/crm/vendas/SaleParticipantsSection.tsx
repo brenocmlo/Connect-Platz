@@ -4,6 +4,7 @@ import React from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { ParticipantRole, ROLE_LABEL } from "./saleSplitHelper";
 import { LookupMember } from "@/components/crm/agenda/useCrmLookups";
+import { NumericInput } from "@/components/crm/primitives/NumericInput";
 
 export interface ParticipantFormState {
   userId: string;
@@ -30,7 +31,6 @@ const fieldClass =
   "w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue";
 
 const ROLE_HINT: Partial<Record<ParticipantRole, string>> = {
-  GERENTE: "Opcional",
   GESTOR: "Opcional",
   CAPTADOR: "Opcional",
 };
@@ -79,13 +79,12 @@ export function SaleParticipantsSection({
         </div>
         <div className="col-span-2">
           <label className="block font-medium text-muted-foreground mb-0.5">% da base líquida</label>
-          <input
-            type="number"
+          <NumericInput
             min={0}
             max={100}
-            step="0.01"
             value={state.percentual}
-            onChange={(e) => onChange(role, { percentual: Math.max(0, Number(e.target.value) || 0) })}
+            onChange={(percentual) => onChange(role, { percentual })}
+            placeholder="0"
             className={`${fieldClass} font-mono`}
           />
         </div>
@@ -107,23 +106,21 @@ export function SaleParticipantsSection({
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="block font-medium text-muted-foreground mb-0.5">Desconto Corretor 1 (R$)</label>
-          <input
-            type="number"
+          <NumericInput
             min={0}
-            step="0.01"
             value={participants.CORRETOR_1.desconto}
-            onChange={(e) => onChange("CORRETOR_1", { desconto: Math.max(0, Number(e.target.value) || 0) })}
+            onChange={(desconto) => onChange("CORRETOR_1", { desconto })}
+            placeholder="0,00"
             className={`${fieldClass} font-mono`}
           />
         </div>
         <div>
           <label className="block font-medium text-muted-foreground mb-0.5">Bônus Corretor 1 (R$)</label>
-          <input
-            type="number"
+          <NumericInput
             min={0}
-            step="0.01"
             value={participants.CORRETOR_1.bonus}
-            onChange={(e) => onChange("CORRETOR_1", { bonus: Math.max(0, Number(e.target.value) || 0) })}
+            onChange={(bonus) => onChange("CORRETOR_1", { bonus })}
+            placeholder="0,00"
             className={`${fieldClass} font-mono`}
           />
         </div>
@@ -157,13 +154,12 @@ export function SaleParticipantsSection({
               )}
             </div>
           )}
-          {renderRow("GERENTE")}
           {renderRow("GESTOR")}
           {renderRow("CAPTADOR")}
         </>
       ) : (
         <p className="text-[11px] text-muted-foreground bg-muted/40 border border-border rounded-lg p-2.5">
-          Gerente, Gestor e Captador são definidos pela gestão. A parcela não alocada fica com a imobiliária.
+          Gestor / Sócio e Captador são definidos pelo administrador. A parcela não alocada fica com a imobiliária.
         </p>
       )}
     </div>
