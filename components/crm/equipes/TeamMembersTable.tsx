@@ -1,17 +1,22 @@
 "use client";
 
 import React from "react";
-import { Users2 } from "lucide-react";
+import { Users2, Trash2 } from "lucide-react";
 import { TeamMember, ROLE_LABEL, STATUS_META } from "./types";
+
+interface TeamMembersTableProps {
+  team: TeamMember[];
+  loading?: boolean;
+  isAdmin?: boolean;
+  onRequestRemove?: (member: TeamMember) => void;
+}
 
 const ROLE_BADGE: Record<string, string> = {
   ADMINISTRADOR: "bg-platz-gold/20 text-amber-700 dark:text-platz-gold border border-platz-gold/40",
-  DIRETOR: "bg-platz-gold/20 text-amber-700 dark:text-platz-gold border border-platz-gold/40",
-  GERENTE: "bg-connect-blue/15 text-connect-blue border border-connect-blue/30",
   CORRETOR: "bg-muted text-muted-foreground border border-border",
 };
 
-export function TeamMembersTable({ team, loading }: { team: TeamMember[]; loading?: boolean }) {
+export function TeamMembersTable({ team, loading, isAdmin, onRequestRemove }: TeamMembersTableProps) {
   if (loading && team.length === 0) {
     return (
       <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
@@ -30,7 +35,7 @@ export function TeamMembersTable({ team, loading }: { team: TeamMember[]; loadin
         </div>
         <h3 className="text-sm font-bold text-foreground">Nenhum colaborador cadastrado</h3>
         <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-          Use &quot;Convidar Colaborador&quot; para cadastrar corretores e gestores da imobiliária.
+          Use &quot;Convidar Colaborador&quot; para cadastrar corretores e administradores da imobiliária.
         </p>
       </div>
     );
@@ -48,6 +53,7 @@ export function TeamMembersTable({ team, loading }: { team: TeamMember[]; loadin
               <th className="py-3 px-4 text-center">Status Roleta</th>
               <th className="py-3 px-4 text-center">Check-in Hoje</th>
               <th className="py-3 px-4 text-right">E-mail</th>
+              {isAdmin && <th className="py-3 px-4 text-center">Ações</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -76,6 +82,22 @@ export function TeamMembersTable({ team, loading }: { team: TeamMember[]; loadin
                   {member.role === "CORRETOR" ? (member.hasCheckedInToday ? "Sim" : "Não") : "—"}
                 </td>
                 <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">{member.email}</td>
+                {isAdmin && (
+                  <td className="py-3.5 px-4 text-center">
+                    {member.role === "CORRETOR" ? (
+                      <button
+                        type="button"
+                        onClick={() => onRequestRemove?.(member)}
+                        title={`Remover ${member.nome} da equipe`}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/40">—</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

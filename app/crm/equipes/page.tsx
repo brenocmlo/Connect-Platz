@@ -8,20 +8,21 @@ import { SectionTitle } from "@/components/crm/SectionTitle";
 import { AccessDeniedCard } from "@/components/crm/AccessDeniedCard";
 import { RoletaDistributionPanel } from "@/components/crm/equipes/RoletaDistributionPanel";
 import { InviteCollaboratorModal, InviteCollaboratorData } from "@/components/crm/equipes/InviteCollaboratorModal";
+import { RemoveBrokerModal } from "@/components/crm/equipes/RemoveBrokerModal";
 import { TeamStatCards } from "@/components/crm/equipes/TeamStatCards";
 import { TeamMembersTable } from "@/components/crm/equipes/TeamMembersTable";
 import { TeamMember, MemberStatus, STATUS_META } from "@/components/crm/equipes/types";
 
 export default function EquipesPage() {
   const { user, setActionMessage } = useCrm();
-  const isManager = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR" || user?.role === "GERENTE";
-  const isDirector = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR";
+  const isAdmin = user?.role === "ADMINISTRADOR";
 
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [brokerToRemove, setBrokerToRemove] = useState<TeamMember | null>(null);
   const [activeTab, setActiveTab] = useState<"membros" | "roleta">("membros");
 
   const flash = (msg: string) => {
@@ -45,8 +46,8 @@ export default function EquipesPage() {
   }, []);
 
   useEffect(() => {
-    if (user && isManager) loadTeam();
-  }, [user, isManager, loadTeam]);
+    if (user && isAdmin) loadTeam();
+  }, [user, isAdmin, loadTeam]);
 
   const handleStatusChange = async (id: string, newStatus: MemberStatus) => {
     const previous = team;
@@ -82,11 +83,19 @@ export default function EquipesPage() {
     flash(`${data.nome} cadastrado(a). Compartilhe a senha provisória com o profissional.`);
   };
 
-  if (user && !isManager) {
+  const handleRemoveBroker = async (member: TeamMember) => {
+    const res = await fetch(`/api/equipes?userId=${member.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || "Falha ao remover o corretor.");
+    setTeam((prev) => prev.filter((m) => m.id !== member.id));
+    flash(data?.message || `${member.nome} foi removido(a) da equipe com sucesso.`);
+  };
+
+  if (user && !isAdmin) {
     return (
       <AccessDeniedCard
         moduleName="a Gestão de Equipes e Corretores"
-        allowedLabel="Administradores, Diretores e Gerentes"
+        allowedLabel="Administradores"
       />
     );
   }
@@ -100,7 +109,7 @@ export default function EquipesPage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       <PageHeader
         title="Equipe & Roleta Comercial"
-        subtitle="Hierarquia de corretores, gerentes e disponibilidade de atendimento em tempo real."
+        subtitle="Corretores da equipe e disponibilidade de atendimento em tempo real."
         actionLabel="Convidar Colaborador"
         onActionClick={() => setIsInviteModalOpen(true)}
         showPeriodSelector={false}
@@ -137,7 +146,12 @@ export default function EquipesPage() {
       ) : (
         <div className="space-y-3">
           <SectionTitle>Quadro de Colaboradores</SectionTitle>
-          <TeamMembersTable team={team} loading={loading} />
+          <TeamMembersTable
+            team={team}
+            loading={loading}
+            isAdmin={isAdmin}
+            onRequestRemove={(m) => setBrokerToRemove(m)}
+          />
         </div>
       )}
 
@@ -145,7 +159,13 @@ export default function EquipesPage() {
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
         onInvite={handleInvite}
-        canInviteManagers={isDirector}
+      />
+
+      <RemoveBrokerModal
+        isOpen={Boolean(brokerToRemove)}
+        member={brokerToRemove}
+        onClose={() => setBrokerToRemove(null)}
+        onConfirm={handleRemoveBroker}
       />
     </div>
   );
