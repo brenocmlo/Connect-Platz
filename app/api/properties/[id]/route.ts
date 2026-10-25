@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { unlink } from "fs/promises";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, MANAGER_ROLES } from "@/lib/auth/session";
+import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { resolveUploadPath } from "@/app/api/upload/uploadStorage";
 import { auditSnapshot, fillCoordinates, parsePropertyBody } from "../propertyPayload";
@@ -12,9 +12,9 @@ type Params = { params: { id: string } };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** PATCH /api/properties/[id] — edição parcial (somente gestores da organização). */
+/** PATCH /api/properties/[id] — edição parcial (somente administradores da organização). */
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -79,12 +79,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 /**
- * DELETE /api/properties/[id] — exclui o imóvel (somente gestores).
+ * DELETE /api/properties/[id] — exclui o imóvel (somente administradores).
  * Com vendas ou reservas vinculadas o histórico precisa ser preservado: o imóvel é
  * desativado (isActive=false) e sai da vitrine, em vez de apagado.
  */
 export async function DELETE(req: NextRequest, { params }: Params) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

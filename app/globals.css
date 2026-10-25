@@ -208,3 +208,9 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Overlays de tela cheia (modais, sheets) renderizados dentro de .space-y-* herdavam o margin-top
+   do irmão anterior e ficavam deslocados, descobrindo a topbar e cortando o topo do modal. */
+.fixed.inset-0 {
+  margin: 0 !important;
+}

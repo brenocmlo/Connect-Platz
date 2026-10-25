@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { PaymentStatus, CashFlowType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, DIRECTOR_ROLES } from "@/lib/auth/session";
+import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { serializeCashFlow, parseDateOnly, paymentMethodValues } from "../shared";
 import { splitCashFlowDescription, computeStatusComissao } from "../../vendas/serialize";
@@ -28,7 +28,7 @@ async function findEntry(id: string, organizationId: string) {
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = requireSession(req, DIRECTOR_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -105,7 +105,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = requireSession(req, DIRECTOR_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

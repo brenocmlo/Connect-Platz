@@ -22,22 +22,20 @@ export async function GET(req: NextRequest) {
 
     const [users, metrics] = await Promise.all([
       prisma.user.findMany({
-        where: { organizationId: session.organizationId, isActive: true, role: { in: ["CORRETOR", "GERENTE"] } },
+        where: { organizationId: session.organizationId, isActive: true, role: "CORRETOR" },
         select: { id: true, nome: true, role: true, photoUrl: true },
         orderBy: { nome: "asc" },
       }),
       computeUserMetrics(session.organizationId, period.current),
     ]);
 
-    const fullRanking = buildRanking(users.filter((u) => u.role === "CORRETOR"), metrics);
-    const gerentes = buildRanking(users.filter((u) => u.role === "GERENTE"), metrics, true);
+    const fullRanking = buildRanking(users, metrics);
     const podium = fullRanking.filter((b) => b.noPodio).slice(0, 3);
 
     const body: RankingResponse = {
       period: { key: period.key, label: period.label },
       podium,
       fullRanking,
-      gerentes,
       highlights: buildHighlights(fullRanking),
       leader: podium[0] || null,
       currentUserId: session.userId,

@@ -19,7 +19,7 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 interface BiRoiTableCardProps {
   channels: BiChannelRoiMetric[];
   campaigns: BiChannelRoiMetric[];
-  /** false = usuário sem acesso ao investimento de mídia (corretor/gerente): custo, CPL e ROI ocultos */
+  /** false = usuário sem acesso ao investimento de mídia (corretor): custo, CPL e ROI ocultos */
   investmentAvailable: boolean;
 }
 
@@ -91,7 +91,7 @@ export function BiRoiTableCard({ channels, campaigns, investmentAvailable }: BiR
           <p className="text-[11px] text-muted-foreground">
             {investmentAvailable
               ? "Investimento = despesas de mídia lançadas no Fluxo de Caixa do período"
-              : "Leads, vendas e VGV por origem (investimento visível apenas para a Diretoria)"}
+              : "Leads, vendas e VGV por origem (investimento visível apenas para o Administrador)"}
           </p>
         </div>
 

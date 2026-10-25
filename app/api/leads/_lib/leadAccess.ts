@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { SessionPayload } from "@/lib/auth/jwt";
-import { isManager } from "@/lib/auth/session";
+import { isAdmin } from "@/lib/auth/session";
 import { maskLeadSensitiveData, RLSUserContext } from "@/lib/db/rls";
 import { sourceLabel } from "@/components/crm/leads/leadSource";
 
@@ -61,13 +61,13 @@ export function canViewLead(
   lead: { corretorId: string | null; isBolsao: boolean; isClosed: boolean },
   session: SessionPayload
 ): boolean {
-  if (isManager(session.role)) return true;
+  if (isAdmin(session.role)) return true;
   if (lead.corretorId === session.userId) return true;
   return lead.isBolsao && !lead.isClosed;
 }
 
 /**
- * Gestores alteram qualquer lead da organização; corretor só altera o próprio
+ * Administradores alteram qualquer lead da organização; corretor só altera o próprio
  * (ou assume um lead disponível no bolsão).
  */
 export function canModifyLead(
@@ -75,7 +75,7 @@ export function canModifyLead(
   session: SessionPayload,
   action?: string
 ): boolean {
-  if (isManager(session.role)) return true;
+  if (isAdmin(session.role)) return true;
   if (action === "ASSUMIR_BOLSAO") return lead.isBolsao && !lead.isClosed;
   return lead.corretorId === session.userId;
 }

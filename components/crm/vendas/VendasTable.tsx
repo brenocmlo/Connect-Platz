@@ -7,7 +7,7 @@ import { SaleItem } from "./types";
 interface VendasTableProps {
   sales: SaleItem[];
   hideValues?: boolean;
-  /** "Editar pagamento" só aparece para a diretoria */
+  /** "Editar pagamento" só aparece para o administrador */
   canManagePayments?: boolean;
   onViewDetails: (sale: SaleItem) => void;
   onViewReceipt: (sale: SaleItem) => void;
@@ -95,7 +95,6 @@ export function VendasTable({
               <th className="py-3 px-4">Imposto</th>
               <th className="py-3 px-4">Próx. Pagamento</th>
               <th className="py-3 px-4">Corretor</th>
-              <th className="py-3 px-4">Gerente</th>
               <th className="py-3 px-4">Gestor</th>
               <th className="py-3 px-4">Captador</th>
               <th className="py-3 px-4 text-right">Comissão Corretor</th>
@@ -105,7 +104,7 @@ export function VendasTable({
           <tbody className="divide-y divide-border">
             {paginatedSales.length === 0 ? (
               <tr>
-                <td colSpan={12} className="py-12 text-center text-slate-400">
+                <td colSpan={11} className="py-12 text-center text-slate-400">
                   Nenhuma venda encontrada com os filtros selecionados.
                 </td>
               </tr>
@@ -187,11 +186,6 @@ export function VendasTable({
                           )}
                         </div>
                       </div>
-                    </td>
-
-                    {/* Gerente */}
-                    <td className="py-3 px-4 text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                      {sale.gerente || "—"}
                     </td>
 
                     {/* Gestor */}

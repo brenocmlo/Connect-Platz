@@ -13,7 +13,7 @@ export default function IntegracoesPage() {
     return (
       <AccessDeniedCard
         moduleName="os Canais e Integrações de Portais"
-        allowedLabel="Administradores, Diretores e Gerentes"
+        allowedLabel="Administradores"
       />
     );
   }

@@ -3,7 +3,7 @@
 
 import { Prisma } from "@prisma/client";
 import { SessionPayload } from "@/lib/auth/jwt";
-import { isDirector, isManager } from "@/lib/auth/session";
+import { isAdmin } from "@/lib/auth/session";
 
 /**
  * Venda válida = qualquer status que não seja cancelamento/estorno.
@@ -38,12 +38,12 @@ export interface AnalyticsScope {
 }
 
 export function buildScope(session: SessionPayload): AnalyticsScope {
-  const manager = isManager(session.role);
+  const manager = isAdmin(session.role);
   return {
     organizationId: session.organizationId,
     userId: session.userId,
     manager,
-    director: isDirector(session.role),
+    director: isAdmin(session.role),
     sale: manager ? {} : { corretorId: session.userId },
     lead: manager ? {} : { corretorId: session.userId },
     appointment: manager ? {} : { userId: session.userId },

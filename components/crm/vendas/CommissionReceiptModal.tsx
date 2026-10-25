@@ -247,7 +247,7 @@ export function CommissionReceiptModal({
             </div>
             <div>
               <div className="border-t border-slate-400 pt-1.5 mx-auto w-48 font-semibold text-slate-800">
-                Diretoria Financeira
+                Administração Financeira
               </div>
               <span className="text-slate-500">Connect Platz Imobiliária</span>
             </div>

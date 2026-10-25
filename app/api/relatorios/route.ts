@@ -1,6 +1,6 @@
 // app/api/relatorios/route.ts
 // Relatórios BI com agregações reais (sem constantes). Corretor vê apenas os próprios dados;
-// investimento/ROI de mídia (despesas do Fluxo de Caixa) apenas para a Diretoria.
+// investimento/ROI de mídia (despesas do Fluxo de Caixa) apenas para o Administrador.
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/session";

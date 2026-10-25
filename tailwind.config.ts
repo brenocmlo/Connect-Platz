@@ -83,8 +83,10 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       animation: {
-        "fade-in-up": "fadeInUp 0.7s cubic-bezier(0,0,.2,1) forwards",
-        "fade-in": "fadeIn 0.7s cubic-bezier(0,0,.2,1) forwards",
+        // "backwards" (não "forwards"): o estado final retido mantinha transform/opacidade ativos,
+        // virando containing block e contexto de empilhamento que prendiam os modais fixed
+        "fade-in-up": "fadeInUp 0.7s cubic-bezier(0,0,.2,1) backwards",
+        "fade-in": "fadeIn 0.7s cubic-bezier(0,0,.2,1) backwards",
         "crown-float": "crown-float 2.4s ease-in-out infinite",
         "crown-glow": "crown-glow 2.4s ease-in-out infinite",
         "crown-sparkle": "crown-sparkle 1.8s ease-in-out infinite",

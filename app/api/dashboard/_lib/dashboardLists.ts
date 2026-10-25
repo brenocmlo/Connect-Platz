@@ -96,37 +96,29 @@ export async function loadAppointments(scope: AnalyticsScope): Promise<Appointme
   }));
 }
 
-/** Performance da equipe no período (somente gestores). */
+/** Performance da equipe no período (somente administradores). */
 export async function loadTeam(
   scope: AnalyticsScope,
   period: PeriodRange
-): Promise<{ corretores: TeamMemberItem[]; gerentes: TeamMemberItem[] } | null> {
+): Promise<{ corretores: TeamMemberItem[] } | null> {
   if (!scope.manager) return null;
 
   const [users, metrics] = await Promise.all([
     prisma.user.findMany({
-      where: { organizationId: scope.organizationId, isActive: true, role: { in: ["CORRETOR", "GERENTE"] } },
+      where: { organizationId: scope.organizationId, isActive: true, role: "CORRETOR" },
       select: { id: true, nome: true, role: true, photoUrl: true },
     }),
     computeUserMetrics(scope.organizationId, period.current),
   ]);
 
-  const build = (role: "CORRETOR" | "GERENTE"): TeamMemberItem[] =>
-    users
-      .filter((u) => u.role === role)
-      .map((u) => {
-        const raw = metrics.get(u.id) || emptyMetrics();
-        // Gerente é avaliado pelas vendas em que participa como gerente no split
-        const m =
-          role === "GERENTE" ? { ...raw, vgv: raw.vgvGerencia, vendas: raw.vendasGerencia } : raw;
-        return { u, nome: u.nome, m };
-      })
-      .filter((x) => x.m.vendas > 0 || x.m.vgv > 0)
-      .sort(compareByPerformance)
-      .slice(0, 5)
-      .map((x) => ({ id: x.u.id, nome: x.u.nome, photoUrl: x.u.photoUrl, vendas: x.m.vendas, vgv: x.m.vgv }));
+  const corretores = users
+    .map((u) => ({ u, nome: u.nome, m: metrics.get(u.id) || emptyMetrics() }))
+    .filter((x) => x.m.vendas > 0 || x.m.vgv > 0)
+    .sort(compareByPerformance)
+    .slice(0, 5)
+    .map((x) => ({ id: x.u.id, nome: x.u.nome, photoUrl: x.u.photoUrl, vendas: x.m.vendas, vgv: x.m.vgv }));
 
-  return { corretores: build("CORRETOR"), gerentes: build("GERENTE") };
+  return { corretores };
 }
 
 const TIMELINE_TITLES: Record<string, string> = {
@@ -143,7 +135,7 @@ function humanize(value: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/** Feed recente: timeline dos leads (escopo do usuário) + auditoria (somente gestores). */
+/** Feed recente: timeline dos leads (escopo do usuário) + auditoria (somente administradores). */
 export async function loadActivities(scope: AnalyticsScope): Promise<ActivityItem[]> {
   const [timeline, audits] = await Promise.all([
     prisma.leadTimeline.findMany({

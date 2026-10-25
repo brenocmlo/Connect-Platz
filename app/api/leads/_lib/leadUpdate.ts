@@ -6,7 +6,7 @@ import { Lead, FunnelStage, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { SessionPayload } from "@/lib/auth/jwt";
-import { isManager } from "@/lib/auth/session";
+import { isAdmin } from "@/lib/auth/session";
 import { resolveLeadSource, sourceLabel } from "@/components/crm/leads/leadSource";
 import { INTERESSE_PREFIX, isUuid } from "./leadAccess";
 import { leadDataFields, parsePhone, parseDate, mergeBairros } from "./leadPayload";
@@ -123,9 +123,9 @@ export async function buildLeadUpdate(
     });
   }
 
-  // 4. Troca de corretor (somente gestores)
+  // 4. Troca de corretor (somente administradores)
   if (input.corretorId !== undefined && input.corretorId !== lead.corretorId && input.action !== "REGISTRAR_CONTATO") {
-    if (!isManager(session.role)) throw new LeadUpdateError("Somente gestores podem trocar o corretor do lead.", 403);
+    if (!isAdmin(session.role)) throw new LeadUpdateError("Somente administradores podem trocar o corretor do lead.", 403);
     const target = input.corretorId && isUuid(input.corretorId)
       ? await prisma.user.findFirst({
           where: { id: input.corretorId, organizationId: session.organizationId, isActive: true },

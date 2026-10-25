@@ -1,7 +1,7 @@
 "use client";
 
 // components/crm/ranking/useRankingData.ts
-// Carrega GET /api/ranking?period= e GET /api/metas; expõe CRUD de metas (gestores) com checagem de res.ok.
+// Carrega GET /api/ranking?period= e GET /api/metas; expõe CRUD de metas (administradores) com checagem de res.ok.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PeriodFilter } from "@/components/crm/CrmContext";

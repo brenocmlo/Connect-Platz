@@ -1,6 +1,6 @@
 // components/crm/equipes/types.ts
 
-export type MemberRole = "ADMINISTRADOR" | "DIRETOR" | "GERENTE" | "CORRETOR";
+export type MemberRole = "ADMINISTRADOR" | "CORRETOR";
 export type MemberStatus = "DISPONIVEL" | "EM_VISITA" | "PAUSA" | "OFFLINE";
 
 export interface TeamMember {
@@ -19,8 +19,6 @@ export interface TeamMember {
 
 export const ROLE_LABEL: Record<MemberRole, string> = {
   ADMINISTRADOR: "Administrador",
-  DIRETOR: "Diretor",
-  GERENTE: "Gerente",
   CORRETOR: "Corretor",
 };
 

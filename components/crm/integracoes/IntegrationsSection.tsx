@@ -11,7 +11,7 @@ const CATEGORIES = ["ALL", "Mídia Paga", "Portais Imobiliários", "Site e Landi
 
 export function IntegrationsSection() {
   const { user } = useCrm();
-  const canRevealKeys = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR";
+  const canRevealKeys = user?.role === "ADMINISTRADOR";
 
   const [statuses, setStatuses] = useState<Partial<Record<ChannelId, ChannelStatus>>>({});
   const [loading, setLoading] = useState(true);

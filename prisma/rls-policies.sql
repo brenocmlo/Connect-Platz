@@ -8,7 +8,7 @@
 -- Variáveis de sessão PostgreSQL utilizadas:
 --   app.current_organization_id : UUID da organização atual
 --   app.current_user_id         : UUID do usuário logado
---   app.current_user_role       : 'ADMINISTRADOR', 'DIRETOR', 'GERENTE', 'CORRETOR'
+--   app.current_user_role       : 'ADMINISTRADOR', 'CORRETOR'
 -- ==============================================================================
 
 -- 1. HABILITAR RLS NAS TABELAS
@@ -64,19 +64,19 @@ CREATE POLICY users_self_update_policy ON users
   FOR UPDATE
   USING (
     organization_id = current_app_org_id() AND
-    (id = current_app_user_id() OR current_app_user_role() IN ('ADMINISTRADOR', 'DIRETOR'))
+    (id = current_app_user_id() OR current_app_user_role() = 'ADMINISTRADOR')
   );
 
 -- ------------------------------------------------------------------------------
 -- 4. POLÍTICAS PARA LEADS (REGRA DE OURO DE PRIVACIDADE E ISOLAMENTO)
 -- ------------------------------------------------------------------------------
--- Administradores e Gerentes enxergam todos os leads da organização
+-- Administradores enxergam todos os leads da organização
 -- Corretores só enxergam leads atribuídos a si mesmos OU leads no Bolsão disponível para resgate
 CREATE POLICY leads_select_policy ON leads
   FOR SELECT
   USING (
     organization_id = current_app_org_id() AND (
-      current_app_user_role() IN ('ADMINISTRADOR', 'DIRETOR', 'GERENTE') OR
+      current_app_user_role() = 'ADMINISTRADOR' OR
       corretor_id = current_app_user_id() OR
       (is_bolsao = true AND is_closed = false)
     )
@@ -88,7 +88,7 @@ CREATE POLICY leads_update_policy ON leads
   FOR UPDATE
   USING (
     organization_id = current_app_org_id() AND (
-      current_app_user_role() IN ('ADMINISTRADOR', 'DIRETOR', 'GERENTE') OR
+      current_app_user_role() = 'ADMINISTRADOR' OR
       corretor_id = current_app_user_id() OR
       (is_bolsao = true AND is_closed = false)
     )
@@ -112,7 +112,7 @@ CREATE POLICY lead_timeline_policy ON lead_timeline
       WHERE leads.id = lead_timeline.lead_id
         AND leads.organization_id = current_app_org_id()
         AND (
-          current_app_user_role() IN ('ADMINISTRADOR', 'DIRETOR', 'GERENTE') OR
+          current_app_user_role() = 'ADMINISTRADOR' OR
           leads.corretor_id = current_app_user_id()
         )
     )
@@ -126,7 +126,7 @@ CREATE POLICY lead_documents_policy ON lead_documents
       WHERE leads.id = lead_documents.lead_id
         AND leads.organization_id = current_app_org_id()
         AND (
-          current_app_user_role() IN ('ADMINISTRADOR', 'DIRETOR', 'GERENTE') OR
+          current_app_user_role() = 'ADMINISTRADOR' OR
           leads.corretor_id = current_app_user_id()
         )
     )
@@ -164,7 +164,7 @@ CREATE POLICY sales_policy ON sales
   FOR ALL
   USING (
     organization_id = current_app_org_id() AND (
-      current_app_user_role() IN ('ADMINISTRADOR', 'DIRETOR', 'GERENTE') OR
+      current_app_user_role() = 'ADMINISTRADOR' OR
       corretor_id = current_app_user_id()
     )
   );
@@ -176,19 +176,19 @@ CREATE POLICY sales_policy ON sales
 CREATE POLICY commission_splits_policy ON commission_splits
   FOR ALL
   USING (
-    current_app_user_role() IN ('ADMINISTRADOR', 'DIRETOR') OR
+    current_app_user_role() = 'ADMINISTRADOR' OR
     user_id = current_app_user_id()
   );
 
 -- ------------------------------------------------------------------------------
 -- 10. POLÍTICAS PARA ERP / FLUXO DE CAIXA (CASH_FLOWS)
 -- ------------------------------------------------------------------------------
--- Apenas Administradores e Diretores têm acesso às movimentações de caixa
+-- Apenas Administradores têm acesso às movimentações de caixa
 CREATE POLICY cash_flows_policy ON cash_flows
   FOR ALL
   USING (
     organization_id = current_app_org_id() AND
-    current_app_user_role() IN ('ADMINISTRADOR', 'DIRETOR')
+    current_app_user_role() = 'ADMINISTRADOR'
   );
 
 -- ------------------------------------------------------------------------------
@@ -199,7 +199,7 @@ CREATE POLICY appointments_policy ON appointments
   FOR ALL
   USING (
     organization_id = current_app_org_id() AND (
-      current_app_user_role() IN ('ADMINISTRADOR', 'DIRETOR', 'GERENTE') OR
+      current_app_user_role() = 'ADMINISTRADOR' OR
       user_id = current_app_user_id()
     )
   );

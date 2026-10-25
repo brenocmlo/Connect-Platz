@@ -17,7 +17,7 @@ import { EditPropertyImageModal } from "@/components/crm/properties/EditProperty
 
 export default function EmpreendimentosPage() {
   const { user, setActionMessage } = useCrm();
-  const canManage = ["ADMINISTRADOR", "DIRETOR", "GERENTE"].includes(user?.role || "");
+  const canManage = user?.role === "ADMINISTRADOR";
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"LISTA" | "CONFIG_SITE">("LISTA");
   const [properties, setProperties] = useState<PropertyCardData[]>([]);
@@ -61,7 +61,7 @@ export default function EmpreendimentosPage() {
 
   // Atualização otimista: aplica, chama a API e desfaz em caso de erro
   const handleToggleLandingPage = async (id: string, current: boolean) => {
-    if (!canManage) return notify("Apenas gestores podem alterar a vitrine.");
+    if (!canManage) return notify("Apenas administradores podem alterar a vitrine.");
     const apply = (value: boolean) => {
       setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, exibirNaLandingPage: value } : p)));
       setPublishModalProperty((prev) => (prev && prev.id === id ? { ...prev, exibirNaLandingPage: value } : prev));
@@ -82,7 +82,7 @@ export default function EmpreendimentosPage() {
   };
 
   const handleDeleteProperty = async (id: string) => {
-    if (!canManage) return notify("Apenas gestores podem excluir imóveis.");
+    if (!canManage) return notify("Apenas administradores podem excluir imóveis.");
     if (!confirm("Deseja realmente remover este imóvel do catálogo?")) return;
     try {
       const res = await fetch(`/api/properties/${id}`, { method: "DELETE" });

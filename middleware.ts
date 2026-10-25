@@ -7,7 +7,7 @@ interface DecodedSession {
   userId: string;
   email: string;
   nome: string;
-  role: "ADMINISTRADOR" | "DIRETOR" | "GERENTE" | "CORRETOR";
+  role: "ADMINISTRADOR" | "CORRETOR";
   organizationId: string;
   exp?: number;
 }

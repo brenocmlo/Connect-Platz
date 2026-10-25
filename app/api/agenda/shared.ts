@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { isManager } from "@/lib/auth/session";
+import { isAdmin } from "@/lib/auth/session";
 import { SessionPayload } from "@/lib/auth/jwt";
 import { recordAudit } from "@/lib/services/audit-server";
 
@@ -27,7 +27,7 @@ export async function findOwnedAppointment(id: string, session: SessionPayload) 
   if (!appointment) {
     return { error: NextResponse.json({ error: "Compromisso não encontrado." }, { status: 404 }) };
   }
-  if (!isManager(session.role) && appointment.userId !== session.userId) {
+  if (!isAdmin(session.role) && appointment.userId !== session.userId) {
     return {
       error: NextResponse.json(
         { error: "Você só pode alterar os seus próprios compromissos." },

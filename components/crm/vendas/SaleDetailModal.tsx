@@ -8,7 +8,7 @@ import { localDateKey } from "@/components/crm/agenda/types";
 
 interface SaleDetailModalProps {
   sale: SaleItem | null;
-  /** Baixa/estorno restritos à diretoria (regra financeira) */
+  /** Baixa/estorno restritos ao administrador (regra financeira) */
   canManagePayments: boolean;
   onClose: () => void;
   onUpdateSplitStatus: (splitId: string, status: "PAGO" | "PENDENTE", dataPagamento?: string) => Promise<boolean>;

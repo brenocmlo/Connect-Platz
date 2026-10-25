@@ -1,20 +1,20 @@
 // app/api/financeiro/route.ts
 // Fluxo de Caixa (ERP): listagem com KPIs reais e criação de lançamentos.
-// Acesso exclusivo da diretoria (ADMINISTRADOR/DIRETOR). Sem dados de exemplo.
+// Acesso exclusivo do ADMINISTRADOR. Sem dados de exemplo.
 
 import { getAccount } from "@/lib/services/dre";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { CashFlowType, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, DIRECTOR_ROLES } from "@/lib/auth/session";
+import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { serializeCashFlow, parseDateOnly, paymentMethodValues } from "./shared";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const auth = requireSession(req, DIRECTOR_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -74,7 +74,7 @@ const CreateSchema = z
   });
 
 export async function POST(req: NextRequest) {
-  const auth = requireSession(req, DIRECTOR_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

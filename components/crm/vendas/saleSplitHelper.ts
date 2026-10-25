@@ -2,21 +2,19 @@
 // Fluxo: VGV × % bruta = comissão bruta → − imposto = base líquida →
 // cada participante recebe % da base líquida (± desconto/bônus) → imobiliária fica com o restante.
 
-export type ParticipantRole = "CORRETOR_1" | "CORRETOR_2" | "GERENTE" | "GESTOR" | "CAPTADOR";
+export type ParticipantRole = "CORRETOR_1" | "CORRETOR_2" | "GESTOR" | "CAPTADOR";
 
 /** Mapeamento papel na venda → CommissionBeneficiaryType do Prisma. */
 export const ROLE_TO_BENEFICIARY: Record<ParticipantRole, string> = {
   CORRETOR_1: "CORRETOR_TITULAR",
   CORRETOR_2: "CO_CORRETOR",
-  GERENTE: "GERENTE",
-  GESTOR: "DIRETOR",
+  GESTOR: "SOCIO_GESTOR",
   CAPTADOR: "CAPTACAO",
 };
 
 export const ROLE_LABEL: Record<ParticipantRole, string> = {
   CORRETOR_1: "Corretor 1",
   CORRETOR_2: "Corretor 2",
-  GERENTE: "Gerente",
   GESTOR: "Gestor / Sócio",
   CAPTADOR: "Captador",
 };
@@ -25,8 +23,7 @@ export const ROLE_LABEL: Record<ParticipantRole, string> = {
 export const BENEFICIARY_LABEL: Record<string, string> = {
   CORRETOR_TITULAR: "Corretor 1",
   CO_CORRETOR: "Corretor 2",
-  GERENTE: "Gerente",
-  DIRETOR: "Gestor / Sócio",
+  SOCIO_GESTOR: "Gestor / Sócio",
   CAPTACAO: "Captador",
   IMOBILIARIA: "Imobiliária",
   PARCEIRO_EXTERNO: "Parceiro Externo",

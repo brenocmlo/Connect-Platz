@@ -22,7 +22,6 @@ import {
 
 const initialFilters: VendasFilterState = {
   corretor: "ALL",
-  gerente: "ALL",
   captador: "ALL",
   gestor: "ALL",
   equipe: "ALL",
@@ -44,7 +43,7 @@ const TABS = [
 
 export default function VendasComissoesPage() {
   const { user, setActionMessage, selectedPeriod, hideValues, toggleHideValues } = useCrm();
-  const canManagePayments = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR";
+  const canManagePayments = user?.role === "ADMINISTRADOR";
 
   const [sales, setSales] = useState<SaleItem[]>([]);
   const [loadingSales, setLoadingSales] = useState(true);

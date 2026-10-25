@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { buildLeadRLSWhere } from "@/lib/db/rls";
-import { requireSession, isManager } from "@/lib/auth/session";
+import { requireSession, isAdmin } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { refreshLeadScore } from "@/lib/services/lead-score";
 import { resolveLeadSource, sourceLabel } from "@/components/crm/leads/leadSource";
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
 
     // Atribuição: gestor pode atribuir a outro usuário ativo da org; corretor sempre a si mesmo
     let corretorId = session.userId;
-    if (data.corretorId && data.corretorId !== session.userId && isManager(session.role)) {
+    if (data.corretorId && data.corretorId !== session.userId && isAdmin(session.role)) {
       const target = isUuid(data.corretorId)
         ? await prisma.user.findFirst({
             where: { id: data.corretorId, organizationId: session.organizationId, isActive: true },

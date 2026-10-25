@@ -28,7 +28,6 @@ interface PropertyMaterialsModalProps {
   property: PropertyCardData | null;
 }
 
-const MANAGER_ROLES = ["ADMINISTRADOR", "DIRETOR", "GERENTE"];
 
 const absoluteUrl = (url: string) => (url.startsWith("http") ? url : `${window.location.origin}${url}`);
 
@@ -43,7 +42,7 @@ export function PropertyMaterialsModal({
   property,
 }: PropertyMaterialsModalProps) {
   const { user, setActionMessage } = useCrm();
-  const canManage = MANAGER_ROLES.includes(user?.role || "");
+  const canManage = user?.role === "ADMINISTRADOR";
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -189,7 +188,7 @@ export function PropertyMaterialsModal({
               <FileText className="w-7 h-7 text-muted-foreground" />
               <p className="text-xs font-semibold text-foreground">Nenhum material cadastrado</p>
               <p className="text-[11px] text-muted-foreground max-w-xs">
-                {canManage ? "Envie books, tabelas, memoriais e plantas para a equipe compartilhar com os clientes." : "Os gestores ainda não enviaram materiais para este imóvel."}
+                {canManage ? "Envie books, tabelas, memoriais e plantas para a equipe compartilhar com os clientes." : "Os administradores ainda não enviaram materiais para este imóvel."}
               </p>
             </div>
           )}

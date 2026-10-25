@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { unlink } from "fs/promises";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, MANAGER_ROLES } from "@/lib/auth/session";
+import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { resolveUploadPath } from "@/app/api/upload/uploadStorage";
 
@@ -11,9 +11,9 @@ type Params = { params: { id: string; materialId: string } };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** DELETE /api/properties/[id]/materials/[materialId] — remove registro e arquivo físico (gestores). */
+/** DELETE /api/properties/[id]/materials/[materialId] — remove registro e arquivo físico (administradores). */
 export async function DELETE(req: NextRequest, { params }: Params) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

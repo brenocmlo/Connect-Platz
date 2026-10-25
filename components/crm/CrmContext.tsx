@@ -8,7 +8,7 @@ export interface UserSession {
   id: string;
   nome: string;
   email: string;
-  role: "ADMINISTRADOR" | "DIRETOR" | "GERENTE" | "CORRETOR";
+  role: "ADMINISTRADOR" | "CORRETOR";
   status: "DISPONIVEL" | "EM_VISITA" | "PAUSA" | "OFFLINE";
   organizationId: string;
   hasCheckedInToday: boolean;

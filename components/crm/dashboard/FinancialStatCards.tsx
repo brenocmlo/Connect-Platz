@@ -60,7 +60,7 @@ export function FinancialStatCards({ financial, scope, salesSparkline }: Financi
           trendValue={orUndefined(trends.commissionPaid)}
           icon={CheckCircle}
           iconColor="text-sky-500 bg-sky-500/10"
-          legend="Repasses a corretores e gerentes"
+          legend="Repasses a corretores e sócios"
         />
       )}
 

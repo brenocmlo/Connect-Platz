@@ -56,7 +56,7 @@ export function buildLeadRLSWhere(context: RLSUserContext): Prisma.LeadWhereInpu
     };
   }
 
-  // Administradores, Diretores e Gerentes visualizam toda a organização
+  // Administradores visualizam toda a organização
   return baseWhere;
 }
 
@@ -68,9 +68,9 @@ export function maskLeadSensitiveData<
   T extends { telefone: string; email?: string | null; corretorId?: string | null }
 >(lead: T, context: RLSUserContext): T {
   const isOwner = lead.corretorId === context.userId;
-  const isAdminOrManager = ["ADMINISTRADOR", "DIRETOR", "GERENTE"].includes(context.role);
+  const isAdmin = context.role === "ADMINISTRADOR";
 
-  if (isOwner || isAdminOrManager) {
+  if (isOwner || isAdmin) {
     return lead;
   }
 

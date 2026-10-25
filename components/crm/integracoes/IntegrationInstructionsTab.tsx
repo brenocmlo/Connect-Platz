@@ -97,7 +97,7 @@ export function IntegrationInstructionsTab({
         </button>
       ) : (
         <p className="text-muted-foreground">
-          Solicite a chave à Diretoria. Nos exemplos abaixo ela aparece como <code className="font-mono">{PLACEHOLDER}</code>.
+          Solicite a chave ao Administrador. Nos exemplos abaixo ela aparece como <code className="font-mono">{PLACEHOLDER}</code>.
         </p>
       )}
       {keysError && <p className="text-rose-600 dark:text-rose-400">{keysError}</p>}

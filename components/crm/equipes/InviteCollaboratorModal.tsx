@@ -15,7 +15,7 @@ import {
   Shield,
 } from "lucide-react";
 
-export type InviteRole = "CORRETOR" | "GERENTE" | "DIRETOR";
+export type InviteRole = "CORRETOR" | "ADMINISTRADOR";
 
 export interface InviteCollaboratorData {
   nome: string;
@@ -31,8 +31,6 @@ interface InviteCollaboratorModalProps {
   onClose: () => void;
   /** Deve lançar erro (com mensagem) se o cadastro falhar; o modal só fecha após sucesso. */
   onInvite: (data: InviteCollaboratorData) => Promise<void>;
-  /** Administrador/Diretor podem cadastrar gestores; Gerente cadastra apenas corretores. */
-  canInviteManagers?: boolean;
 }
 
 /** Senha provisória aleatória (crypto) com 12 caracteres. */
@@ -48,7 +46,6 @@ export function InviteCollaboratorModal({
   isOpen,
   onClose,
   onInvite,
-  canInviteManagers = false,
 }: InviteCollaboratorModalProps) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -175,8 +172,7 @@ export function InviteCollaboratorModal({
                 className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
               >
                 <option value="CORRETOR">Corretor (Leads próprios & Agenda)</option>
-                {canInviteManagers && <option value="GERENTE">Gerente de Equipe (Time & BI)</option>}
-                {canInviteManagers && <option value="DIRETOR">Diretor (Gestão completa)</option>}
+                <option value="ADMINISTRADOR">Administrador (Gestão completa)</option>
               </select>
             </div>
           </div>

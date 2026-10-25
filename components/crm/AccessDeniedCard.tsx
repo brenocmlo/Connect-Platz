@@ -6,13 +6,13 @@ import { ShieldAlert, ArrowLeft } from "lucide-react";
 
 interface AccessDeniedCardProps {
   moduleName?: string;
-  /** Perfis com acesso, exibidos na mensagem (ex.: "Administradores, Diretores e Gerentes"). */
+  /** Perfis com acesso, exibidos na mensagem (ex.: "Administradores"). */
   allowedLabel?: string;
 }
 
 export function AccessDeniedCard({
   moduleName = "este módulo",
-  allowedLabel = "Administradores e Diretores",
+  allowedLabel = "Administradores",
 }: AccessDeniedCardProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center animate-fade-in-up">

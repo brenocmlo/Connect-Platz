@@ -7,8 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { verifySessionToken, SessionPayload } from "./jwt";
 
-export const MANAGER_ROLES: Role[] = [Role.ADMINISTRADOR, Role.DIRETOR, Role.GERENTE];
-export const DIRECTOR_ROLES: Role[] = [Role.ADMINISTRADOR, Role.DIRETOR];
+export const ADMIN_ROLES: Role[] = [Role.ADMINISTRADOR];
 
 export function getRequestSession(req: NextRequest): SessionPayload | null {
   const cookieToken = req.cookies.get("connect_platz_token")?.value;
@@ -25,12 +24,8 @@ export function getRequestSession(req: NextRequest): SessionPayload | null {
   return null;
 }
 
-export function isManager(role: Role | string): boolean {
-  return MANAGER_ROLES.includes(role as Role);
-}
-
-export function isDirector(role: Role | string): boolean {
-  return DIRECTOR_ROLES.includes(role as Role);
+export function isAdmin(role: Role | string): boolean {
+  return role === Role.ADMINISTRADOR;
 }
 
 type SessionResult =
@@ -39,7 +34,7 @@ type SessionResult =
 
 /**
  * Exige sessão válida (e opcionalmente um dos perfis informados).
- * Uso: const auth = requireSession(req, MANAGER_ROLES); if (auth.error) return auth.error;
+ * Uso: const auth = requireSession(req, ADMIN_ROLES); if (auth.error) return auth.error;
  */
 export function requireSession(req: NextRequest, roles?: Role[]): SessionResult {
   const session = getRequestSession(req);

@@ -17,8 +17,6 @@ datasource db {
 
 enum Role {
   ADMINISTRADOR
-  DIRETOR
-  GERENTE
   CORRETOR
 }
 
@@ -99,8 +97,7 @@ enum BookingStatus {
 
 enum CommissionBeneficiaryType {
   IMOBILIARIA
-  DIRETOR
-  GERENTE
+  SOCIO_GESTOR
   CORRETOR_TITULAR
   CO_CORRETOR
   CAPTACAO

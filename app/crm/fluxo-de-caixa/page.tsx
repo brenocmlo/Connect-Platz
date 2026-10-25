@@ -26,8 +26,8 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 
 export default function FluxoCaixaDREPage() {
   const { user, setActionMessage, hideValues } = useCrm();
-  // Fluxo de Caixa e DRE: exclusivo da diretoria (a API também bloqueia com 403)
-  const canAccess = !user || user.role === "ADMINISTRADOR" || user.role === "DIRETOR";
+  // Fluxo de Caixa e DRE: exclusivo do administrador (a API também bloqueia com 403)
+  const canAccess = !user || user.role === "ADMINISTRADOR";
 
   const [activeTab, setActiveTab] = useState<TabId>("contas");
   const [cashFlows, setCashFlows] = useState<CashFlowItem[]>([]);

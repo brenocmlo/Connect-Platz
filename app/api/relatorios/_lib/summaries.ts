@@ -122,7 +122,7 @@ export function buildSummaries(
         roi === null
           ? scope.director
             ? "Sem despesas de mídia no Fluxo de Caixa"
-            : "Disponível para a Diretoria"
+            : "Disponível para o Administrador"
           : `${brl(investVgv)} de VGV sobre ${brl(investTotal)} investidos`,
       category: "Marketing",
       iconName: "TrendingUp",

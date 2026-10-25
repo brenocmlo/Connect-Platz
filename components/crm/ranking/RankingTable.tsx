@@ -1,20 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Medal, Trophy } from "lucide-react";
 import { AnimatedCrown } from "@/components/crm/AnimatedCrown";
-import { SegmentedToggle } from "@/components/crm/primitives/SegmentedToggle";
 import { EmptyState } from "@/components/crm/primitives/EmptyState";
 import { useCrm } from "@/components/crm/CrmContext";
 import { formatCompactBRL } from "@/components/crm/dashboard/format";
 import { BrokerRankItem } from "./types";
 import { RankAvatar } from "./RankAvatar";
 
-type RankTab = "corretores" | "gerentes";
-
 interface RankingTableProps {
   corretores: BrokerRankItem[];
-  gerentes: BrokerRankItem[];
   currentUserId?: string;
 }
 
@@ -41,22 +37,13 @@ function PositionCell({ item }: { item: BrokerRankItem }) {
 }
 
 /** Tabela completa de ranking (5.9) — ordem determinística calculada em /api/ranking. */
-export function RankingTable({ corretores, gerentes, currentUserId }: RankingTableProps) {
+export function RankingTable({ corretores: rows, currentUserId }: RankingTableProps) {
   const { hideValues } = useCrm();
-  const [activeTab, setActiveTab] = useState<RankTab>("corretores");
-  const rows = activeTab === "corretores" ? corretores : gerentes;
 
   return (
     <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
       <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <SegmentedToggle
-          options={[
-            { value: "corretores", label: "Ranking Corretores" },
-            { value: "gerentes", label: "Ranking Gerentes" },
-          ]}
-          value={activeTab}
-          onChange={(v) => setActiveTab(v as RankTab)}
-        />
+        <h3 className="text-sm font-bold text-foreground">Ranking Corretores</h3>
         <span className="text-xs text-muted-foreground font-medium">
           Ordem: VGV, vendas, visitas, captações e nome
         </span>
@@ -65,7 +52,7 @@ export function RankingTable({ corretores, gerentes, currentUserId }: RankingTab
       {rows.length === 0 ? (
         <EmptyState
           icon={Trophy}
-          title={activeTab === "corretores" ? "Nenhum corretor ativo" : "Nenhum gerente ativo"}
+          title="Nenhum corretor ativo"
           description="Cadastre colaboradores em Equipes para acompanhar o ranking."
           className="m-4"
         />

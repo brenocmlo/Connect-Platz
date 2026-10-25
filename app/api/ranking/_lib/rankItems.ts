@@ -19,8 +19,6 @@ export interface RankUser {
 
 const ROLE_LABELS: Record<string, string> = {
   CORRETOR: "Corretor",
-  GERENTE: "Gerente",
-  DIRETOR: "Diretor",
   ADMINISTRADOR: "Administrador",
 };
 
@@ -33,14 +31,11 @@ export function initials(nome: string): string {
 /** Ordena (VGV, vendas, visitas, captações, nome) e numera as posições 1..n. */
 export function buildRanking(
   users: RankUser[],
-  metrics: Map<string, UserMetrics>,
-  asManager = false
+  metrics: Map<string, UserMetrics>
 ): BrokerRankItem[] {
   return users
     .map((u) => {
-      const raw = metrics.get(u.id) || emptyMetrics();
-      // Gerente é avaliado pelas vendas em que participa como gerente no split de comissão
-      const m = asManager ? { ...raw, vgv: raw.vgvGerencia, vendas: raw.vendasGerencia } : raw;
+      const m = metrics.get(u.id) || emptyMetrics();
       return { u, nome: u.nome, m };
     })
     .sort(compareByPerformance)

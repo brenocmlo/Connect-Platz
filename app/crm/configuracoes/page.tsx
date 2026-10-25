@@ -11,30 +11,26 @@ import { ScoreCalibrationTab } from "@/components/crm/configuracoes/ScoreCalibra
 import { PushNotificationCard } from "@/components/crm/configuracoes/PushNotificationCard";
 
 type ConfigTab = "perfil" | "notificacoes" | "geral" | "sla" | "score";
-type Access = "all" | "manager" | "director";
+type Access = "all" | "admin";
 
 const tabList: { id: ConfigTab; label: string; icon: React.ElementType; access: Access }[] = [
   { id: "perfil", label: "Minha Conta", icon: UserCircle, access: "all" },
   { id: "notificacoes", label: "Notificações PWA", icon: BellRing, access: "all" },
-  { id: "geral", label: "Dados da Imobiliária", icon: Building2, access: "director" },
-  { id: "sla", label: "Regras de SLA", icon: Sliders, access: "manager" },
-  { id: "score", label: "Régua de Score", icon: Flame, access: "manager" },
+  { id: "geral", label: "Dados da Imobiliária", icon: Building2, access: "admin" },
+  { id: "sla", label: "Regras de SLA", icon: Sliders, access: "admin" },
+  { id: "score", label: "Régua de Score", icon: Flame, access: "admin" },
 ];
 
 export default function ConfiguracoesPage() {
   const { user } = useCrm();
   const [activeTab, setActiveTab] = useState<ConfigTab>("perfil");
 
-  // RBAC: Corretor → Minha Conta + preferências locais; Gerente → + SLA e Score; Admin/Diretor → tudo
-  const isDirector = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR";
-  const isManager = isDirector || user?.role === "GERENTE";
+  // RBAC: Corretor → Minha Conta + preferências locais; Administrador → tudo
+  const isAdmin = user?.role === "ADMINISTRADOR";
 
   const availableTabs = useMemo(
-    () =>
-      tabList.filter(
-        (t) => t.access === "all" || (t.access === "manager" && isManager) || (t.access === "director" && isDirector)
-      ),
-    [isManager, isDirector]
+    () => tabList.filter((t) => t.access === "all" || isAdmin),
+    [isAdmin]
   );
 
   // Sincroniza com hash da URL (#perfil, #notificacoes, #geral, #sla, #score)
@@ -58,12 +54,10 @@ export default function ConfiguracoesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={isManager ? "Configurações do Sistema" : "Minha Conta & Preferências"}
+        title={isAdmin ? "Configurações do Sistema" : "Minha Conta & Preferências"}
         subtitle={
-          isDirector
+          isAdmin
             ? "Gerencie seu perfil, dados corporativos, alertas e regras de SLA e score da equipe."
-            : isManager
-            ? "Gerencie seu perfil, alertas e as regras operacionais de SLA e score da equipe."
             : "Gerencie suas informações profissionais, CRECI individual e alertas PWA."
         }
         showHideValuesButton={false}

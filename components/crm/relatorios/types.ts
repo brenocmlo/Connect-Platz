@@ -76,7 +76,7 @@ export interface BiLgpdClosedLead {
 export interface BiReportData {
   period: { key: string; label: string };
   scope: "organizacao" | "corretor";
-  /** Investimento em mídia só é calculado para a Diretoria (dado financeiro corporativo) */
+  /** Investimento em mídia só é calculado para o Administrador (dado financeiro corporativo) */
   investmentAvailable: boolean;
   summaries: BiMetricSummary[];
   vgvSeries: Record<BiGranularityType, BiTimeSeriesPoint[]>;

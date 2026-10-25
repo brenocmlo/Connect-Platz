@@ -39,7 +39,6 @@ export interface RankingResponse {
   period: { key: string; label: string };
   podium: BrokerRankItem[];
   fullRanking: BrokerRankItem[];
-  gerentes: BrokerRankItem[];
   highlights: HighlightItem[];
   /** Corretor do Mês = 1º colocado com resultado real (null se ninguém vendeu) */
   leader: BrokerRankItem | null;
@@ -64,7 +63,7 @@ export interface GoalIncentive extends GoalInput {
   id: string;
   /** Progresso calculado de dados reais (vendas/VGV/visitas/captações no intervalo da meta) */
   progressoAtual: number;
-  /** individual = progresso do próprio usuário; equipe = soma da organização (gestores) */
+  /** individual = progresso do próprio usuário; equipe = soma da organização (administradores) */
   progressScope: "individual" | "equipe";
   status: "ativa" | "agendada" | "encerrada";
 }

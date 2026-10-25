@@ -1,16 +1,16 @@
 // app/api/integracoes/chaves/route.ts
-// Exibe as chaves dos webhooks (lidas do process.env) somente para Administrador/Diretor.
+// Exibe as chaves dos webhooks (lidas do process.env) somente para o Administrador.
 // Cada consulta é auditada. META_APP_SECRET nunca é devolvido.
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession, DIRECTOR_ROLES } from "@/lib/auth/session";
+import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { CHANNELS } from "@/components/crm/integracoes/channels";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const auth = requireSession(req, DIRECTOR_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

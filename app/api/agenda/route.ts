@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, isManager } from "@/lib/auth/session";
+import { requireSession, isAdmin } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { refreshLeadScore } from "@/lib/services/lead-score";
 import { normalizeAppointmentType } from "@/components/crm/agenda/types";
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const appointments = await prisma.appointment.findMany({
       where: {
         organizationId: session.organizationId,
-        ...(isManager(session.role) ? {} : { userId: session.userId }),
+        ...(isAdmin(session.role) ? {} : { userId: session.userId }),
         ...(leadId ? { leadId } : {}),
         ...(from || to
           ? {
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Tipo de compromisso inválido: ${data.tipo}.` }, { status: 400 });
     }
 
-    const manager = isManager(session.role);
+    const manager = isAdmin(session.role);
 
     // Responsável: corretor agenda para si; gestor pode escolher alguém da organização
     let responsibleId = session.userId;

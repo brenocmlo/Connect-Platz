@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, isManager } from "@/lib/auth/session";
+import { requireSession, isAdmin } from "@/lib/auth/session";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
   const { session } = auth;
 
-  const scope = isManager(session.role) ? {} : { corretorId: session.userId };
+  const scope = isAdmin(session.role) ? {} : { corretorId: session.userId };
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       where: {
         organizationId: session.organizationId,
         dataInicio: { gte: startOfDay, lt: endOfDay },
-        ...(isManager(session.role) ? {} : { userId: session.userId }),
+        ...(isAdmin(session.role) ? {} : { userId: session.userId }),
       },
       orderBy: { dataInicio: "asc" },
       take: 10,

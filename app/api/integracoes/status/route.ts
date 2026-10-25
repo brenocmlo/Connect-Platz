@@ -5,13 +5,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { LeadSource, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, MANAGER_ROLES } from "@/lib/auth/session";
+import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { CHANNELS, ChannelStatus } from "@/components/crm/integracoes/channels";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

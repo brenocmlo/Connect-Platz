@@ -19,7 +19,7 @@ function csvCell(value: string | null | undefined): string {
 
 export default function AuditoriaPage() {
   const { user, setActionMessage } = useCrm();
-  const isManager = user?.role === "ADMINISTRADOR" || user?.role === "DIRETOR" || user?.role === "GERENTE";
+  const isAdmin = user?.role === "ADMINISTRADOR";
 
   const [filters, setFilters] = useState<AuditFilterState>(EMPTY_FILTERS);
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -59,8 +59,8 @@ export default function AuditoriaPage() {
   }, [page, debouncedQ, filters.modulo, filters.tipoAcao, filters.userId, filters.from, filters.to]);
 
   useEffect(() => {
-    if (user && isManager) load();
-  }, [user, isManager, load, reloadKey]);
+    if (user && isAdmin) load();
+  }, [user, isAdmin, load, reloadKey]);
 
   const handleFilterChange = (patch: Partial<AuditFilterState>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -104,8 +104,8 @@ export default function AuditoriaPage() {
     setTimeout(() => setActionMessage(null), 3000);
   };
 
-  if (user && !isManager) {
-    return <AccessDeniedCard moduleName="os logs e auditoria do sistema" allowedLabel="Administradores, Diretores e Gerentes" />;
+  if (user && !isAdmin) {
+    return <AccessDeniedCard moduleName="os logs e auditoria do sistema" allowedLabel="Administradores" />;
   }
 
   const hasFilters =

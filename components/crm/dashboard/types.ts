@@ -88,7 +88,7 @@ export interface DashboardData {
       commissionPending: number | null;
     };
   };
-  /** Fluxo de caixa corporativo: apenas Diretoria/Administração */
+  /** Fluxo de caixa corporativo: apenas Administrador */
   cashFlow: { balance: number; inflow: number; outflow: number; balanceTrend: number | null } | null;
   operational: {
     docs: { total: number; emAnalise: number; aprovadas: number; reprovadas: number };
@@ -101,6 +101,6 @@ export interface DashboardData {
   funnels: FunnelReport[];
   hotLeads: HotLeadItem[];
   appointments: AppointmentItem[];
-  team: { corretores: TeamMemberItem[]; gerentes: TeamMemberItem[] } | null;
+  team: { corretores: TeamMemberItem[] } | null;
   activities: ActivityItem[];
 }

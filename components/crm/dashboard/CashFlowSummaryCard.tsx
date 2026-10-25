@@ -15,7 +15,7 @@ interface CashFlowSummaryCardProps {
   className?: string;
 }
 
-/** Card Fluxo de Caixa (5.3 item 2) — exibido apenas para Diretoria/Administração. */
+/** Card Fluxo de Caixa (5.3 item 2) — exibido apenas para o Administrador. */
 export function CashFlowSummaryCard({
   balance,
   inflow,

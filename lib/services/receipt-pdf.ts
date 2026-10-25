@@ -96,7 +96,7 @@ export function generateCommissionReceiptPdf(data: CommissionReceiptData) {
   doc.text("Assinatura do Beneficiário / Corretor", 14, finalY + 45);
 
   doc.line(110, finalY + 35, 196, finalY + 35);
-  doc.text("Diretoria Financeira Connect Platz", 110, finalY + 40);
+  doc.text("Administração Financeira Connect Platz", 110, finalY + 40);
   if (data.empresaCnpj) doc.text(`CNPJ: ${data.empresaCnpj}`, 110, finalY + 45);
 
   // DOWNLOAD DO ARQUIVO PDF

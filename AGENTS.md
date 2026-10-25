@@ -72,6 +72,7 @@
 - ❌ **Sem WhatsApp Integrado:** Manter botões e links diretos para WhatsApp Web / App (`https://wa.me/55...`), sem embutir cliente não oficial de mensagens.
 - ❌ **Sem Inteligência Artificial Externa:** Regras de negócio, cálculos de SLA, roleta e scores devem ser 100% determinísticos.
 - ❌ **Sem Treinamentos e Assinatura:** Não devem existir itens de menu, abas ou telas para "Treinamentos" e "Assinatura" no CRM.
+- 👥 **Perfis de acesso:** o sistema tem somente dois perfis — `ADMINISTRADOR` e `CORRETOR`. Não existem perfis Diretor ou Gerente (enum `Role` no Prisma).
 - 🔒 **Restrição Rígida de Acesso do Corretor (RBAC) & Menu Lateral:**
   - **Menu Lateral sem "Administração":** O item "Administração" NÃO deve constar no menu lateral (pois seus ajustes estão centralizados no painel de Configurações para gestores).
   - **Corretor sem Acesso à Gestão/Administração:** Corretores têm acesso estritamente à sua conta/perfil profissional em Configurações ("Minha Conta"). As abas de dados corporativos da imobiliária e parametrização de SLAs, bem como os módulos de Fluxo de Caixa, DRE, Equipes e Integrações, são 100% bloqueados para o cargo `CORRETOR`.
@@ -137,7 +138,7 @@
 6. **Funil de Vendas**: barras horizontais por etapa com gradiente primário, rótulo da etapa à esquerda, pílula com % de conversão à direita e marcador colorido por etapa; navegação `‹ Funil 1 ›` + ícone ⓘ.
 7. **Leads Quentes**: lista ranqueada (`1º…6º` em círculo cinza), nome + pílula de status (`NOVO`, `ATENDIMENTO`), meta "Corretor · há 6 meses", badge 🔥 `97/100` + legenda "Potencial Alto", botão WhatsApp (ícone verde em círculo — link `wa.me`) e seta `→`; paginação "Página 1 de 2 (12 leads)"; botão "Ver todos".
 8. **Compromissos**: timeline vertical com bolinhas coloridas, pílula de tipo (`Lembrete` cinza, `Visita` azul), data/hora, badge `Finalizado` verde, título, cliente e responsável com avatar; toggle `Dia | Semanal | 15 Dias`.
-9. **Performance da Equipe**: ranking com avatar, nome, contagem e VGV à direita; toggles `Anual | Mensal | Semanal` + `Corretores | Gerentes | Equipes`. **Atividades Recentes**: feed "Compromisso realizado", "Lead editado", "Lead removido do bolsão" com carimbo relativo à direita ("há 10 minutos").
+9. **Performance da Equipe**: ranking com avatar, nome, contagem e VGV à direita; toggles `Anual | Mensal | Semanal` (somente corretores — o sistema não tem perfil Gerente). **Atividades Recentes**: feed "Compromisso realizado", "Lead editado", "Lead removido do bolsão" com carimbo relativo à direita ("há 10 minutos").
 
 #### 5.4 Leads — Funil Kanban
 
@@ -161,7 +162,7 @@
 - **Drawer lateral direito** (~400 px, overlay escurecido `bg-black/60`, slide-in da direita), rolável, seções com cabeçalho ícone + título semibold:
   Oportunidades (empreendimento + "A partir de R$ …") · Empreendimento de Interesse · Renda declarada · **Score do Lead** (badge) · Campanha (Campanha / Anúncio) · Observações (texto itálico cinza quando vazio) · **Compromissos agendados** (cards com pílula de tipo `Lembrete`/`Documentação`/`Retorno / Follow-up`, 🕒 data/hora; follow-up com fundo âmbar claro) · **Anexos** (empty state com ícone de documento) · **Datas Importantes** (Captação / Última atualização alinhadas à direita) · **Histórico**.
 - **Timeline "Histórico"**: itens com avatar do sistema/usuário, título semibold ("Status do lead alterado", "Lead criado"), descrição ("Status do lead 'Ana Paula' alterado de 'novo' para 'atendimento'"), "Por: Fulano" e timestamp à direita (`dd/mm/aaaa às hh:mm`). Ordem: mais recente no topo.
-- **Modal "Editar Lead"** (Dialog central ~450 px, `rounded-xl`, scroll interno, ✕ circular): seletor de funil no topo-direito; bloco com avatar do **Corretor/Gerente Responsável** + select `Status/Etapa *`; Tabs `Informações do Lead | Documentos`; grid de 2 colunas — Tipo de pessoa, CPF, Nome*, Telefone, Email, RG, Data de Nascimento, Estado Civil, Nome da Mãe/Pai, Profissão; depois Endereço, Origem, Empreendimento de interesse (chips), Renda declarada/informal, Data de fechamento prevista, Captação (Campanha/Formulário/Anúncio), Observações, Compromissos agendados (`+ Adicionar`). Aba **Documentos**: grid de slots de upload (RG, CPF, Comprovante de Renda, Certidão de Estado Civil, FGTS, IRPF…) com ícone ⬆ e limite "Máximo 10 MB". Rodapé fixo: `Cancelar` (ghost) + `Salvar Alterações` (primário).
+- **Modal "Editar Lead"** (Dialog central ~450 px, `rounded-xl`, scroll interno, ✕ circular): seletor de funil no topo-direito; bloco com avatar do **Corretor Responsável** + select `Status/Etapa *`; Tabs `Informações do Lead | Documentos`; grid de 2 colunas — Tipo de pessoa, CPF, Nome*, Telefone, Email, RG, Data de Nascimento, Estado Civil, Nome da Mãe/Pai, Profissão; depois Endereço, Origem, Empreendimento de interesse (chips), Renda declarada/informal, Data de fechamento prevista, Captação (Campanha/Formulário/Anúncio), Observações, Compromissos agendados (`+ Adicionar`). Aba **Documentos**: grid de slots de upload (RG, CPF, Comprovante de Renda, Certidão de Estado Civil, FGTS, IRPF…) com ícone ⬆ e limite "Máximo 10 MB". Rodapé fixo: `Cancelar` (ghost) + `Salvar Alterações` (primário).
 - **Modal "Novo compromisso"**: Tipo (select com bolinha colorida: Visita, Lembrete, Documentação, Retorno/Follow-up, Proposta/Apresentação) · Título auto-preenchido ("Visita — Cliente — Empreendimento") · Descrição · Cliente/Lead (combobox com busca) · Data (date picker) · Início/Fim · Empreendimento · Endereço/Local · Link · E-mail + checkbox "Notificar cliente por e-mail". Rodapé `Cancelar` / `Criar`.
 
 #### 5.6 Empreendimentos (Catálogo de Imóveis)
@@ -181,16 +182,16 @@
 #### 5.8 Vendas e Comissões
 
 - 5 StatCards (VGV Total, Total de Vendas, Comissão Recebida, Comissões Pagas, Comissões Pendentes) + tabs `Vendas Mensais | Comissões | Agenda de Vencimentos | Pendências Colaboradores | Estatísticas`.
-- **Tabela**: contador "82 vendas", seletor "50 por página", paginação `‹ 1/2 ›`; colunas Data (+ "Cód. 86" abaixo) · Cliente · Empreendimento (+ construtora) · VGV (**verde**) · Imposto ("R$ 528,00 (6%)") · Próx. Pagamento · Corretor (avatar + nome; rótulos "CORRETOR 1/2" quando dividido) · Gerente · Gestor · Captador · Comissão Corretor (cor primária) · Ações `⋯` (Ver detalhes, Ver recibo, Editar pagamento). Linhas em hover com fundo tint primário.
-- **Modal "Nova Venda"** com tabs `Dados e Financeiro | Resumo e Cálculos | Anexos`: dados da venda e base de cálculo, combobox de cliente/empreendimento, bloco por participante (Corretor 1, `+ Adicionar Segundo Corretor`, Gerente, Sócio/Gestor, Captador) com tipo de comissão (%), desconto e bônus. **Resumo e Cálculos** mostra valores calculados em cards tint ("Comissão Corretor Final R$ 5.560,00", "Receita da Imobiliária") — cálculo 100% determinístico.
-- **Filtros** em **Sheet lateral direito**: selects Corretores, Gerentes, Captadores, Gestores, Equipe, Construtoras, VGV mín/máx, Código da venda, Status, Ordenar por; rodapé `Fechar` / `Ver resultados`.
+- **Tabela**: contador "82 vendas", seletor "50 por página", paginação `‹ 1/2 ›`; colunas Data (+ "Cód. 86" abaixo) · Cliente · Empreendimento (+ construtora) · VGV (**verde**) · Imposto ("R$ 528,00 (6%)") · Próx. Pagamento · Corretor (avatar + nome; rótulos "CORRETOR 1/2" quando dividido) · Gestor · Captador · Comissão Corretor (cor primária) · Ações `⋯` (Ver detalhes, Ver recibo, Editar pagamento). Linhas em hover com fundo tint primário.
+- **Modal "Nova Venda"** com tabs `Dados e Financeiro | Resumo e Cálculos | Anexos`: dados da venda e base de cálculo, combobox de cliente/empreendimento, bloco por participante (Corretor 1, `+ Adicionar Segundo Corretor`, Sócio/Gestor, Captador) com tipo de comissão (%), desconto e bônus. **Resumo e Cálculos** mostra valores calculados em cards tint ("Comissão Corretor Final R$ 5.560,00", "Receita da Imobiliária") — cálculo 100% determinístico.
+- **Filtros** em **Sheet lateral direito**: selects Corretores, Captadores, Gestores, Equipe, Construtoras, VGV mín/máx, Código da venda, Status, Ordenar por; rodapé `Fechar` / `Ver resultados`.
 
 #### 5.9 Ranking e Gamificação
 
 - Bloco **Metas e Incentivos**: card com imagem do prêmio, badge `Meta Habitus` → no nosso caso `Meta Connect Platz`, descrição da meta, card tint "OBJETIVO: 2 Vendas", período de validade, e card **"Seu Progresso"** com barra de progresso grossa e "0 / 2 vendas".
 - **Card "Corretor do Mês"** (fundo com gradiente tint suave): coroa dourada animada acima do avatar, avatar circular com **anel dourado brilhante**, pílula `1º Lugar` dourada, nome grande, subtítulo, mini-cards tint (VGV, Vendas, Visitas, Documentações, Captações, Compromissos). Select `Corretor ▾` no canto.
 - Grid 3×2 de destaques: Mais Leads · Mais Visitas · Mais Documentações · Mais Captações · Melhor Taxa · Mais Compromissos (ícone tint + rótulo uppercase + nome grande + métrica).
-- Tabs `Ranking Corretores | Ranking Gerentes | Ranking Equipes`; lista: **1º lugar com borda superior dourada, fundo creme e coroa**; 2º/3º com medalhas prata/bronze; demais com "4º"; cada linha: avatar, nome, "R$ … · VGV" (cor primária), documentos, vendas, captações, visitas, compromissos.
+- Título `Ranking Corretores` (sem abas de Gerentes/Equipes); lista: **1º lugar com borda superior dourada, fundo creme e coroa**; 2º/3º com medalhas prata/bronze; demais com "4º"; cada linha: avatar, nome, "R$ … · VGV" (cor primária), documentos, vendas, captações, visitas, compromissos.
 
 #### 5.10 Integrações
 
@@ -201,7 +202,7 @@
 
 | Elemento | Comportamento observado | Implementação de referência |
 |---|---|---|
-| Entrada de seções/cards | sobe e aparece | `@keyframes fadeInUp { 0% {opacity:0; transform:translateY(20px)} to {opacity:1; transform:none} }` · `.7s ease-out forwards` |
+| Entrada de seções/cards | sobe e aparece | `@keyframes fadeInUp { 0% {opacity:0; transform:translateY(20px)} to {opacity:1; transform:none} }` · `.7s ease-out backwards` (nunca `forwards`: o transform retido prende modais `fixed`) |
 | Fade simples | overlays e conteúdo de tabs | `fadeIn .7s ease-out` |
 | Transição de página/tela no vídeo | wipe com blur de movimento | usar `fadeInUp` curto (300 ms) — não replicar o wipe |
 | Coroa do 1º lugar | flutua e balança | `crown-float`: `translateY(0) rotate(-3deg)` ↔ `translateY(-6px) rotate(3deg)`, `2.4s ease-in-out infinite` |

@@ -1,11 +1,11 @@
 // app/api/metas/route.ts
 // Metas e incentivos persistidos em Organization.settings.goals.
 // Leitura: qualquer usuário autenticado (progresso calculado de dados reais).
-// Escrita (POST/PATCH/DELETE): somente gestores, com registro em audit_logs.
+// Escrita (POST/PATCH/DELETE): somente administradores, com registro em audit_logs.
 
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { MANAGER_ROLES, isManager, requireSession } from "@/lib/auth/session";
+import { ADMIN_ROLES, isAdmin, requireSession } from "@/lib/auth/session";
 import { getOrgSettings, updateOrgSettings, GoalConfig } from "@/lib/domain/settings/orgSettings";
 import { recordAudit } from "@/lib/services/audit-server";
 import { validateGoal, withProgress } from "./_lib/goals";
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const settings = await getOrgSettings(session.organizationId);
-    const manager = isManager(session.role);
+    const manager = isAdmin(session.role);
     const goals = await withProgress(session.organizationId, settings.goals || [], {
       userId: session.userId,
       manager,
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -115,7 +115,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

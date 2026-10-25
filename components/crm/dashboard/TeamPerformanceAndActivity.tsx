@@ -1,19 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Users2, Activity, CalendarCheck, Edit3, Repeat, StickyNote, ShieldCheck, Trophy } from "lucide-react";
-import { SegmentedToggle, ToggleOption } from "@/components/crm/primitives/SegmentedToggle";
 import { EmptyState } from "@/components/crm/primitives/EmptyState";
 import { useCrm } from "@/components/crm/CrmContext";
 import type { ActivityItem, DashboardData } from "./types";
 import { formatCompactBRL, initials, relativeTime } from "./format";
-
-type RoleScope = "corretores" | "gerentes";
-
-const roleOptions: ToggleOption<RoleScope>[] = [
-  { value: "corretores", label: "Corretores" },
-  { value: "gerentes", label: "Gerentes" },
-];
 
 function activityIcon(item: ActivityItem): { icon: React.ElementType; color: string } {
   if (item.origem === "auditoria") return { icon: ShieldCheck, color: "text-platz-gold bg-platz-gold/10" };
@@ -37,9 +29,8 @@ interface TeamPerformanceAndActivityProps {
 
 /** Performance da Equipe + Atividades Recentes (5.3 item 9). */
 export function TeamPerformanceAndActivity({ team, activities, periodLabel }: TeamPerformanceAndActivityProps) {
-  const [roleScope, setRoleScope] = useState<RoleScope>("corretores");
   const { hideValues } = useCrm();
-  const members = team ? team[roleScope] : [];
+  const members = team ? team.corretores : [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -55,14 +46,13 @@ export function TeamPerformanceAndActivity({ team, activities, periodLabel }: Te
               <p className="text-xs text-muted-foreground">VGV e vendas • {periodLabel}</p>
             </div>
           </div>
-          {team && <SegmentedToggle options={roleOptions} value={roleScope} onChange={setRoleScope} size="sm" />}
         </div>
 
         {!team ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-6 rounded-xl border border-dashed border-border bg-muted/30">
             <Trophy className="w-6 h-6 text-platz-gold" />
             <p className="text-xs text-muted-foreground max-w-xs">
-              A comparação entre colaboradores fica disponível para gestores. Acompanhe sua posição no Ranking.
+              A comparação entre colaboradores fica disponível para o administrador. Acompanhe sua posição no Ranking.
             </p>
             <a href="/crm/ranking" className="text-xs font-semibold text-connect-blue hover:underline">
               Ver Ranking

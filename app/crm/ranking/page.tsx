@@ -101,7 +101,6 @@ export default function RankingGamificacaoPage() {
 
           <RankingTable
             corretores={ranking.fullRanking}
-            gerentes={ranking.gerentes}
             currentUserId={ranking.currentUserId}
           />
         </div>

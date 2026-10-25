@@ -24,7 +24,7 @@ interface NewSaleModalProps {
   onSubmit: (sale: SaleItem) => void;
 }
 
-const ROLES: ParticipantRole[] = ["CORRETOR_1", "CORRETOR_2", "GERENTE", "GESTOR", "CAPTADOR"];
+const ROLES: ParticipantRole[] = ["CORRETOR_1", "CORRETOR_2", "GESTOR", "CAPTADOR"];
 
 function initialDeal(): SaleDealState {
   const today = new Date();
@@ -46,11 +46,10 @@ function initialDeal(): SaleDealState {
 }
 
 function initialParticipants(): ParticipantsForm {
-  // Gerente, Gestor e Captador começam em 0% (opcionais) — sem super-alocação por padrão
+  // Gestor e Captador começam em 0% (opcionais) — sem super-alocação por padrão
   return {
     CORRETOR_1: { ...EMPTY_PARTICIPANT, percentual: 50 },
     CORRETOR_2: { ...EMPTY_PARTICIPANT },
-    GERENTE: { ...EMPTY_PARTICIPANT },
     GESTOR: { ...EMPTY_PARTICIPANT },
     CAPTADOR: { ...EMPTY_PARTICIPANT },
   };

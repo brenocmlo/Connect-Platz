@@ -35,7 +35,6 @@ export function matchesFilters(s: SaleItem, f: VendasFilterState) {
     } else if (s.status !== f.status) return false;
   }
   if (f.corretor !== "ALL" && s.corretorTitular !== f.corretor && s.segundoCorretor !== f.corretor) return false;
-  if (f.gerente !== "ALL" && s.gerente !== f.gerente) return false;
   if (f.captador !== "ALL" && s.captador !== f.captador) return false;
   if (f.gestor !== "ALL" && s.gestor !== f.gestor) return false;
   if (f.construtora !== "ALL" && s.construtora !== f.construtora) return false;

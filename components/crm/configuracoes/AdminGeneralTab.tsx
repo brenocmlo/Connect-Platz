@@ -137,7 +137,7 @@ export function AdminGeneralTab() {
       {!canEdit && (
         <div className="p-3 rounded-lg bg-muted border border-border text-xs text-muted-foreground flex items-center gap-2">
           <Lock className="w-4 h-4 shrink-0" />
-          Somente Administradores e Diretores podem editar os dados corporativos.
+          Somente Administradores podem editar os dados corporativos.
         </div>
       )}
       {formError && (

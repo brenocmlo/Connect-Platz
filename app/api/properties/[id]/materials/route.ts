@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { stat } from "fs/promises";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, MANAGER_ROLES } from "@/lib/auth/session";
+import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { formatFileSize, resolveUploadPath } from "@/app/api/upload/uploadStorage";
 
@@ -47,10 +47,10 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 /**
  * POST /api/properties/[id]/materials — registra um material já enviado via /api/upload
- * (pasta `materials`). Somente gestores. O tamanho é lido do arquivo gravado.
+ * (pasta `materials`). Somente administradores. O tamanho é lido do arquivo gravado.
  */
 export async function POST(req: NextRequest, { params }: Params) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

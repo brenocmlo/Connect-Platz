@@ -1,7 +1,7 @@
 export interface SplitItem {
   id: string;
   beneficiario: string;
-  /** Rótulo amigável (Corretor 1, Gerente, Imobiliária...) */
+  /** Rótulo amigável (Corretor 1, Gestor / Sócio, Imobiliária...) */
   categoria: string;
   /** CommissionBeneficiaryType persistido */
   tipo?: string;
@@ -24,7 +24,6 @@ export interface SaleItem {
   corretorId?: string;
   corretorTitular: string;
   segundoCorretor?: string;
-  gerente?: string;
   gestor?: string;
   captador?: string;
   /** dd/mm/aaaa (exibição) */
@@ -48,7 +47,6 @@ export interface SaleItem {
 
 export interface VendasFilterState {
   corretor: string;
-  gerente: string;
   captador: string;
   gestor: string;
   equipe: string;

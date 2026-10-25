@@ -1,7 +1,7 @@
 // app/api/dashboard/route.ts
 // Métricas reais da Dashboard (sem valores de exemplo). Escopo por perfil:
 // - Corretor: somente as próprias vendas, comissões, leads e agenda; sem fluxo de caixa corporativo.
-// - Gestores: organização inteira; fluxo de caixa apenas para Diretoria/Administração.
+// - Administradores: organização inteira, incluindo o fluxo de caixa.
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/session";

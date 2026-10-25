@@ -29,7 +29,7 @@ async function testSecurity() {
 
   function maskLead(lead, userContext) {
     const isOwner = lead.corretorId === userContext.userId;
-    const isAdmin = ["ADMINISTRADOR", "DIRETOR", "GERENTE"].includes(userContext.role);
+    const isAdmin = userContext.role === "ADMINISTRADOR";
 
     if (isOwner || isAdmin) {
       return lead;

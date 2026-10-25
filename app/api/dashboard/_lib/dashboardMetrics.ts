@@ -134,7 +134,7 @@ async function cashFlowTotals(organizationId: string, range: DateRange | null) {
   return { inflow, outflow, balance: inflow - outflow };
 }
 
-/** Fluxo de caixa da empresa: somente Diretoria/Administração. */
+/** Fluxo de caixa da empresa: somente Administradores. */
 export async function loadCashFlow(
   scope: AnalyticsScope,
   period: PeriodRange

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { PropertyModality, UnitStatus } from "@prisma/client";
-import { getRequestSession, requireSession, MANAGER_ROLES } from "@/lib/auth/session";
+import { getRequestSession, requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import {
   auditSnapshot,
@@ -88,9 +88,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/** POST /api/properties — cadastro de empreendimento/imóvel avulso (somente gestores). */
+/** POST /api/properties — cadastro de empreendimento/imóvel avulso (somente administradores). */
 export async function POST(req: NextRequest) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

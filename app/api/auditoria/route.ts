@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, getClientIp, MANAGER_ROLES } from "@/lib/auth/session";
+import { requireSession, getClientIp, ADMIN_ROLES } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +62,7 @@ function formatDateTime(d: Date): string {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

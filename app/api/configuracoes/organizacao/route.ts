@@ -1,10 +1,10 @@
 // app/api/configuracoes/organizacao/route.ts
-// Dados corporativos da imobiliária. Gestores leem; somente Administrador/Diretor editam.
+// Dados corporativos da imobiliária. Somente o Administrador lê e edita.
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, isDirector, MANAGER_ROLES, DIRECTOR_ROLES } from "@/lib/auth/session";
+import { requireSession, isAdmin, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { getOrgSettings, updateOrgSettings, EmpresaConfig } from "@/lib/domain/settings/orgSettings";
 import { normalizeBrPhone } from "@/lib/utils/phone";
@@ -90,7 +90,7 @@ function cleanEmpresa(e: Record<string, string | null | undefined>): EmpresaCada
 }
 
 export async function GET(req: NextRequest) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
     const settings = await getOrgSettings(session.organizationId);
     return NextResponse.json({
       organizacao: { ...org, empresa: (settings.empresa || {}) as EmpresaCadastro },
-      canEdit: isDirector(session.role),
+      canEdit: isAdmin(session.role),
     });
   } catch (err) {
     console.error("[CONFIG/ORG] GET:", err);
@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const auth = requireSession(req, DIRECTOR_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

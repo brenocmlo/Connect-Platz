@@ -32,8 +32,8 @@ interface NavItem {
   icon: React.ElementType;
   badge?: string;
   isExternal?: boolean;
-  adminOnly?: boolean; // somente ADMINISTRADOR/DIRETOR
-  managerOnly?: boolean; // ADMINISTRADOR/DIRETOR/GERENTE
+  adminOnly?: boolean; // somente ADMINISTRADOR
+  managerOnly?: boolean; // somente ADMINISTRADOR (oculto para CORRETOR)
 }
 
 // 5.2 Ordem dos itens oficiais da Sidebar Connect Platz
@@ -127,7 +127,7 @@ export function Sidebar() {
       {/* 2. LISTA DE NAVEGAÇÃO DOS 12 ITENS PADRÃO CONNECT PLATZ (5.2) */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
         {navItems.map((item) => {
-          if (item.adminOnly && user && user.role !== "ADMINISTRADOR" && user.role !== "DIRETOR") {
+          if (item.adminOnly && user && user.role !== "ADMINISTRADOR") {
             return null;
           }
           if (item.managerOnly && user && user.role === "CORRETOR") {

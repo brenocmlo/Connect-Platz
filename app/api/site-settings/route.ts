@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { getRequestSession, requireSession, MANAGER_ROLES } from "@/lib/auth/session";
+import { getRequestSession, requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { resolvePublicOrganizationId } from "@/app/api/properties/propertyPayload";
 
@@ -84,9 +84,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/** POST /api/site-settings — somente gestores; valida as chaves permitidas. */
+/** POST /api/site-settings — somente administradores; valida as chaves permitidas. */
 export async function POST(req: NextRequest) {
-  const auth = requireSession(req, MANAGER_ROLES);
+  const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

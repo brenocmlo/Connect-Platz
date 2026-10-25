@@ -14,7 +14,7 @@ import {
   LeadTemperature,
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, isManager } from "@/lib/auth/session";
+import { requireSession, isAdmin } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { normalizeBrPhone } from "@/lib/utils/phone";
 import {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
       where: {
         organizationId: session.organizationId,
         // Corretor vê apenas vendas em que é titular ou participante do split
-        ...(isManager(session.role)
+        ...(isAdmin(session.role)
           ? {}
           : {
               OR: [
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
 const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use AAAA-MM-DD).");
 
 const ParticipantSchema = z.object({
-  role: z.enum(["CORRETOR_1", "CORRETOR_2", "GERENTE", "GESTOR", "CAPTADOR"]),
+  role: z.enum(["CORRETOR_1", "CORRETOR_2", "GESTOR", "CAPTADOR"]),
   userId: z.string().uuid("Participante inválido."),
   percentual: z.number().min(0).max(100),
   desconto: z.number().nonnegative().optional().default(0),
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
   if (auth.error) return auth.error;
   const { session } = auth;
   const orgId = session.organizationId;
-  const manager = isManager(session.role);
+  const manager = isAdmin(session.role);
 
   const body = await req.json().catch(() => null);
   const parsed = CreateSaleSchema.safeParse(body);

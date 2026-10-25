@@ -34,7 +34,6 @@ export function VendasFilterSheet({
   const options = useMemo(
     () => ({
       corretor: uniq(sales.flatMap((s) => [s.corretorTitular, s.segundoCorretor])),
-      gerente: uniq(sales.map((s) => s.gerente)),
       captador: uniq(sales.map((s) => s.captador)),
       gestor: uniq(sales.map((s) => s.gestor)),
       construtora: uniq(sales.map((s) => s.construtora)),
@@ -49,7 +48,6 @@ export function VendasFilterSheet({
 
   const selects: { field: keyof typeof options; label: string; all: string }[] = [
     { field: "corretor", label: "Corretores", all: "Todos os corretores" },
-    { field: "gerente", label: "Gerentes", all: "Todos os gerentes" },
     { field: "captador", label: "Captadores", all: "Todos os captadores" },
     { field: "gestor", label: "Gestores / Sócios", all: "Todos os gestores" },
     { field: "construtora", label: "Construtoras", all: "Todas as construtoras" },

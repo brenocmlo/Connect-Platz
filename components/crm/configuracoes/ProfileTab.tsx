@@ -23,8 +23,6 @@ interface Profile {
 
 const ROLE_LABEL: Record<string, string> = {
   ADMINISTRADOR: "Administrador",
-  DIRETOR: "Diretor",
-  GERENTE: "Gerente",
   CORRETOR: "Corretor",
 };
 

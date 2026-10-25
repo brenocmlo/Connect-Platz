@@ -15,9 +15,6 @@ export interface UserMetrics {
   documentos: number;
   compromissos: number;
   captacoes: number;
-  /** VGV/vendas em que o usuário figura como gerente no split de comissão */
-  vgvGerencia: number;
-  vendasGerencia: number;
 }
 
 export function emptyMetrics(): UserMetrics {
@@ -30,13 +27,11 @@ export function emptyMetrics(): UserMetrics {
     documentos: 0,
     compromissos: 0,
     captacoes: 0,
-    vgvGerencia: 0,
-    vendasGerencia: 0,
   };
 }
 
 /**
- * Agrega, por usuário, vendas (titular), captações (split CAPTACAO), gerência (split GERENTE),
+ * Agrega, por usuário, vendas (titular), captações (split CAPTACAO),
  * leads recebidos, aderência ao SLA e compromissos concluídos no intervalo.
  * `userIds` restringe o resultado (ex.: corretor consultando apenas a si mesmo).
  */
@@ -94,22 +89,13 @@ export async function computeUserMetrics(
 
     // Um mesmo usuário conta no máximo uma vez por venda em cada papel
     const captadores = new Set<string>();
-    const gerentes = new Set<string>();
     for (const split of sale.commissionSplits) {
       if (!split.userId) continue;
       if (split.beneficiarioTipo === CommissionBeneficiaryType.CAPTACAO) captadores.add(split.userId);
-      if (split.beneficiarioTipo === CommissionBeneficiaryType.GERENTE) gerentes.add(split.userId);
     }
     captadores.forEach((id) => {
       const m = get(id);
       if (m) m.captacoes += 1;
-    });
-    gerentes.forEach((id) => {
-      const m = get(id);
-      if (m) {
-        m.vgvGerencia += vgv;
-        m.vendasGerencia += 1;
-      }
     });
   }
 

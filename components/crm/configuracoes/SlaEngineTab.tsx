@@ -115,7 +115,7 @@ export function SlaEngineTab() {
                 Janela operacional: {state.operatingStart} às {state.operatingEnd}
               </span>
               <span className="text-[11px] text-muted-foreground">
-                Fora deste horário os leads aguardam na fila noturna. Alterável pela Diretoria em &quot;Dados da Imobiliária&quot;.
+                Fora deste horário os leads aguardam na fila noturna. Alterável pelo Administrador em &quot;Dados da Imobiliária&quot;.
               </span>
             </div>
           </div>
