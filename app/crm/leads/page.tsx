@@ -73,6 +73,7 @@ export default function LeadsPage() {
     notify,
     setDiscardLeadTarget,
     onPromptSale: (lead) => setSaleTarget(lead),
+    onPromptAppointment: (lead) => setAppointmentLead(lead),
   });
 
   const handleTransferBroker = async (leadId: string, newBrokerId: string, newBrokerName: string) => {

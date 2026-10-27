@@ -35,12 +35,12 @@ interface NewSaleModalProps {
 
 const ROLES: ParticipantRole[] = ["CORRETOR_1", "CORRETOR_2", "GESTOR", "CAPTADOR"];
 
-function initialDeal(): SaleDealState {
+function initialDeal(preselectedLead?: NewSaleModalProps["preselectedLead"]): SaleDealState {
   const today = new Date();
   return {
     propertyId: null,
     unidadeNumero: "",
-    leadId: null,
+    leadId: preselectedLead?.id || null,
     novoComprador: false,
     compradorNome: "",
     compradorTelefone: "",
@@ -70,12 +70,28 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
   const { leads, properties, members, loading } = useCrmLookups({ enabled: isOpen, members: !isCorretor });
 
   const [activeTab, setActiveTab] = useState<"dados" | "resumo" | "anexos">("dados");
-  const [deal, setDeal] = useState<SaleDealState>(initialDeal);
+  const [deal, setDeal] = useState<SaleDealState>(() => initialDeal(preselectedLead));
   const [participants, setParticipants] = useState<ParticipantsForm>(initialParticipants);
   const [hasCorretor2, setHasCorretor2] = useState(false);
   const [attachments, setAttachments] = useState<SaleAttachment[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Garante que o lead pré-selecionado sempre conste na lista, mesmo se a busca assíncrona ainda estiver carregando
+  const effectiveLeads = useMemo(() => {
+    const list = [...leads];
+    if (preselectedLead && !list.some((l) => l.id === preselectedLead.id)) {
+      list.unshift({
+        id: preselectedLead.id,
+        nome: preselectedLead.nome,
+        telefone: preselectedLead.telefone,
+        email: preselectedLead.email,
+        corretorId: preselectedLead.corretorId || preselectedLead.corretor?.id,
+        corretorNome: preselectedLead.corretor?.nome,
+      });
+    }
+    return list;
+  }, [leads, preselectedLead]);
 
   // Pré-seleciona lead, empreendimento de interesse e corretor caso fornecidos
   React.useEffect(() => {
@@ -281,9 +297,10 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
               <SaleDealFields
                 deal={deal}
                 onChange={(patch) => setDeal((prev) => ({ ...prev, ...patch }))}
-                leads={leads}
+                leads={effectiveLeads}
                 properties={properties}
                 loading={loading}
+                preselectedLead={preselectedLead}
               />
               <SaleParticipantsSection
                 participants={participants}

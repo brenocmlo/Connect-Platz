@@ -28,6 +28,15 @@ interface SaleDealFieldsProps {
   leads: LookupLead[];
   properties: LookupProperty[];
   loading: boolean;
+  preselectedLead?: {
+    id: string;
+    nome: string;
+    telefone?: string | null;
+    email?: string | null;
+    empreendimentoInteresse?: string | null;
+    corretorId?: string | null;
+    corretor?: { id: string; nome: string } | null;
+  } | null;
 }
 
 const fieldClass =
@@ -42,7 +51,7 @@ const PAYMENT_METHODS = [
   { id: "CARTAO_DEBITO", label: "Cartão de Débito" },
 ];
 
-export function SaleDealFields({ deal, onChange, leads, properties, loading }: SaleDealFieldsProps) {
+export function SaleDealFields({ deal, onChange, leads, properties, loading, preselectedLead }: SaleDealFieldsProps) {
   const propertyOptions = useMemo(
     () =>
       properties.map((p) => ({
@@ -52,11 +61,26 @@ export function SaleDealFields({ deal, onChange, leads, properties, loading }: S
       })),
     [properties]
   );
-  const leadOptions = useMemo(
-    () => leads.map((l) => ({ id: l.id, label: l.nome, sublabel: [l.telefone, l.email].filter(Boolean).join(" · ") })),
-    [leads]
-  );
+  const leadOptions = useMemo(() => {
+    const list = [...leads];
+    if (preselectedLead && !list.some((l) => l.id === preselectedLead.id)) {
+      list.unshift({
+        id: preselectedLead.id,
+        nome: preselectedLead.nome,
+        telefone: preselectedLead.telefone,
+        email: preselectedLead.email,
+        corretorId: preselectedLead.corretorId || preselectedLead.corretor?.id,
+        corretorNome: preselectedLead.corretor?.nome,
+      });
+    }
+    return list.map((l) => ({
+      id: l.id,
+      label: l.nome,
+      sublabel: [l.telefone, l.email].filter(Boolean).join(" · "),
+    }));
+  }, [leads, preselectedLead]);
   const selectedProperty = properties.find((p) => p.id === deal.propertyId);
+  const selectedLead = leadOptions.find((l) => l.id === deal.leadId) || null;
 
   return (
     <div className="space-y-4">
@@ -136,15 +160,30 @@ export function SaleDealFields({ deal, onChange, leads, properties, loading }: S
             />
           </div>
         ) : (
-          <SearchCombobox
-            options={leadOptions}
-            value={deal.leadId}
-            onChange={(id) => onChange({ leadId: id })}
-            loading={loading}
-            required
-            placeholder="Busque o lead por nome, telefone ou e-mail..."
-            emptyText="Nenhum lead encontrado — cadastre um novo comprador"
-          />
+          <div className="space-y-1.5">
+            <SearchCombobox
+              options={leadOptions}
+              value={deal.leadId}
+              onChange={(id) => onChange({ leadId: id })}
+              loading={loading}
+              required
+              placeholder="Busque o lead por nome, telefone ou e-mail..."
+              emptyText="Nenhum lead encontrado — cadastre um novo comprador"
+            />
+            {selectedLead && (
+              <div className="flex items-center justify-between text-[11px] text-connect-blue bg-connect-blue/10 border border-connect-blue/20 rounded-lg px-2.5 py-1 animate-in fade-in-0">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span className="w-1.5 h-1.5 rounded-full bg-connect-blue shrink-0" />
+                  <span>Lead vinculado: <strong className="font-bold">{selectedLead.label}</strong></span>
+                </span>
+                {selectedLead.sublabel && (
+                  <span className="text-[10px] text-muted-foreground truncate font-mono">
+                    {selectedLead.sublabel}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

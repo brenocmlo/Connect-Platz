@@ -23,6 +23,7 @@ interface UseLeadsActionsParams {
   notify: NotifyFn;
   setDiscardLeadTarget?: (lead: LeadDetail | null) => void;
   onPromptSale?: (lead: LeadDetail) => void;
+  onPromptAppointment?: (lead: LeadDetail) => void;
 }
 
 const errorMessage = (err: unknown, fallback: string) =>
@@ -39,6 +40,7 @@ export function useLeadsActions({
   notify,
   setDiscardLeadTarget,
   onPromptSale,
+  onPromptAppointment,
 }: UseLeadsActionsParams) {
   /** Aplica um patch local (otimista) e devolve a função que desfaz. */
   const applyLocal = (leadId: string, patch: Partial<LeadDetail>) => {
@@ -70,6 +72,9 @@ export function useLeadsActions({
         onPromptSale
       ) {
         onPromptSale(updated);
+      }
+      if (targetStage.nome.toLowerCase().includes("visita") && onPromptAppointment) {
+        onPromptAppointment(updated);
       }
       return true;
     } catch (err) {

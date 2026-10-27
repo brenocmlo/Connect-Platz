@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { X, MapPin, Link2, Mail, Loader2, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { X, MapPin, Link2, Mail, Loader2, AlertCircle, Calendar, ArrowUpRight } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { AppointmentItem, APPOINTMENT_FORM_TYPES, AppointmentEnumType, localDateKey } from "./types";
 import { SearchCombobox } from "./SearchCombobox";
 import { useCrmLookups } from "./useCrmLookups";
+import { AppointmentTypeSelector } from "./AppointmentTypeSelector";
 
 interface NewAppointmentModalProps {
   isOpen: boolean;
@@ -85,15 +87,24 @@ export function NewAppointmentModal({
     .filter(Boolean)
     .join(" — ");
 
-  const leadOptions = useMemo(
-    () =>
-      leads.map((l) => ({
-        id: l.id,
-        label: l.nome,
-        sublabel: [l.telefone, l.corretorNome].filter(Boolean).join(" · "),
-      })),
-    [leads]
-  );
+  const leadOptions = useMemo(() => {
+    const list = [...leads];
+    if (initialLeadId && !list.some((l) => l.id === initialLeadId)) {
+      list.unshift({
+        id: initialLeadId,
+        nome: initialLeadName || "Lead Selecionado",
+        telefone: null,
+        email: null,
+        corretorId: null,
+        corretorNome: null,
+      });
+    }
+    return list.map((l) => ({
+      id: l.id,
+      label: l.nome,
+      sublabel: [l.telefone, l.corretorNome].filter(Boolean).join(" · "),
+    }));
+  }, [leads, initialLeadId, initialLeadName]);
   const propertyOptions = useMemo(
     () =>
       properties.map((p) => ({
@@ -184,9 +195,16 @@ export function NewAppointmentModal({
       <div className="relative w-full max-w-[460px] bg-card border border-border rounded-xl shadow-2xl flex flex-col max-h-[92vh] z-10 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200">
         <div className="p-4 border-b border-border flex items-center justify-between gap-3 bg-muted/20">
           <div>
-            <h3 className="text-sm font-bold text-foreground">Novo Compromisso</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-sm font-bold text-foreground">
+                {initialLeadName ? `Agendar Visita — ${initialLeadName}` : "Novo Compromisso"}
+              </h3>
+              <span className="text-[10px] bg-connect-blue/15 text-connect-blue font-bold px-1.5 py-0.5 rounded-full">
+                Agenda
+              </span>
+            </div>
             <p className="text-[11px] text-muted-foreground">
-              Agende visitas, follow-ups, documentação e propostas
+              {initialLeadName ? "Compromisso sincronizado diretamente com a Agenda" : "Agende visitas, follow-ups, documentação e propostas"}
             </p>
           </div>
           <button
@@ -200,29 +218,7 @@ export function NewAppointmentModal({
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 text-xs">
           <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
-            {/* Tipo com bolinha colorida */}
-            <div>
-              <label className="text-[11px] font-semibold text-muted-foreground block mb-1.5 uppercase tracking-wider">
-                Tipo de Compromisso *
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                {APPOINTMENT_FORM_TYPES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTipo(t.id)}
-                    className={`flex items-center gap-1.5 p-2 rounded-lg border text-left transition-all ${
-                      tipo === t.id
-                        ? "bg-muted border-connect-blue ring-1 ring-connect-blue text-foreground font-bold"
-                        : "bg-background border-border text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.color }} />
-                    <span className="truncate text-[11px]">{t.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <AppointmentTypeSelector selectedType={tipo} onChange={setTipo} />
 
             <div>
               <label className={labelClass}>Título do Evento</label>
@@ -358,22 +354,35 @@ export function NewAppointmentModal({
           </div>
 
           {/* Rodapé fixo */}
-          <div className="p-3 border-t border-border flex items-center justify-end gap-2 bg-card">
-            <button
-              type="button"
+          <div className="p-3 border-t border-border flex items-center justify-between gap-2 bg-card">
+            <Link
+              href={initialLeadId ? `/crm/agenda?leadId=${initialLeadId}` : "/crm/agenda"}
               onClick={resetAndClose}
-              className="px-4 py-2 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="text-connect-blue hover:underline flex items-center gap-1 text-[11px] font-semibold"
+              title="Acessar visão completa do calendário de compromissos"
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg text-xs font-bold bg-connect-blue hover:bg-connect-deep-blue text-white shadow-lg shadow-connect-blue/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:hover:scale-100 flex items-center gap-1.5"
-            >
-              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Criar
-            </button>
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Ver na Agenda</span>
+              <ArrowUpRight className="w-3 h-3" />
+            </Link>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={resetAndClose}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-4 py-2 rounded-lg text-xs font-bold bg-connect-blue hover:bg-connect-deep-blue text-white shadow-lg shadow-connect-blue/20 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:hover:scale-100 flex items-center gap-1.5"
+              >
+                {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Agendar
+              </button>
+            </div>
           </div>
         </form>
       </div>

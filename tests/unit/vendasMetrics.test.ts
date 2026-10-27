@@ -26,8 +26,8 @@ describe("vendasMetrics — Janelas e Filtros de Período", () => {
         status: "ativa",
         vgv: 500000,
         splits: [
-          { id: "sp1", tipo: "IMOBILIARIA", status: "PAGO", valor: 10000 },
-          { id: "sp2", tipo: "CORRETOR_TITULAR", status: "PAGO", valor: 15000 },
+          { id: "sp1", tipo: "IMOBILIARIA", status: "PAGO", valor: 10000, beneficiario: "Imobiliária", categoria: "IMOBILIARIA", percentual: 2 },
+          { id: "sp2", tipo: "CORRETOR_TITULAR", status: "PAGO", valor: 15000, beneficiario: "Lucas", categoria: "CORRETOR", percentual: 3 },
         ],
       },
       {
@@ -35,8 +35,8 @@ describe("vendasMetrics — Janelas e Filtros de Período", () => {
         status: "ativa",
         vgv: 300000,
         splits: [
-          { id: "sp3", tipo: "IMOBILIARIA", status: "PENDENTE", valor: 6000 },
-          { id: "sp4", tipo: "CORRETOR_TITULAR", status: "PENDENTE", valor: 9000 },
+          { id: "sp3", tipo: "IMOBILIARIA", status: "PENDENTE", valor: 6000, beneficiario: "Imobiliária", categoria: "IMOBILIARIA", percentual: 2 },
+          { id: "sp4", tipo: "CORRETOR_TITULAR", status: "PENDENTE", valor: 9000, beneficiario: "Lucas", categoria: "CORRETOR", percentual: 3 },
         ],
       },
       {
