@@ -17,6 +17,21 @@ export function toRlsContext(session: SessionPayload): RLSUserContext {
 export const leadInclude = {
   stage: true,
   corretor: { select: { id: true, nome: true, email: true, photoUrl: true } },
+  sales: {
+    orderBy: { dataVenda: "desc" },
+    select: {
+      id: true,
+      codigoVenda: true,
+      valorVendaVGV: true,
+      valorComissaoTotal: true,
+      percentualComissao: true,
+      status: true,
+      statusComissao: true,
+      dataVenda: true,
+      property: { select: { id: true, nome: true } },
+      corretorTitular: { select: { id: true, nome: true } },
+    },
+  },
   _count: {
     select: {
       appointments: { where: { status: "AGENDADO" as const } },
@@ -39,9 +54,22 @@ function toNumber(value: Prisma.Decimal | number | null | undefined): number | n
 
 /** Converte o registro do Prisma no formato consumido pela interface (com máscara LGPD). */
 export function serializeLead(lead: LeadWithInclude, ctx: RLSUserContext) {
-  const { _count, ...rest } = lead;
+  const { _count, sales: rawSales, ...rest } = lead;
   const masked = maskLeadSensitiveData(rest, ctx);
   const adName = lead.adName || "";
+  const sales = rawSales?.map((s) => ({
+    id: s.id,
+    codigoVenda: s.codigoVenda,
+    valorVendaVGV: toNumber(s.valorVendaVGV) ?? 0,
+    valorComissaoTotal: toNumber(s.valorComissaoTotal) ?? 0,
+    percentualComissao: toNumber(s.percentualComissao) ?? 0,
+    status: s.status,
+    statusComissao: s.statusComissao,
+    dataVenda: s.dataVenda instanceof Date ? s.dataVenda.toISOString() : String(s.dataVenda),
+    property: s.property,
+    corretorTitular: s.corretorTitular,
+  }));
+
   return {
     ...masked,
     rendaDeclarada: toNumber(lead.rendaDeclarada),
@@ -53,7 +81,8 @@ export function serializeLead(lead: LeadWithInclude, ctx: RLSUserContext) {
       : null,
     compromissosCount: _count?.appointments ?? 0,
     documentsCount: _count?.documents ?? 0,
-    salesCount: _count?.sales ?? 0,
+    salesCount: _count?.sales ?? (sales?.length ?? 0),
+    sales,
   };
 }
 

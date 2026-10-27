@@ -6,26 +6,35 @@ export type PeriodKey = "hoje" | "7d" | "mes" | "30d" | "ano" | "todos";
 
 const DAY = 86400000;
 
-/** Janela [início, fim) do período atual (offset 0) ou do período imediatamente anterior (offset 1). */
+/** Janela [início, fim] do período atual (offset 0) ou do período imediatamente anterior (offset 1). */
 export function periodWindow(period: PeriodKey, offset = 0): [number, number] | null {
   if (period === "todos") return null;
   const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const end = startOfToday + DAY;
-  const length =
-    period === "hoje" ? DAY : period === "7d" ? 7 * DAY : period === "ano" ? 365 * DAY : 30 * DAY;
-  return [end - length * (offset + 1), end - length * offset];
+  if (period === "mes") {
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth() - offset, 1, 0, 0, 0, 0).getTime();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() - offset + 1, 0, 23, 59, 59, 999).getTime();
+    return [startOfMonth, endOfMonth];
+  }
+  if (period === "ano") {
+    const startOfYear = new Date(now.getFullYear() - offset, 0, 1, 0, 0, 0, 0).getTime();
+    const endOfYear = new Date(now.getFullYear() - offset, 11, 31, 23, 59, 59, 999).getTime();
+    return [startOfYear, endOfYear];
+  }
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  const endOfToday = startOfToday + DAY - 1;
+  const length = period === "hoje" ? DAY : period === "7d" ? 7 * DAY : 30 * DAY;
+  return [endOfToday - length * (offset + 1) + 1, endOfToday - length * offset];
 }
 
 export function saleTime(sale: SaleItem): number {
   const [y, m, d] = sale.dataVendaIso.split("-").map(Number);
-  return new Date(y, m - 1, d).getTime();
+  return new Date(y, m - 1, d, 12, 0, 0).getTime();
 }
 
 export function inWindow(sale: SaleItem, window: [number, number] | null) {
   if (!window) return true;
   const t = saleTime(sale);
-  return t >= window[0] && t < window[1];
+  return t >= window[0] && t <= window[1];
 }
 
 export function matchesFilters(s: SaleItem, f: VendasFilterState) {

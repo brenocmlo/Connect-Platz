@@ -48,7 +48,22 @@ describe("LeadCard — Alerta de Pendência Financeira", () => {
   it("TC-UNIT-02: NÃO exibe alerta de Pendência Financeira quando lead possui venda registrada (salesCount >= 1)", () => {
     render(
       <LeadCard
-        lead={{ ...mockLeadBase, salesCount: 1 }}
+        lead={{
+          ...mockLeadBase,
+          salesCount: 1,
+          sales: [
+            {
+              id: "sale-1",
+              codigoVenda: "CP-2026-001",
+              valorVendaVGV: 500000,
+              valorComissaoTotal: 25000,
+              percentualComissao: 5,
+              status: "ativa",
+              statusComissao: "pendente",
+              dataVenda: new Date().toISOString(),
+            },
+          ],
+        }}
         onSelectLead={vi.fn()}
         onDragStart={vi.fn()}
       />
@@ -56,6 +71,7 @@ describe("LeadCard — Alerta de Pendência Financeira", () => {
 
     expect(screen.queryByText("Pendência Financeira")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /cadastrar venda/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Venda Concluída")).toBeInTheDocument();
   });
 
   it("NÃO exibe alerta de Pendência Financeira quando o lead não está na etapa Ganho/Fechado", () => {

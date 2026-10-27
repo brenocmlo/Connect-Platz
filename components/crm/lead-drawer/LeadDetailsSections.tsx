@@ -21,6 +21,7 @@ import { ScoreBadge, LeadTag } from "@/components/crm/primitives";
 import { useCrm } from "@/components/crm/CrmContext";
 import { LeadAbordagemSection } from "./LeadAbordagemSection";
 import { LeadAttachmentsSection } from "./LeadAttachmentsSection";
+import { LeadSaleSection } from "./LeadSaleSection";
 
 interface LeadDetailsSectionsProps {
   lead: LeadDetail;
@@ -101,6 +102,9 @@ export function LeadDetailsSections({
           )}
         </div>
       )}
+
+      {/* DETALHES DA VENDA E COMISSÃO (QUANDO HÁ VENDA CADASTRADA) */}
+      <LeadSaleSection lead={lead} />
 
       {/* 1. OPORTUNIDADES & EMPREENDIMENTO DE INTERESSE */}
       <div className="space-y-2.5">

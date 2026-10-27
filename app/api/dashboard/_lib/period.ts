@@ -44,23 +44,24 @@ function startOfDay(date: Date): Date {
 
 export function resolvePeriod(key: PeriodKey, now: Date = new Date()): PeriodRange {
   const label = PERIOD_LABELS[key];
-  const end = new Date(now);
 
   switch (key) {
     case "hoje": {
       const start = startOfDay(now);
-      const elapsed = end.getTime() - start.getTime();
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       const prevStart = new Date(start.getTime() - DAY_MS);
+      const prevEnd = new Date(end.getTime() - DAY_MS);
       return {
         key,
         label,
         current: { start, end },
-        previous: { start: prevStart, end: new Date(prevStart.getTime() + elapsed) },
+        previous: { start: prevStart, end: prevEnd },
       };
     }
     case "7d":
     case "30d": {
       const days = key === "7d" ? 7 : 30;
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       const start = new Date(end.getTime() - days * DAY_MS);
       return {
         key,
@@ -70,23 +71,23 @@ export function resolvePeriod(key: PeriodKey, now: Date = new Date()): PeriodRan
       };
     }
     case "mes": {
-      // Mês corrente até agora x mesmo intervalo de dias do mês anterior
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1);
-      const elapsed = end.getTime() - start.getTime();
-      const prevEnd = new Date(Math.min(prevStart.getTime() + elapsed, prevMonthEnd.getTime()));
+      // Mês corrente inteiro x mês anterior equivalente
+      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
       return { key, label, current: { start, end }, previous: { start: prevStart, end: prevEnd } };
     }
     case "ano": {
-      const start = new Date(now.getFullYear(), 0, 1);
-      const prevStart = new Date(now.getFullYear() - 1, 0, 1);
-      const elapsed = end.getTime() - start.getTime();
+      const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      const prevStart = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+      const prevEnd = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
       return {
         key,
         label,
         current: { start, end },
-        previous: { start: prevStart, end: new Date(prevStart.getTime() + elapsed) },
+        previous: { start: prevStart, end: prevEnd },
       };
     }
     default:
@@ -128,8 +129,8 @@ export function dateOnlyFilter(range: DateRange | null): { gte: Date; lte: Date 
   const s = range.start;
   const e = range.end;
   return {
-    gte: new Date(Date.UTC(s.getFullYear(), s.getMonth(), s.getDate())),
-    lte: new Date(Date.UTC(e.getFullYear(), e.getMonth(), e.getDate())),
+    gte: new Date(Date.UTC(s.getFullYear(), s.getMonth(), s.getDate(), 0, 0, 0, 0)),
+    lte: new Date(Date.UTC(e.getFullYear(), e.getMonth(), e.getDate(), 23, 59, 59, 999)),
   };
 }
 

@@ -9,6 +9,19 @@ import { LeadHistoryTimeline } from "./lead-drawer/LeadHistoryTimeline";
 import { LeadDrawerActions } from "./lead-drawer/LeadDrawerActions";
 import { FunnelColumn } from "./leads/KanbanBoard";
 
+export interface LeadSale {
+  id: string;
+  codigoVenda: string;
+  valorVendaVGV: number;
+  valorComissaoTotal: number;
+  percentualComissao: number;
+  status: string;
+  statusComissao: string;
+  dataVenda: string;
+  property?: { id: string; nome: string } | null;
+  corretorTitular?: { id: string; nome: string } | null;
+}
+
 export interface LeadDetail {
   id: string;
   nome: string;
@@ -59,6 +72,7 @@ export interface LeadDetail {
   isClosed?: boolean;
   documentsCount?: number | null;
   salesCount?: number | null;
+  sales?: LeadSale[];
 }
 
 interface LeadDrawerProps {
