@@ -2452,5 +2452,17 @@
     "seen": 1793060890.934581,
     "ast_hash": "b7ff14b6186ad87f8345cf29d319edc8",
     "semantic_hash": ""
+  },
+  "scripts/test-leads-bidirectional-sync.mjs": {
+    "mtime": 1793063396.3219118,
+    "seen": 1793063440.646314,
+    "ast_hash": "13b16abfb61ad7e48ad67670a9101f1b",
+    "semantic_hash": ""
+  },
+  "PLANO_TESTES_NOVAS_MELHORIAS.md": {
+    "mtime": 1793063385.0211737,
+    "seen": 1793063440.649031,
+    "ast_hash": "f16a26d02acc6857ad8ce4ca7a4e5fdc",
+    "semantic_hash": ""
   }
 }
