@@ -82,7 +82,10 @@ export function canModifyLead(
 
 /** Busca o lead garantindo a organização da sessão; 404 quando não existe ou é de outra org. */
 export async function findOrgLead(id: string, session: SessionPayload) {
-  const lead = await prisma.lead.findUnique({ where: { id }, include: { stage: true } });
+  const lead = await prisma.lead.findUnique({
+    where: { id },
+    include: { stage: true, corretor: { select: { id: true, nome: true } } },
+  });
   if (!lead || lead.organizationId !== session.organizationId) {
     return { error: NextResponse.json({ error: "Lead não encontrado." }, { status: 404 }) };
   }

@@ -88,19 +88,29 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
 
       const brokerId = preselectedLead.corretorId || preselectedLead.corretor?.id || null;
 
-      setDeal((prev) => ({
-        ...prev,
-        leadId: preselectedLead.id,
-        novoComprador: false,
-        propertyId: matchedProp?.id || prev.propertyId,
-        vgv: matchedProp?.valorVenda ? matchedProp.valorVenda : prev.vgv,
-      }));
+      setDeal((prev) => {
+        const nextPropId = matchedProp?.id || prev.propertyId;
+        const nextVgv = matchedProp?.valorVenda ? matchedProp.valorVenda : prev.vgv;
+        if (prev.leadId === preselectedLead.id && prev.propertyId === nextPropId && prev.vgv === nextVgv) {
+          return prev;
+        }
+        return {
+          ...prev,
+          leadId: preselectedLead.id,
+          novoComprador: false,
+          propertyId: nextPropId,
+          vgv: nextVgv,
+        };
+      });
 
       if (brokerId) {
-        setParticipants((prev) => ({
-          ...prev,
-          CORRETOR_1: { ...prev.CORRETOR_1, userId: brokerId, percentual: 50 },
-        }));
+        setParticipants((prev) => {
+          if (prev.CORRETOR_1.userId === brokerId) return prev;
+          return {
+            ...prev,
+            CORRETOR_1: { ...prev.CORRETOR_1, userId: brokerId, percentual: 50 },
+          };
+        });
       }
     }
   }, [preselectedLead, isOpen, properties]);

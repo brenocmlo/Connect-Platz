@@ -154,6 +154,8 @@ export function LeadCard({
       {/* Alerta de Pendência Financeira (Lead em Ganho sem venda cadastrada) */}
       {hasPendenciaFinanceira && (
         <div
+          role="button"
+          tabIndex={0}
           onClick={(e) => {
             e.stopPropagation();
             onRegisterSale?.(lead);

@@ -36,7 +36,10 @@ export const UpdateLeadSchema = z.object({
 });
 
 export type UpdateLeadInput = z.infer<typeof UpdateLeadSchema>;
-type LeadWithStage = Lead & { stage: FunnelStage };
+type LeadWithStage = Lead & {
+  stage: FunnelStage;
+  corretor?: { id: string; nome: string } | null;
+};
 
 export interface LeadUpdatePlan {
   data: Prisma.LeadUncheckedUpdateInput;
@@ -135,7 +138,13 @@ export async function buildLeadUpdate(
     if (!target) throw new LeadUpdateError("Corretor informado não pertence à sua organização.");
     set("corretorId", target.id);
     set("isBolsao", false);
-    plan.events.push({ tipo: "transbordo", conteudo: `Lead transferido para ${target.nome} por ${session.nome}.` });
+    const prevName = lead.corretor?.nome;
+    const deTexto = prevName ? `de ${prevName} ` : "";
+    plan.events.push({
+      tipo: "transbordo",
+      conteudo: `Lead transferido ${deTexto}para ${target.nome} por ${session.nome}.`,
+      metadata: { de: prevName || null, para: target.nome },
+    });
   }
 
   // 5. Etiquetas

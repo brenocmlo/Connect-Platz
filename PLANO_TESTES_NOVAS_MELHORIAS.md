@@ -62,19 +62,19 @@ flowchart TD
   5. Registro gravado na tabela `auditoria` com ação `"Lead atualizado"`.
 
 ### TC-API-02: Bloqueio de Transferência por Usuário CORRETOR (RBAC)
-- **Arquivo de Teste:** `tests/api/leads/change-broker-rbac.test.ts`
+- **Arquivo de Teste:** `scripts/test-leads-bidirectional-sync.mjs`
 - **Endpoint:** `PATCH /api/leads/:id`
-- **Cenário:** Usuário com role `CORRETOR` tenta alterar o `corretorId` de um lead.
+- **Cenário:** Usuário com role `CORRETOR` tenta alterar o `corretorId` de um lead que pertence à sua carteira.
 - **Asserções:**
   1. Status HTTP retornado deve ser `403 Forbidden`.
-  2. Mensagem de erro: `"Apenas administradores podem transferir leads entre corretores."`.
+  2. Mensagem de erro contendo `"administradores"` (ex: `"Somente administradores podem trocar o corretor do lead."`).
   3. O campo `corretorId` do lead no banco de dados permanece inalterado.
   4. Nenhuma entrada de transferência na timeline.
 
 ---
 
 ### TC-API-03: Sincronização Automática ao Registrar Venda (Vendas ➔ Kanban)
-- **Arquivo de Teste:** `tests/api/vendas/lead-sync.test.ts`
+- **Arquivo de Teste:** `scripts/test-leads-bidirectional-sync.mjs`
 - **Endpoint:** `POST /api/vendas`
 - **Cenário:** Venda cadastrada com `leadId` de um lead que está na etapa inicial ("Novo Lead").
 - **Asserções:**
@@ -84,7 +84,7 @@ flowchart TD
   4. O campo `lead.slaBreached` é resetado para `false`.
   5. É inserido um registro na `lead_timeline` com:
      - `tipo === "venda"`
-     - `conteudo` contendo código da venda (`VEN-AAAA-XXXX`), nome do empreendimento e VGV formatado.
+     - `conteudo` contendo código da venda (`CP-AAAA-NNN`, ex: `CP-2026-001`), nome do empreendimento e VGV formatado.
      - `metadata` contendo `saleId`, `codigoVenda`, `vgv` e `comissaoBruta`.
 
 ---
@@ -289,11 +289,30 @@ test("Agendar visita deve avançar o lead para 'Visita Agendada' e registrar his
 
 ---
 
-## 🚀 5. Script Executável de Teste Automatizado de Integração
+## 🚀 5. Como Executar as Baterias de Testes
 
-Pode ser executado via CLI local ou pipeline de CI (`node scripts/test-leads-bidirectional-sync.mjs`):
+Todas as suítes estão devidamente instaladas, configuradas e prontas para uso via scripts no `package.json`:
 
-```javascript
+```bash
+# 1. Testes Unitários de Componentes e Modais (Vitest + React Testing Library)
+npm run test
+
+# 2. Testes de Integração de API e Sincronização (Node runner contra servidor ativo)
+npm run test:integration
+
+# 3. Testes Ponta a Ponta (Playwright E2E com Chromium)
+npm run test:e2e
+```
+
+### 🔑 Credenciais Padrão Utilizadas no Ambiente de Testes (Seed):
+- **Administrador:** `robson@connectplatz.com.br` (senha: `ConnectPlatz2026@`)
+- **Corretor:** `lucas.corretor@connectplatz.com.br` (senha: `ConnectPlatz2026@`)
+
+---
+
+## 📜 6. Script Executável de Teste de Integração (API & Banco de Dados)
+
+Localizado em [`scripts/test-leads-bidirectional-sync.mjs`](file:///Users/a1234/Connect-Platz/scripts/test-leads-bidirectional-sync.mjs):
 // scripts/test-leads-bidirectional-sync.mjs
 import assert from "node:assert/strict";
 
