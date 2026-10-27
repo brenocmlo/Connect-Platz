@@ -23,6 +23,7 @@ import {
   ParticipantRole,
 } from "@/components/crm/vendas/saleSplitHelper";
 import { saleInclude, serializeSale, splitCashFlowDescription } from "./serialize";
+import { syncLeadSaleCompletion } from "./leadSync";
 
 export const dynamic = "force-dynamic";
 
@@ -318,6 +319,20 @@ export async function POST(req: NextRequest) {
           saleId: created.id,
         },
       });
+
+      // 5. Sincronização automática do Lead no Kanban (move para Ganho e registra na timeline)
+      if (leadId) {
+        await syncLeadSaleCompletion({
+          tx,
+          leadId,
+          userId: session.userId,
+          saleId: created.id,
+          codigoVenda,
+          propertyName: property.nome,
+          vgv: input.vgv,
+          comissaoBruta: calc.comissaoTotalBruta,
+        });
+      }
 
       return tx.sale.findUniqueOrThrow({ where: { id: created.id }, include: saleInclude });
     });

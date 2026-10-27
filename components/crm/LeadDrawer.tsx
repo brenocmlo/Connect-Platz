@@ -74,6 +74,9 @@ interface LeadDrawerProps {
   onScheduleAppointment?: (lead: LeadDetail) => void;
   onDeleteLead?: (leadId: string) => void;
   onOpenWhatsApp?: (lead: LeadDetail) => void;
+  isAdmin?: boolean;
+  onChangeBroker?: (lead: LeadDetail) => void;
+  onRegisterSale?: (lead: LeadDetail) => void;
 }
 
 export function LeadDrawer({
@@ -88,6 +91,9 @@ export function LeadDrawer({
   onScheduleAppointment,
   onDeleteLead,
   onOpenWhatsApp,
+  isAdmin = false,
+  onChangeBroker,
+  onRegisterSale,
 }: LeadDrawerProps) {
   const [activeTab, setActiveTab] = useState<"details" | "history">("details");
   const [mounted, setMounted] = useState(false);
@@ -121,6 +127,8 @@ export function LeadDrawer({
           onClose={onClose}
           onTakeoverBolsao={onTakeoverBolsao}
           onOpenWhatsApp={onOpenWhatsApp}
+          isAdmin={isAdmin}
+          onChangeBroker={onChangeBroker}
         />
 
         {/* Navegação entre Detalhes e Histórico */}
@@ -156,6 +164,7 @@ export function LeadDrawer({
             <LeadDetailsSections
               lead={lead}
               onScheduleAppointment={() => onScheduleAppointment && onScheduleAppointment(lead)}
+              onRegisterSale={() => onRegisterSale && onRegisterSale(lead)}
             />
           ) : (
             <LeadHistoryTimeline leadName={lead.nome} leadId={lead.id} />

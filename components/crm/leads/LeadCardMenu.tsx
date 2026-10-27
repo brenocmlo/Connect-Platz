@@ -31,6 +31,8 @@ interface LeadCardMenuProps {
   onMoveToBolsao: () => void;
   onDelete: () => void;
   onUpdateTags?: (tags: string[]) => void;
+  onChangeBroker?: () => void;
+  isAdmin?: boolean;
 }
 
 const AVAILABLE_TAGS = [
@@ -52,6 +54,8 @@ export function LeadCardMenu({
   onMoveToBolsao,
   onDelete,
   onUpdateTags,
+  onChangeBroker,
+  isAdmin = false,
 }: LeadCardMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showTagsSubmenu, setShowTagsSubmenu] = useState(false);
@@ -211,17 +215,19 @@ export function LeadCardMenu({
 
           <div className="h-px bg-border my-1" />
 
-          {/* 4. Mudar corretor */}
-          <button
-            onClick={() => {
-              setIsOpen(false);
-              onOpenDetails();
-            }}
-            className="w-full text-left px-3 py-2 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Mudar corretor</span>
-          </button>
+          {/* 4. Mudar corretor (apenas Administrador) */}
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onChangeBroker?.();
+              }}
+              className="w-full text-left px-3 py-2 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Mudar corretor</span>
+            </button>
+          )}
 
           {/* 5. Avançar Etapa */}
           <button

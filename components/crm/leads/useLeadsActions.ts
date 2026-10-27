@@ -22,6 +22,7 @@ interface UseLeadsActionsParams {
   replaceLead: (lead: LeadDetail) => void;
   notify: NotifyFn;
   setDiscardLeadTarget?: (lead: LeadDetail | null) => void;
+  onPromptSale?: (lead: LeadDetail) => void;
 }
 
 const errorMessage = (err: unknown, fallback: string) =>
@@ -37,6 +38,7 @@ export function useLeadsActions({
   replaceLead,
   notify,
   setDiscardLeadTarget,
+  onPromptSale,
 }: UseLeadsActionsParams) {
   /** Aplica um patch local (otimista) e devolve a função que desfaz. */
   const applyLocal = (leadId: string, patch: Partial<LeadDetail>) => {
@@ -60,6 +62,14 @@ export function useLeadsActions({
       notify(successMessage);
       if (targetStage.nome.toLowerCase().includes("encerrado") && setDiscardLeadTarget) {
         setDiscardLeadTarget(updated);
+      }
+      if (
+        (targetStage.nome.toLowerCase().includes("ganho") ||
+          targetStage.nome.toLowerCase().includes("fechado")) &&
+        (!updated.salesCount || updated.salesCount === 0) &&
+        onPromptSale
+      ) {
+        onPromptSale(updated);
       }
       return true;
     } catch (err) {

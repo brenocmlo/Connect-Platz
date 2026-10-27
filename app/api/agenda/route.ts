@@ -9,6 +9,7 @@ import { recordAudit } from "@/lib/services/audit-server";
 import { refreshLeadScore } from "@/lib/services/lead-score";
 import { normalizeAppointmentType } from "@/components/crm/agenda/types";
 import { appointmentInclude, updateAppointment, deleteAppointment } from "./shared";
+import { syncAppointmentToLead } from "./leadSync";
 
 export const dynamic = "force-dynamic";
 
@@ -144,9 +145,10 @@ export async function POST(req: NextRequest) {
 
     if (appointment.leadId) {
       try {
+        await syncAppointmentToLead({ appointment, session });
         await refreshLeadScore(appointment.leadId);
       } catch (err) {
-        console.warn("Falha ao recalcular score após agendamento:", err);
+        console.warn("Falha ao sincronizar lead/recalcular score após agendamento:", err);
       }
     }
 

@@ -12,6 +12,9 @@ import {
   Paperclip,
   CheckCircle2,
   Plus,
+  AlertTriangle,
+  DollarSign,
+  Loader2,
 } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { ScoreBadge, LeadTag } from "@/components/crm/primitives";
@@ -22,13 +25,49 @@ import { LeadAttachmentsSection } from "./LeadAttachmentsSection";
 interface LeadDetailsSectionsProps {
   lead: LeadDetail;
   onScheduleAppointment?: () => void;
+  onRegisterSale?: () => void;
 }
 
 export function LeadDetailsSections({
   lead,
   onScheduleAppointment,
+  onRegisterSale,
 }: LeadDetailsSectionsProps) {
   const { hideValues, formatMoney } = useCrm();
+
+  const [appointments, setAppointments] = React.useState<any[]>([]);
+  const [loadingAppts, setLoadingAppts] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    async function loadAppointments() {
+      if (!lead.id) return;
+      setLoadingAppts(true);
+      try {
+        const res = await fetch(`/api/agenda?leadId=${lead.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && Array.isArray(data.appointments)) {
+            setAppointments(data.appointments);
+          }
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar compromissos do lead:", err);
+      } finally {
+        if (!cancelled) setLoadingAppts(false);
+      }
+    }
+    loadAppointments();
+    return () => {
+      cancelled = true;
+    };
+  }, [lead.id]);
+
+  const isWinningStage = Boolean(
+    lead.stage?.nome.toLowerCase().includes("ganho") ||
+    lead.stage?.nome.toLowerCase().includes("fechado")
+  );
+  const hasPendenciaFinanceira = isWinningStage && (!lead.salesCount || lead.salesCount === 0);
 
   const scoreValue =
     lead.score ??
@@ -40,6 +79,29 @@ export function LeadDetailsSections({
 
   return (
     <div className="space-y-6 text-xs">
+      {/* ALERTA DE PENDÊNCIA FINANCEIRA SE O LEAD ESTÁ EM GANHO SEM VENDA */}
+      {hasPendenciaFinanceira && (
+        <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-200 space-y-2 animate-in fade-in-0">
+          <div className="flex items-center gap-2 font-bold text-xs">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>Pendência Financeira — Venda Não Registrada</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Este lead foi movido para Ganho, mas ainda não possui o registro oficial de VGV e divisão de comissões.
+          </p>
+          {onRegisterSale && (
+            <button
+              type="button"
+              onClick={onRegisterSale}
+              className="w-full py-2 px-3 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Cadastrar Venda & Comissões Agora</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* 1. OPORTUNIDADES & EMPREENDIMENTO DE INTERESSE */}
       <div className="space-y-2.5">
         <div className="flex items-center gap-2 text-foreground font-semibold">
@@ -186,39 +248,71 @@ export function LeadDetailsSections({
         </div>
 
         <div className="space-y-2">
-          {/* Card 1: Visita */}
-          <div className="bg-card border border-border rounded-xl p-3 flex items-start justify-between gap-3 shadow-xs">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-connect-blue border border-connect-blue/20">
-                  Visita
-                </span>
-                <span className="text-xs font-bold text-foreground">
-                  Apresentação de Decorado
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> 03/10/2026 às 15:00 • No Plantão de Vendas
+          {loadingAppts ? (
+            <div className="p-4 text-center text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-connect-blue" />
+              <span>Carregando compromissos...</span>
+            </div>
+          ) : appointments.length === 0 ? (
+            <div className="bg-card border border-dashed border-border rounded-xl p-4 text-center">
+              <p className="text-muted-foreground italic text-xs">
+                Nenhum compromisso agendado para este lead.
               </p>
             </div>
-          </div>
+          ) : (
+            appointments.map((app) => {
+              const dateStr = new Date(app.dataInicio).toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              });
+              const timeStr = new Date(app.dataInicio).toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              const isFollowUp = app.tipo === "FOLLOW_UP" || app.tipo?.toLowerCase().includes("retorno");
+              const isVisita = app.tipo === "VISITA";
 
-          {/* Card 2: Follow-up (Fundo âmbar claro conforme Seção 5.5) */}
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start justify-between gap-3 shadow-xs">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 font-bold border border-amber-500/30">
-                  Retorno / Follow-up
-                </span>
-                <span className="text-xs font-bold text-foreground">
-                  Confirmar aprovação de crédito
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> 05/10/2026 às 10:00 • Ligação / WhatsApp
-              </p>
-            </div>
-          </div>
+              return (
+                <div
+                  key={app.id}
+                  className={`border rounded-xl p-3 shadow-xs space-y-1 ${
+                    isFollowUp
+                      ? "bg-amber-500/10 border-amber-500/30"
+                      : "bg-card border-border"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          isVisita
+                            ? "bg-blue-500/10 text-connect-blue border-connect-blue/20"
+                            : isFollowUp
+                            ? "bg-amber-500/20 text-amber-600 border-amber-500/30"
+                            : "bg-purple-500/10 text-purple-600 border-purple-500/30"
+                        }`}
+                      >
+                        {app.tipo === "VISITA" ? "Visita" : app.tipo === "FOLLOW_UP" ? "Retorno / Follow-up" : app.tipo}
+                      </span>
+                      <span className="text-xs font-bold text-foreground truncate">
+                        {app.titulo}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-muted-foreground">
+                      {app.status}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-muted-foreground/70" />
+                    <span>{dateStr} às {timeStr}</span>
+                    {app.user?.nome && <span>• {app.user.nome}</span>}
+                    {app.property?.nome && <span>• {app.property.nome}</span>}
+                  </p>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

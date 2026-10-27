@@ -12,12 +12,14 @@ interface EditLeadModalProps {
   isOpen: boolean;
   lead: LeadDetail | null;
   stages?: { id: string; nome: string }[];
+  members?: { id: string; nome: string }[];
+  isAdmin?: boolean;
   onClose: () => void;
   /** Resolve `true` quando a API confirmou a gravação; em falha o modal permanece aberto. */
   onSave: (updated: LeadDetail) => Promise<boolean> | boolean | void;
 }
 
-export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLeadModalProps) {
+export function EditLeadModal({ isOpen, lead, stages, members = [], isAdmin = false, onClose, onSave }: EditLeadModalProps) {
   const [activeTab, setActiveTab] = useState<"info" | "docs">("info");
   const [formData, setFormData] = useState<Partial<LeadDetail>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -85,9 +87,24 @@ export function EditLeadModal({ isOpen, lead, stages, onClose, onSave }: EditLea
               <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
                 Corretor Responsável
               </span>
-              <span className="text-xs font-bold text-foreground truncate block">
-                {lead.corretor?.nome || "Sem corretor (Bolsão)"}
-              </span>
+              {isAdmin && members && members.length > 0 ? (
+                <select
+                  value={formData.corretorId ?? lead.corretor?.id ?? ""}
+                  onChange={(e) => setFormData({ ...formData, corretorId: e.target.value || null })}
+                  className="bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground font-bold focus:outline-none focus:ring-1 focus:ring-connect-blue mt-0.5"
+                >
+                  <option value="">Sem corretor (Bolsão)</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-xs font-bold text-foreground truncate block">
+                  {lead.corretor?.nome || "Sem corretor (Bolsão)"}
+                </span>
+              )}
             </div>
           </div>
 

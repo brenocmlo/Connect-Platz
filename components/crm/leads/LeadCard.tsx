@@ -12,6 +12,8 @@ import {
   MessageSquare,
   ArrowRight,
   CheckCircle2,
+  AlertTriangle,
+  DollarSign,
 } from "lucide-react";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { ScoreBadge, LeadTag } from "@/components/crm/primitives";
@@ -39,6 +41,9 @@ interface LeadCardProps {
   onEditLead?: (lead: LeadDetail) => void;
   onScheduleVisit?: (lead: LeadDetail) => void;
   onOpenWhatsApp?: (lead: LeadDetail) => void;
+  isAdmin?: boolean;
+  onChangeBroker?: (lead: LeadDetail) => void;
+  onRegisterSale?: (lead: LeadDetail) => void;
 }
 
 export function LeadCard({
@@ -57,6 +62,9 @@ export function LeadCard({
   onEditLead,
   onScheduleVisit,
   onOpenWhatsApp,
+  isAdmin = false,
+  onChangeBroker,
+  onRegisterSale,
 }: LeadCardProps) {
   const { hideValues, formatMoney } = useCrm();
 
@@ -91,6 +99,11 @@ export function LeadCard({
   const nextStage = getNextStage(lead, stages);
   const currentStageIdx = findLeadStageIndex(lead, stages);
   const currentStage = stages[currentStageIdx];
+  const isWinningStage = Boolean(
+    lead.stage?.nome.toLowerCase().includes("ganho") ||
+    lead.stage?.nome.toLowerCase().includes("fechado")
+  );
+  const hasPendenciaFinanceira = isWinningStage && (!lead.salesCount || lead.salesCount === 0);
 
   return (
     <div
@@ -133,8 +146,30 @@ export function LeadCard({
           onMoveToBolsao={() => onMoveToBolsao && onMoveToBolsao(lead.id)}
           onDelete={() => onDeleteLead && onDeleteLead(lead.id)}
           onUpdateTags={(tags) => onUpdateTags && onUpdateTags(lead.id, tags)}
+          onChangeBroker={() => onChangeBroker && onChangeBroker(lead)}
+          isAdmin={isAdmin}
         />
       </div>
+
+      {/* Alerta de Pendência Financeira (Lead em Ganho sem venda cadastrada) */}
+      {hasPendenciaFinanceira && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onRegisterSale?.(lead);
+          }}
+          className="mb-2 p-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-bold flex items-center justify-between gap-1 cursor-pointer hover:bg-amber-500/25 transition-all shadow-xs"
+          title="Clique para cadastrar os dados da venda deste lead"
+        >
+          <span className="flex items-center gap-1 truncate">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            Pendência Financeira
+          </span>
+          <span className="text-[10px] underline underline-offset-2 flex items-center gap-0.5 shrink-0 text-amber-600 dark:text-amber-300 font-semibold">
+            Cadastrar Venda <ArrowRight className="w-3 h-3" />
+          </span>
+        </div>
+      )}
 
       {/* 2. LINHAS DE META COM ÍCONES LUCIDE 12-14px */}
       <div className="space-y-1.5 text-[11px] text-muted-foreground mb-3 font-sans">

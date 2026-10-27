@@ -25,6 +25,9 @@ interface KanbanBoardProps {
   onEditLead?: (lead: LeadDetail) => void;
   onScheduleVisit?: (lead: LeadDetail) => void;
   onOpenWhatsApp?: (lead: LeadDetail) => void;
+  isAdmin?: boolean;
+  onChangeBroker?: (lead: LeadDetail) => void;
+  onRegisterSale?: (lead: LeadDetail) => void;
 }
 
 export function KanbanBoard({
@@ -40,6 +43,9 @@ export function KanbanBoard({
   onEditLead,
   onScheduleVisit,
   onOpenWhatsApp,
+  isAdmin = false,
+  onChangeBroker,
+  onRegisterSale,
 }: KanbanBoardProps) {
   const [draggingLeadId, setDraggingLeadId] = useState<string | null>(null);
 
@@ -84,6 +90,9 @@ export function KanbanBoard({
               onEditLead={onEditLead}
               onScheduleVisit={onScheduleVisit}
               onOpenWhatsApp={onOpenWhatsApp}
+              isAdmin={isAdmin}
+              onChangeBroker={onChangeBroker}
+              onRegisterSale={onRegisterSale}
             />
           );
         })}

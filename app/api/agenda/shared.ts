@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db/prisma";
 import { isAdmin } from "@/lib/auth/session";
 import { SessionPayload } from "@/lib/auth/jwt";
 import { recordAudit } from "@/lib/services/audit-server";
+import { syncAppointmentStatusChangeToLead } from "./leadSync";
 
 export const appointmentInclude = {
   user: { select: { id: true, nome: true, photoUrl: true } },
@@ -69,6 +70,18 @@ export async function updateAppointment(
     data: parsed.data,
     include: appointmentInclude,
   });
+
+  if (updated.leadId && parsed.data.status && parsed.data.status !== before.status) {
+    try {
+      await syncAppointmentStatusChangeToLead({
+        appointment: updated,
+        previousStatus: before.status,
+        session,
+      });
+    } catch (err) {
+      console.warn("Falha ao sincronizar status do compromisso com o lead:", err);
+    }
+  }
 
   await recordAudit({
     req,

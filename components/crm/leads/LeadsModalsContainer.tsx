@@ -11,6 +11,9 @@ import { ImportLeadsModal } from "@/components/crm/leads/ImportLeadsModal";
 import { DiscardLeadModal } from "@/components/crm/leads/DiscardLeadModal";
 import { WhatsAppTemplatesModal } from "@/components/crm/leads/WhatsAppTemplatesModal";
 import { ToastFeedback } from "@/components/crm/primitives";
+import { ChangeBrokerModal } from "./ChangeBrokerModal";
+import { NewSaleModal } from "@/components/crm/vendas/NewSaleModal";
+import { LookupMember } from "@/components/crm/agenda/useCrmLookups";
 
 interface LeadsModalsContainerProps {
   isNewLeadModalOpen: boolean;
@@ -59,6 +62,19 @@ interface LeadsModalsContainerProps {
   setSlaFilter: (s: string) => void;
   onResetFilters: () => void;
 
+  brokerChangeTarget?: LeadDetail | null;
+  onCloseBrokerModal?: () => void;
+  onConfirmTransferBroker?: (leadId: string, newBrokerId: string, newBrokerName: string) => Promise<void>;
+  members?: LookupMember[];
+
+  saleModalTarget?: LeadDetail | null;
+  onCloseSaleModal?: () => void;
+  onSubmitSale?: (sale: any) => void;
+
+  isAdmin?: boolean;
+  onChangeBroker?: (lead: LeadDetail) => void;
+  onRegisterSale?: (lead: LeadDetail) => void;
+
   toastMessage: string | null;
   toastType?: "success" | "error" | "info";
   onCloseToast: () => void;
@@ -103,6 +119,16 @@ export function LeadsModalsContainer({
   slaFilter,
   setSlaFilter,
   onResetFilters,
+  brokerChangeTarget,
+  onCloseBrokerModal,
+  onConfirmTransferBroker,
+  members = [],
+  saleModalTarget,
+  onCloseSaleModal,
+  onSubmitSale,
+  isAdmin = false,
+  onChangeBroker,
+  onRegisterSale,
   toastMessage,
   toastType = "success",
   onCloseToast,
@@ -149,15 +175,39 @@ export function LeadsModalsContainer({
         onTakeoverBolsao={onTakeoverBolsao}
         onDeleteLead={onDeleteLead}
         onOpenWhatsApp={onOpenWhatsApp}
+        isAdmin={isAdmin}
+        onChangeBroker={onChangeBroker}
+        onRegisterSale={onRegisterSale}
       />
 
       <EditLeadModal
         isOpen={Boolean(editingLead)}
         lead={editingLead}
         stages={availableStages}
+        members={members}
+        isAdmin={isAdmin}
         onClose={onCloseEditLead}
         onSave={onSaveEditLead}
       />
+
+      {brokerChangeTarget && onConfirmTransferBroker && onCloseBrokerModal && (
+        <ChangeBrokerModal
+          isOpen={Boolean(brokerChangeTarget)}
+          lead={brokerChangeTarget}
+          members={members}
+          onClose={onCloseBrokerModal}
+          onSuccess={onConfirmTransferBroker}
+        />
+      )}
+
+      {saleModalTarget && onSubmitSale && onCloseSaleModal && (
+        <NewSaleModal
+          isOpen={Boolean(saleModalTarget)}
+          preselectedLead={saleModalTarget}
+          onClose={onCloseSaleModal}
+          onSubmit={onSubmitSale}
+        />
+      )}
 
       <NewAppointmentModal
         isOpen={Boolean(appointmentLead)}

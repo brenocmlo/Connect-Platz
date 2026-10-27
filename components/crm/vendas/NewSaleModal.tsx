@@ -22,6 +22,15 @@ interface NewSaleModalProps {
   onClose: () => void;
   /** Chamado somente após a API confirmar o registro, com a venda real retornada. */
   onSubmit: (sale: SaleItem) => void;
+  preselectedLead?: {
+    id: string;
+    nome: string;
+    telefone?: string | null;
+    email?: string | null;
+    empreendimentoInteresse?: string | null;
+    corretorId?: string | null;
+    corretor?: { id: string; nome: string } | null;
+  } | null;
 }
 
 const ROLES: ParticipantRole[] = ["CORRETOR_1", "CORRETOR_2", "GESTOR", "CAPTADOR"];
@@ -55,7 +64,7 @@ function initialParticipants(): ParticipantsForm {
   };
 }
 
-export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
+export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: NewSaleModalProps) {
   const { user } = useCrm();
   const isCorretor = user?.role === "CORRETOR";
   const { leads, properties, members, loading } = useCrmLookups({ enabled: isOpen, members: !isCorretor });
@@ -67,6 +76,34 @@ export function NewSaleModal({ isOpen, onClose, onSubmit }: NewSaleModalProps) {
   const [attachments, setAttachments] = useState<SaleAttachment[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pré-seleciona lead, empreendimento de interesse e corretor caso fornecidos
+  React.useEffect(() => {
+    if (preselectedLead && isOpen) {
+      const matchedProp = preselectedLead.empreendimentoInteresse
+        ? properties.find((p) =>
+            p.nome.toLowerCase().includes(preselectedLead.empreendimentoInteresse!.toLowerCase())
+          )
+        : null;
+
+      const brokerId = preselectedLead.corretorId || preselectedLead.corretor?.id || null;
+
+      setDeal((prev) => ({
+        ...prev,
+        leadId: preselectedLead.id,
+        novoComprador: false,
+        propertyId: matchedProp?.id || prev.propertyId,
+        vgv: matchedProp?.valorVenda ? matchedProp.valorVenda : prev.vgv,
+      }));
+
+      if (brokerId) {
+        setParticipants((prev) => ({
+          ...prev,
+          CORRETOR_1: { ...prev.CORRETOR_1, userId: brokerId, percentual: 50 },
+        }));
+      }
+    }
+  }, [preselectedLead, isOpen, properties]);
 
   const lockedTitular = isCorretor && user ? { id: user.id, nome: user.nome } : null;
 

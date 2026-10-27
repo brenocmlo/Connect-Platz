@@ -17,11 +17,16 @@ import { useLeadsFilter } from "@/components/crm/leads/useLeadsFilter";
 import { useLeadsActions, NotifyFn } from "@/components/crm/leads/useLeadsActions";
 import { useLeadsData } from "@/components/crm/leads/useLeadsData";
 import { exportLeadsToCsv } from "@/lib/services/leads-csv";
+import { useCrmLookups } from "@/components/crm/agenda/useCrmLookups";
+import { patchLead } from "@/components/crm/leads/leadsApi";
 
 type ToastState = { message: string; type: "success" | "error" | "info" } | null;
 
 export default function LeadsPage() {
-  const { token, selectedPeriod } = useCrm();
+  const { token, selectedPeriod, user } = useCrm();
+  const isAdmin = user?.role === "ADMINISTRADOR";
+  const { members: lookupMembers } = useCrmLookups({ enabled: true, members: true, leads: false, properties: false });
+
   const [viewMode, setViewMode] = useState<"kanban" | "table" | "bolsao" | "nightQueue">("kanban");
   const [selectedMember, setSelectedMember] = useState("TODOS");
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,6 +37,8 @@ export default function LeadsPage() {
 
   const [editingLead, setEditingLead] = useState<LeadDetail | null>(null);
   const [appointmentLead, setAppointmentLead] = useState<LeadDetail | null>(null);
+  const [brokerTarget, setBrokerTarget] = useState<LeadDetail | null>(null);
+  const [saleTarget, setSaleTarget] = useState<LeadDetail | null>(null);
   const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [discardLeadTarget, setDiscardLeadTarget] = useState<LeadDetail | null>(null);
@@ -65,7 +72,25 @@ export default function LeadsPage() {
     replaceLead,
     notify,
     setDiscardLeadTarget,
+    onPromptSale: (lead) => setSaleTarget(lead),
   });
+
+  const handleTransferBroker = async (leadId: string, newBrokerId: string, newBrokerName: string) => {
+    try {
+      const updated = await patchLead(leadId, { corretorId: newBrokerId });
+      replaceLead(updated);
+      notify(`Lead transferido com sucesso para ${newBrokerName}!`);
+    } catch (err: any) {
+      notify(err?.message || "Erro ao transferir corretor.", "error");
+      throw err;
+    }
+  };
+
+  const handleSaleSuccess = () => {
+    setSaleTarget(null);
+    reload();
+    notify("Venda registrada com sucesso! Lead atualizado no funil.", "success");
+  };
 
   const { filteredLeads, bolsaoCount, totalLeadsCount, activeLeadsCount, wonCount, convRate, newLeadsCount, hasActiveFilters } =
     useLeadsFilter({
@@ -149,6 +174,9 @@ export default function LeadsPage() {
           onEditLead={(lead) => setEditingLead(lead)}
           onScheduleVisit={(lead) => setAppointmentLead(lead)}
           onOpenWhatsApp={(lead) => setWhatsAppLeadTarget(lead)}
+          isAdmin={isAdmin}
+          onChangeBroker={(lead) => setBrokerTarget(lead)}
+          onRegisterSale={(lead) => setSaleTarget(lead)}
         />
       );
     }
@@ -239,6 +267,16 @@ export default function LeadsPage() {
         appointmentLead={appointmentLead}
         onCloseAppointmentModal={() => setAppointmentLead(null)}
         onSubmitAppointment={handleSubmitAppointment}
+        brokerChangeTarget={brokerTarget}
+        onCloseBrokerModal={() => setBrokerTarget(null)}
+        onConfirmTransferBroker={handleTransferBroker}
+        members={lookupMembers}
+        saleModalTarget={saleTarget}
+        onCloseSaleModal={() => setSaleTarget(null)}
+        onSubmitSale={handleSaleSuccess}
+        isAdmin={isAdmin}
+        onChangeBroker={(lead) => setBrokerTarget(lead)}
+        onRegisterSale={(lead) => setSaleTarget(lead)}
         isFilterSheetOpen={isFilterSheetOpen}
         onCloseFilterSheet={() => setIsFilterSheetOpen(false)}
         temperatureFilter={temperatureFilter}

@@ -23,6 +23,9 @@ interface KanbanColumnProps {
   onEditLead?: (lead: LeadDetail) => void;
   onScheduleVisit?: (lead: LeadDetail) => void;
   onOpenWhatsApp?: (lead: LeadDetail) => void;
+  isAdmin?: boolean;
+  onChangeBroker?: (lead: LeadDetail) => void;
+  onRegisterSale?: (lead: LeadDetail) => void;
 }
 
 export function KanbanColumn({
@@ -42,6 +45,9 @@ export function KanbanColumn({
   onEditLead,
   onScheduleVisit,
   onOpenWhatsApp,
+  isAdmin = false,
+  onChangeBroker,
+  onRegisterSale,
 }: KanbanColumnProps) {
   const [isOver, setIsOver] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -158,6 +164,9 @@ export function KanbanColumn({
                 onEditLead={onEditLead}
                 onScheduleVisit={onScheduleVisit}
                 onOpenWhatsApp={onOpenWhatsApp}
+                isAdmin={isAdmin}
+                onChangeBroker={onChangeBroker}
+                onRegisterSale={onRegisterSale}
               />
             );
           })

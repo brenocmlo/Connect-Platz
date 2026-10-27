@@ -12,6 +12,8 @@ interface LeadDrawerHeaderProps {
   onClose: () => void;
   onTakeoverBolsao?: (leadId: string) => void;
   onOpenWhatsApp?: (lead: LeadDetail) => void;
+  isAdmin?: boolean;
+  onChangeBroker?: (lead: LeadDetail) => void;
 }
 
 export function LeadDrawerHeader({
@@ -19,6 +21,8 @@ export function LeadDrawerHeader({
   onClose,
   onTakeoverBolsao,
   onOpenWhatsApp,
+  isAdmin = false,
+  onChangeBroker,
 }: LeadDrawerHeaderProps) {
   const getInitials = (name: string) => {
     return name
@@ -105,6 +109,26 @@ export function LeadDrawerHeader({
             </a>
           )}
         </div>
+      </div>
+
+      {/* Informação do Corretor Responsável + Botão Trocar para Admin */}
+      <div className="mt-3.5 pt-3 border-t border-border/60 flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[11px] text-muted-foreground">Responsável:</span>
+          <span className="font-bold text-foreground truncate">
+            {lead.corretor?.nome || "Sem corretor (Bolsão)"}
+          </span>
+        </div>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => onChangeBroker?.(lead)}
+            className="text-[11px] font-bold text-connect-blue hover:underline flex items-center gap-1 shrink-0"
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Mudar corretor</span>
+          </button>
+        )}
       </div>
 
       {/* Banner de Bolsão (se aplicável) */}
