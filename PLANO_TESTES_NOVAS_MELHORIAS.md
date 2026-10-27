@@ -20,7 +20,7 @@ flowchart TD
         E4["Fluxo 4: Agendamento de Visita ➔ Avanço de Etapa ➔ Conclusão com Desfecho"]
     end
 
-    subgraph Integracao["2. Testes de Integração & API (Supertest / Node Test Runner)"]
+    subgraph Integracao["2. Testes de Integração & API (script Node — fetch + node:assert)"]
         I1["PATCH /api/leads/[id] — Transferência & RBAC 403 para não-admin"]
         I2["POST /api/vendas — leadSync.ts (avanço para Ganho + timeline + split)"]
         I3["POST /api/agenda — leadSync.ts (avanço para Visita + timeline)"]
@@ -45,7 +45,7 @@ flowchart TD
 ## 📡 2. Camada de Testes de API & Integração de Backend
 
 ### TC-API-01: Transferência de Corretor com Perfil ADMINISTRADOR
-- **Arquivo de Teste:** `tests/api/leads/change-broker.test.ts`
+- **Arquivo de Teste:** `scripts/test-leads-bidirectional-sync.mjs`
 - **Endpoint:** `PATCH /api/leads/:id`
 - **Cenário:** Administrador autenticado transfere o lead para outro corretor ativo.
 - **Payload:**
@@ -59,7 +59,7 @@ flowchart TD
   4. Nova entrada gerada na tabela `lead_timeline` com:
      - `tipo === "transbordo"`
      - Conteúdo contendo o nome do corretor anterior e o nome do novo corretor.
-  5. Registro gravado na tabela `auditoria` com ação `"Lead atualizado"`.
+  5. Registro gravado na tabela `auditoria` com ação `"LEAD_ATUALIZADO"` (`entidadeId` = id do lead).
 
 ### TC-API-02: Bloqueio de Transferência por Usuário CORRETOR (RBAC)
 - **Arquivo de Teste:** `scripts/test-leads-bidirectional-sync.mjs`
@@ -90,7 +90,7 @@ flowchart TD
 ---
 
 ### TC-API-04: Sincronização de Agendamento de Visita (Agenda ➔ Kanban)
-- **Arquivo de Teste:** `tests/api/agenda/lead-sync.test.ts`
+- **Arquivo de Teste:** `scripts/test-leads-bidirectional-sync.mjs`
 - **Endpoint:** `POST /api/agenda`
 - **Cenário:** Criação de compromisso com `tipo: "VISITA"` vinculado a um lead na etapa "Novo Lead" (posição inferior à etapa de visita).
 - **Asserções:**
@@ -105,7 +105,7 @@ flowchart TD
 ---
 
 ### TC-API-05: Conclusão de Visita com Registro de Desfecho na Timeline
-- **Arquivo de Teste:** `tests/api/agenda/appointment-completion.test.ts`
+- **Arquivo de Teste:** `scripts/test-leads-bidirectional-sync.mjs`
 - **Endpoint:** `PATCH /api/agenda/:id`
 - **Cenário:** Atualização do status de um agendamento existente de `AGENDADO` para `CONCLUIDO` com anotações de desfecho.
 - **Payload:**
@@ -125,7 +125,7 @@ flowchart TD
 ---
 
 ### TC-API-06: Consulta de Compromissos Reais do Lead no Drawer
-- **Arquivo de Teste:** `tests/api/agenda/lead-appointments.test.ts`
+- **Arquivo de Teste:** `scripts/test-leads-bidirectional-sync.mjs`
 - **Endpoint:** `GET /api/agenda?leadId=:leadId`
 - **Cenário:** Consulta de compromissos passando o parâmetro `leadId`.
 - **Asserções:**
@@ -143,8 +143,8 @@ flowchart TD
 | **TC-UNIT-02** | `LeadCard.tsx` | Alerta de Pendência Financeira (Ocultação) | Quando `lead.salesCount >= 1`, o banner de pendência financeira NÃO DEVE existir no DOM. |
 | **TC-UNIT-03** | `LeadCardMenu.tsx` | Permissão no Menu (Administrador) | Com prop `isAdmin={true}`, a opção com texto `"Mudar corretor"` DEVE estar visível e disparar `onChangeBroker(lead)` ao ser clicada. |
 | **TC-UNIT-04** | `LeadCardMenu.tsx` | Permissão no Menu (Corretor) | Com prop `isAdmin={false}`, a opção `"Mudar corretor"` NÃO DEVE ser renderizada no menu. |
-| **TC-UNIT-05** | `LeadDrawerHeader.tsx` | Botão Mudar Corretor no Drawer | Com `isAdmin={true}`, o avatar/nome do corretor exibe o botão `"Mudar corretor"`. Com `isAdmin={false}`, exibe apenas o nome e avatar estático. |
-| **TC-UNIT-06** | `LeadDetailsSections.tsx` | Carregamento de Agenda Real | Ao abrir o componente com `lead.id`, dispara chamada `GET /api/agenda?leadId=...` e renderiza os cards com data/hora e badge do tipo (`VISITA`, `LEMBRETE`). |
+| **TC-UNIT-05** | `LeadDrawerHeader.tsx` | Botão Mudar Corretor no Drawer | Com `isAdmin={true}`, ao lado de `Responsável: <nome do corretor>` aparece o botão `"Mudar corretor"`, que chama `onChangeBroker(lead)`. Com `isAdmin={false}` (padrão), exibe apenas o texto do responsável. (`tests/unit/LeadDrawerHeader.test.tsx`) |
+| **TC-UNIT-06** | `LeadDetailsSections.tsx` | Carregamento de Agenda Real | Ao montar com `lead`, chama `fetch('/api/agenda?leadId=<lead.id>')` e renderiza cada compromisso com título, `dd/mm/aaaa às hh:mm` e badge do tipo (`VISITA` → "Visita", `FOLLOW_UP` → "Retorno / Follow-up"; demais tipos aparecem crus, ex. "LEMBRETE"). (`tests/unit/LeadDetailsSections.test.tsx`) |
 | **TC-UNIT-07** | `NewSaleModal.tsx` | Pré-preenchimento via `preselectedLead` | Quando aberto com um lead pré-selecionado, os campos de comprador (`compradorNome`), corretor titular (`corretorId`) e busca do imóvel de interesse devem vir preenchidos automaticamente. |
 | **TC-UNIT-08** | `useLeadsActions.ts` | Gatilho `onPromptSale` ao mover etapa | Ao invocar `moveToStage(leadId, "etapa-ganho-id")` em um lead sem vendas, o hook deve disparar o callback `onPromptSale(lead)` para abrir o modal de venda. |
 
@@ -152,140 +152,21 @@ flowchart TD
 
 ## 🎭 4. Camada de Testes de Ponta a Ponta (E2E — Playwright)
 
-### Especificação E2E-01: Troca de Corretor pelo Administrador
-```typescript
-test("Administrador deve conseguir transferir um lead de corretor com sucesso", async ({ page }) => {
-  // 1. Login como Administrador
-  await loginAs(page, "admin@connectplatz.com.br", "senha123");
-  await page.goto("/crm/leads");
+Specs em `tests/e2e/` (`npm run test:e2e`), executadas contra um servidor já ativo. Cada teste cria o próprio lead via `POST /api/leads` (telefone `(85) 9XXXXXXXX` — a API exige 10 ou 11 dígitos) e localiza o card pela busca do Kanban (*"Busque por nome, e-mail ou telefone…"*). O login é feito por `POST /api/auth/login` via `page.request` (o login pela UI concorre com a hidratação). Helpers em `tests/e2e/helpers.ts`.
 
-  // 2. Localiza o primeiro card do Kanban e abre o menu de contexto
-  const firstCard = page.locator("[data-testid='lead-card']").first();
-  await firstCard.locator("button[aria-label='Opções do lead']").click();
+| ID | Spec | Fluxo validado | Observações |
+|---|---|---|---|
+| **E2E-01** | `leads-bidirectional-sync.spec.ts` | Admin abre o menu do card (`aria-label="Abrir menu do lead"`) → **Mudar corretor** → modal *"Mudar Corretor Responsável"* → escolhe corretor diferente do *"(Atual responsável)"* → **Confirmar Transferência** → toast *"Lead transferido com sucesso para <nome>!"*, o card mostra o primeiro nome do novo corretor e `GET /api/leads/:id` confirma. | Itens do menu são `<button>`, não `role=menuitem`. |
+| **E2E-01 (RBAC)** | `leads-bidirectional-sync.spec.ts` | Corretor comum abre o menu do card e **não** vê "Mudar corretor". | — |
+| **E2E-02** | `leads-sale-sync.spec.ts` | Lead movido para **"Fechado / Ganho"** sem venda → card na coluna Ganho exibe **"Pendência Financeira"** → clicar em **"Cadastrar Venda"** abre o modal *"Nova Venda & Split de Comissões"*. | Etapa alterada via `PATCH /api/leads/:id` (drag & drop HTML5 é instável no Playwright). No arraste real o modal abre via `onPromptSale` após o PATCH (coberto em TC-UNIT-08). |
+| **E2E-03** | `leads-sale-sync.spec.ts` | Venda registrada (`POST /api/vendas`, código `CP-AAAA-NNN`) → lead na coluna Ganho, sem banner de pendência → drawer, aba **"Histórico & Timeline"**, mostra *"Venda CP-… registrada com sucesso"*. | A UI de Vendas não é dirigida (não há botão "Novo contrato"). |
+| **E2E-04** | `leads-agenda-sync.spec.ts` | Compromisso `VISITA` criado (`POST /api/agenda`) → lead em **"Visita Agendada"** (API e coluna do Kanban) → drawer lista o título em *"Compromissos Agendados"*. | A UI da Agenda não é dirigida. |
 
-  // 3. Clica em 'Mudar corretor'
-  await page.getByRole("menuitem", { name: /mudar corretor/i }).click();
+**Seletores estáveis adicionados aos componentes:** `LeadCard` → `data-testid="lead-card"` + `data-lead-id`; `KanbanColumn` → `data-testid="kanban-column"` + `data-stage-name` (nome da etapa: `Novo Lead`, `Primeiro Contato`, `Visita Agendada`, `Proposta Enviada`, `Análise de Crédito`, `Fechado / Ganho`, `Encerrado`).
 
-  // 4. Modal 'Transferir Lead de Corretor' deve abrir
-  const modal = page.locator("[role='dialog']");
-  await expect(modal).toBeVisible();
-  await expect(modal.getByText("Transferir Lead de Corretor")).toBeVisible();
+**Fora da cobertura E2E atual:** drag & drop real entre colunas, preenchimento/salvamento do modal de venda pela UI e criação de compromisso pelo modal da Agenda.
 
-  // 5. Seleciona o novo corretor na lista e confirma
-  await modal.locator("input[placeholder*='Buscar corretor']").fill("Marina Silva");
-  await modal.getByText("Marina Silva").click();
-  await modal.getByRole("button", { name: /confirmar transferência/i }).click();
-
-  // 6. Valida toast de sucesso e atualização visual
-  await expect(page.getByText(/lead transferido com sucesso para Marina Silva/i)).toBeVisible();
-  await expect(firstCard.getByText("Marina Silva")).toBeVisible();
-});
-```
-
----
-
-### Especificação E2E-02: Fluxo Completo de Ganho com Pendência Financeira e Cadastro de Venda
-```typescript
-test("Arrastar lead para Ganho deve alertar pendência e permitir cadastro de venda ágil", async ({ page }) => {
-  await loginAs(page, "admin@connectplatz.com.br", "senha123");
-  await page.goto("/crm/leads");
-
-  const leadCard = page.locator("[data-testid='lead-card']").first();
-  const leadName = await leadCard.locator("h4").innerText();
-  const ganhoColumn = page.locator("[data-testid='kanban-column-ganho']");
-
-  // 1. Arrasta o lead para a coluna de Ganho
-  await leadCard.dragTo(ganhoColumn);
-
-  // 2. Modal de Nova Venda deve abrir automaticamente sugerido pelo sistema
-  const saleModal = page.locator("[data-testid='new-sale-modal']");
-  await expect(saleModal).toBeVisible();
-
-  // 3. Simula fechamento sem preencher para validar persistência da pendência
-  await saleModal.getByRole("button", { name: /cancelar/i }).click();
-
-  // 4. O lead deve permanecer na coluna de Ganho com o alerta de Pendência Financeira
-  const wonCard = ganhoColumn.locator(`text=${leadName}`).locator("..");
-  await expect(wonCard.getByText("Pendência Financeira")).toBeVisible();
-  const btnCadastrarVenda = wonCard.getByRole("button", { name: /cadastrar venda/i });
-  await expect(btnCadastrarVenda).toBeVisible();
-
-  // 5. Clica no botão de ação rápida 'Cadastrar Venda'
-  await btnCadastrarVenda.click();
-  await expect(saleModal).toBeVisible();
-
-  // 6. Preenche os dados da venda e salva
-  await saleModal.locator("input[name='vgv']").fill("450000");
-  await saleModal.getByRole("button", { name: /salvar e emitir contrato/i }).click();
-
-  // 7. Valida que o alerta de pendência financeira sumiu após o registro da venda
-  await expect(page.getByText(/venda registrada com sucesso/i)).toBeVisible();
-  await expect(wonCard.getByText("Pendência Financeira")).not.toBeVisible();
-});
-```
-
----
-
-### Especificação E2E-03: Sincronização Vendas e Comissões ➔ Kanban
-```typescript
-test("Fechar venda pelo módulo de Vendas deve mover automaticamente o lead para Ganho", async ({ page }) => {
-  await loginAs(page, "admin@connectplatz.com.br", "senha123");
-
-  // 1. Acessa o módulo de Vendas e Comissões
-  await page.goto("/crm/vendas");
-  await page.getByRole("button", { name: /novo contrato/i }).click();
-
-  // 2. Seleciona um lead que está ativo em etapa anterior no Kanban
-  const saleModal = page.locator("[data-testid='new-sale-modal']");
-  await saleModal.locator("[data-testid='select-lead']").click();
-  await page.getByRole("option", { name: "Roberto Firmino" }).click();
-  await saleModal.locator("input[name='vgv']").fill("600000");
-  await saleModal.getByRole("button", { name: /salvar e emitir contrato/i }).click();
-
-  await expect(page.getByText(/venda registrada com sucesso/i)).toBeVisible();
-
-  // 3. Retorna ao Kanban de Leads e valida a posição do lead
-  await page.goto("/crm/leads");
-  const ganhoColumn = page.locator("[data-testid='kanban-column-ganho']");
-  await expect(ganhoColumn.getByText("Roberto Firmino")).toBeVisible();
-
-  // 4. Abre o Drawer e valida a timeline
-  await ganhoColumn.getByText("Roberto Firmino").click();
-  const drawer = page.locator("[data-testid='lead-drawer']");
-  await expect(drawer.getByText(/Venda VEN-.*registrada com sucesso/i)).toBeVisible();
-});
-```
-
----
-
-### Especificação E2E-04: Sincronização Agenda ➔ Avanço no Funil & Histórico
-```typescript
-test("Agendar visita deve avançar o lead para 'Visita Agendada' e registrar histórico", async ({ page }) => {
-  await loginAs(page, "corretor@connectplatz.com.br", "senha123");
-  await page.goto("/crm/agenda");
-
-  // 1. Cadastra novo compromisso do tipo Visita
-  await page.getByRole("button", { name: /\+ novo/i }).click();
-  const modal = page.locator("[role='dialog']");
-  await modal.locator("select[name='tipo']").selectOption("VISITA");
-  await modal.locator("input[name='titulo']").fill("Visita Decorado Reserva das Flores");
-  await modal.locator("input[placeholder*='Buscar cliente']").fill("Juliana Paes");
-  await page.getByText("Juliana Paes").click();
-  await modal.getByRole("button", { name: /criar compromisso/i }).click();
-
-  await expect(page.getByText(/compromisso agendado com sucesso/i)).toBeVisible();
-
-  // 2. Navega para o Kanban e confirma que Juliana Paes está na etapa de Visita
-  await page.goto("/crm/leads");
-  const visitaColumn = page.locator("[data-testid='kanban-column-visita']");
-  await expect(visitaColumn.getByText("Juliana Paes")).toBeVisible();
-
-  // 3. Abre o Drawer e valida que o compromisso consta na aba de compromissos
-  await visitaColumn.getByText("Juliana Paes").click();
-  const drawer = page.locator("[data-testid='lead-drawer']");
-  await expect(drawer.getByText("Visita Decorado Reserva das Flores")).toBeVisible();
-});
-```
+> ⚠️ Após reiniciar o `next dev`, a primeira execução compila as páginas sob demanda (~9 s no primeiro teste); se houver timeout, rode de novo ou aqueça `/crm/leads` antes. Não rode `npm run build` com o `next dev` ativo — o build sobrescreve `.next` e o front para de hidratar (tela presa em "Carregando").
 
 ---
 
@@ -312,132 +193,15 @@ npm run test:e2e
 
 ## 📜 6. Script Executável de Teste de Integração (API & Banco de Dados)
 
-Localizado em [`scripts/test-leads-bidirectional-sync.mjs`](file:///Users/a1234/Connect-Platz/scripts/test-leads-bidirectional-sync.mjs):
-// scripts/test-leads-bidirectional-sync.mjs
-import assert from "node:assert/strict";
+Os casos TC-API-01 a TC-API-06 estão implementados em [`scripts/test-leads-bidirectional-sync.mjs`](scripts/test-leads-bidirectional-sync.mjs) (`npm run test:integration`). O script cria um lead novo por execução e o percorre em sequência: transferência → bloqueio RBAC → visita → filtro da agenda → conclusão da visita → venda.
 
-const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:3000";
+> ⚠️ Grava dados reais no banco apontado pelo servidor (lead "Teste Sync …" com visita e venda). Leads com venda não podem ser excluídos (HTTP 409), então use um banco de desenvolvimento.
 
-async function runTest(name, fn) {
-  process.stdout.write(`⏳ Executando: ${name}... `);
-  try {
-    await fn();
-    console.log("✅ PASSOU");
-  } catch (err) {
-    console.log("❌ FALHOU");
-    console.error(err);
-    process.exitCode = 1;
-  }
-}
-
-async function main() {
-  console.log("\n🧪 INICIANDO BATERIA DE TESTES DE SINCRONIZAÇÃO BIDIRECIONAL\n");
-
-  let adminToken, corretorToken, testLeadId;
-
-  await runTest("Autenticação de Administrador", async () => {
-    const res = await fetch(`${BASE_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "admin@connectplatz.com.br", password: process.env.ADMIN_PASSWORD }),
-    });
-    assert.equal(res.status, 200);
-    const cookie = res.headers.get("set-cookie");
-    adminToken = cookie.split(";")[0];
-  });
-
-  await runTest("Autenticação de Corretor Comum", async () => {
-    const res = await fetch(`${BASE_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "corretor@connectplatz.com.br", password: process.env.CORRETOR_PASSWORD }),
-    });
-    assert.equal(res.status, 200);
-    const cookie = res.headers.get("set-cookie");
-    corretorToken = cookie.split(";")[0];
-  });
-
-  await runTest("Criação de Lead de Teste para o Funil", async () => {
-    const res = await fetch(`${BASE_URL}/api/leads`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: adminToken },
-      body: JSON.stringify({
-        nome: "Teste Automatizado Sincronizacao",
-        telefone: "11988887777",
-        email: "teste.sync@connectplatz.com.br",
-      }),
-    });
-    assert.equal(res.status, 201);
-    const data = await res.json();
-    testLeadId = data.lead.id;
-    assert.ok(testLeadId);
-  });
-
-  await runTest("Bloqueio de Transferência de Corretor por Não-Administrador (HTTP 403)", async () => {
-    const res = await fetch(`${BASE_URL}/api/leads/${testLeadId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Cookie: corretorToken },
-      body: JSON.stringify({ corretorId: "00000000-0000-0000-0000-000000000001" }),
-    });
-    assert.equal(res.status, 403);
-  });
-
-  await runTest("Sincronização de Visita: Agendamento move lead para Etapa de Visita", async () => {
-    const res = await fetch(`${BASE_URL}/api/agenda`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: adminToken },
-      body: JSON.stringify({
-        tipo: "VISITA",
-        titulo: "Visita Teste Automatizado",
-        dataInicio: new Date(Date.now() + 86400000).toISOString(),
-        dataFim: new Date(Date.now() + 90000000).toISOString(),
-        leadId: testLeadId,
-      }),
-    });
-    assert.equal(res.status, 201);
-
-    // Consulta se o lead avançou para a etapa de Visita
-    const leadRes = await fetch(`${BASE_URL}/api/leads/${testLeadId}`, {
-      headers: { Cookie: adminToken },
-    });
-    const leadData = await leadRes.json();
-    assert.match(leadData.lead.stage.nome.toLowerCase(), /visit/);
-  });
-
-  await runTest("Sincronização de Venda: Registro move lead para Etapa de Ganho e zera SLA", async () => {
-    const res = await fetch(`${BASE_URL}/api/vendas`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: adminToken },
-      body: JSON.stringify({
-        leadId: testLeadId,
-        propertyId: "11111111-1111-1111-1111-111111111111", // ID mock ou seed
-        vgv: 500000,
-        percentualComissao: 5,
-        dataVenda: new Date().toISOString().slice(0, 10),
-        meioPagamento: "PIX",
-        participants: [],
-      }),
-    });
-    assert.equal(res.status, 201);
-
-    const leadRes = await fetch(`${BASE_URL}/api/leads/${testLeadId}`, {
-      headers: { Cookie: adminToken },
-    });
-    const leadData = await leadRes.json();
-    assert.match(leadData.lead.stage.nome.toLowerCase(), /vend|fechad|ganh/);
-    assert.equal(leadData.lead.slaBreached, false);
-    assert.ok(leadData.lead.salesCount >= 1);
-  });
-
-  console.log("\n🎉 TODOS OS TESTES DE SINCRONIZAÇÃO PASSARAM COM SUCESSO!\n");
-}
-
-main().catch(console.error);
-```
+Variáveis opcionais: `TEST_BASE_URL`, `TEST_ADMIN_EMAIL`, `TEST_CORRETOR_EMAIL`, `TEST_PASSWORD`.
 
 ---
 
-## 📊 6. Critérios de Aceite e Regras de Qualidade CI/CD
+## 📊 7. Critérios de Aceite e Regras de Qualidade CI/CD
 
 1. **RBAC Inviolável:** Nenhuma rota que altere atribuição de carteira ou dados financeiros pode responder com `200` sem credencial de `ADMINISTRADOR`.
 2. **Determinismo Total:** Todos os gatilhos de avanço de etapa e alertas de pendência financeira calculados deterministicamente no banco (`salesCount` e ordem `posicao` das etapas), sem dependência de serviços externos.

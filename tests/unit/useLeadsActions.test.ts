@@ -54,7 +54,7 @@ describe("useLeadsActions — Gatilhos de Etapa", () => {
     expect(onPromptSale).not.toHaveBeenCalled();
   });
 
-  it("Abre modal de venda ao mover lead para etapa Ganho/Fechado", async () => {
+  it("TC-UNIT-08: Abre modal de venda ao mover lead para etapa Ganho/Fechado", async () => {
     const onPromptAppointment = vi.fn();
     const onPromptSale = vi.fn();
 

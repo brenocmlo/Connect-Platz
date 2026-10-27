@@ -1,67 +1,41 @@
 import { test, expect } from "@playwright/test";
+import { ADMIN_EMAIL, CORRETOR_EMAIL, login, createLead, getLead, openLeadCard } from "./helpers";
 
-const PASSWORD = process.env.TEST_PASSWORD || "ConnectPlatz2026@";
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || "robson@connectplatz.com.br";
-const CORRETOR_EMAIL = process.env.TEST_CORRETOR_EMAIL || "lucas.corretor@connectplatz.com.br";
-
-async function login(page: any, email: string) {
-  await page.goto("/login");
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', PASSWORD);
-  await Promise.all([
-    page.waitForURL((url: URL) => url.pathname.includes("/crm"), { timeout: 30000 }),
-    page.click('button[type="submit"]'),
-  ]);
-}
-
-test.describe("E2E: Sincronização Bidirecional & Regras de Negócio", () => {
-  test("E2E-01: Administrador visualiza 'Mudar corretor' no menu do lead e abre modal de transferência", async ({ page }) => {
+test.describe("E2E-01: Mudar corretor / RBAC", () => {
+  test("Administrador transfere um lead para outro corretor e o card reflete a mudança", async ({ page }) => {
     await login(page, ADMIN_EMAIL);
-    await page.goto("/crm/leads");
+    const { id, nome } = await createLead(page, "Transf");
+    const before = await getLead(page, id);
 
-    // Localiza o primeiro card disponível no Kanban
-    const menuButton = page.locator('button[aria-label="Abrir menu do lead"]').first();
-    await expect(menuButton).toBeVisible({ timeout: 10000 });
-    await menuButton.click();
+    const card = await openLeadCard(page, nome);
+    await card.getByRole("button", { name: "Abrir menu do lead" }).click();
+    await page.getByRole("button", { name: /mudar corretor/i }).click();
 
-    // Administrador DEVE ver a opção 'Mudar corretor'
-    const btnMudarCorretor = page.getByRole("button", { name: /mudar corretor/i });
-    await expect(btnMudarCorretor).toBeVisible();
-
-    // Ao clicar, o modal de transferência deve abrir
-    await btnMudarCorretor.click();
     await expect(page.getByText("Mudar Corretor Responsável")).toBeVisible();
-    await expect(page.getByRole("button", { name: /confirmar transferência/i })).toBeVisible();
+    // Escolhe um corretor que não seja o atual responsável
+    const options = page.locator("div.max-h-56 button").filter({ hasNotText: "(Atual responsável)" });
+    await expect(options.first()).toBeVisible();
+    const target = options.first();
+    const newName = (await target.locator("span.block").first().innerText()).trim();
+    await target.click();
+    await page.getByRole("button", { name: /confirmar transferência/i }).click();
+
+    await expect(page.getByText(`Lead transferido com sucesso para ${newName}!`)).toBeVisible();
+    await expect(card.getByText(newName.split(" ")[0], { exact: true })).toBeVisible();
+
+    const after = await getLead(page, id);
+    expect(after.corretor?.nome).toBe(newName);
+    expect(after.corretor?.id).not.toBe(before.corretor?.id);
   });
 
-  test("E2E-02: Corretor comum NÃO visualiza a opção 'Mudar corretor' no menu do card (RBAC)", async ({ page }) => {
+  test("Corretor comum NÃO visualiza a opção 'Mudar corretor' no menu do card (RBAC)", async ({ page }) => {
     await login(page, CORRETOR_EMAIL);
     await page.goto("/crm/leads");
 
     const menuButton = page.locator('button[aria-label="Abrir menu do lead"]').first();
-    await expect(menuButton).toBeVisible({ timeout: 10000 });
+    await expect(menuButton).toBeVisible({ timeout: 15000 });
     await menuButton.click();
-
-    // Corretor NÃO deve ter a opção 'Mudar corretor'
-    const btnMudarCorretor = page.getByRole("button", { name: /mudar corretor/i });
-    await expect(btnMudarCorretor).not.toBeVisible();
-  });
-
-  test("E2E-03: Lead na etapa Ganho sem venda exibe banner de 'Pendência Financeira'", async ({ page }) => {
-    await login(page, ADMIN_EMAIL);
-    await page.goto("/crm/leads");
-
-    // Valida se na coluna de Ganho ou nos cards existe o indicador visual de pendência financeira
-    const pendenciaBanner = page.locator('text=Pendência Financeira').first();
-    // Se houver lead com pendência, verifica estrutura e botão 'Cadastrar Venda'
-    if (await pendenciaBanner.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await expect(pendenciaBanner).toBeVisible();
-      const cadastrarBtn = page.getByText(/cadastrar venda/i).first();
-      await expect(cadastrarBtn).toBeVisible();
-
-      // Clicar no botão abre o modal de Nova Venda pré-preenchido
-      await cadastrarBtn.click();
-      await expect(page.getByText(/Nova Venda & Split de Comissões/i)).toBeVisible();
-    }
+    await expect(page.getByRole("button", { name: /ver detalhes/i }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /mudar corretor/i })).toHaveCount(0);
   });
 });

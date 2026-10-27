@@ -83,6 +83,8 @@ export function LeadCard({
 
   return (
     <div
+      data-testid="lead-card"
+      data-lead-id={lead.id}
       draggable
       onDragStart={(e) => onDragStart(e, lead.id)}
       onDragEnd={onDragEnd}

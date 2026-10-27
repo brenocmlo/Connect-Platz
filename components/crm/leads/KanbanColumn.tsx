@@ -78,6 +78,8 @@ export function KanbanColumn({
 
   return (
     <div
+      data-testid="kanban-column"
+      data-stage-name={stage.nome}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
