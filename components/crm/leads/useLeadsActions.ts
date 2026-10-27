@@ -73,7 +73,9 @@ export function useLeadsActions({
       ) {
         onPromptSale(updated);
       }
-      if (targetStage.nome.toLowerCase().includes("visita") && onPromptAppointment) {
+      // Mesma etapa que o backend usa ao agendar visita (app/api/agenda/leadSync.ts): a primeira com "visit"
+      const visitStage = stages.find((s) => /visit/i.test(s.nome));
+      if (visitStage?.id === targetStage.id && onPromptAppointment) {
         onPromptAppointment(updated);
       }
       return true;
@@ -96,12 +98,12 @@ export function useLeadsActions({
       return;
     }
     const nextStage = stages[currentIdx + 1];
-    moveToStage(leadId, nextStage.id, `Lead avançado para "${nextStage.nome}"!`);
+    return moveToStage(leadId, nextStage.id, `Lead avançado para "${nextStage.nome}"!`);
   };
 
   const handleChangeStage = (leadId: string, targetStageId: string) => {
     const targetStage = stages.find((s) => s.id === targetStageId);
-    moveToStage(leadId, targetStageId, `Etapa alterada para "${targetStage?.nome || "nova etapa"}"!`);
+    return moveToStage(leadId, targetStageId, `Etapa alterada para "${targetStage?.nome || "nova etapa"}"!`);
   };
 
   const runAction = async (leadId: string, body: Record<string, unknown>, success: string, fallback: string) => {

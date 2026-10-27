@@ -75,4 +75,33 @@ describe("useLeadsActions — Gatilhos de Etapa", () => {
     expect(onPromptSale).toHaveBeenCalledTimes(1);
     expect(onPromptAppointment).not.toHaveBeenCalled();
   });
+  const baseProps = (extra: Record<string, unknown> = {}) => ({
+    leads: [mockLead],
+    setLeads: vi.fn(),
+    stages: mockStages,
+    funnelId: "funnel-1",
+    selectedLead: null,
+    setSelectedLead: vi.fn(),
+    replaceLead: vi.fn(),
+    notify: vi.fn(),
+    ...extra,
+  });
+
+  it("handleChangeStage e handleDropLead devolvem a promise do movimento", async () => {
+    const actions = useLeadsActions(baseProps());
+    await expect(actions.handleChangeStage("lead-1", "stage-ganho")).resolves.toBe(true);
+    await expect(actions.handleDropLead("lead-1", "stage-ganho")).resolves.toBe(true);
+  });
+
+  it("NÃO abre agendamento ao mover para outra etapa que também contém 'visita'", async () => {
+    const onPromptAppointment = vi.fn();
+    const stages = [
+      ...mockStages.slice(0, 2),
+      { id: "stage-visita-ok", nome: "Visita Realizada", posicao: 3, cor: "#D97706", slaMinutes: null },
+      { ...mockStages[2], posicao: 4 },
+    ];
+    const actions = useLeadsActions(baseProps({ stages, onPromptAppointment }));
+    await expect(actions.handleChangeStage("lead-1", "stage-visita-ok")).resolves.toBe(true);
+    expect(onPromptAppointment).not.toHaveBeenCalled();
+  });
 });

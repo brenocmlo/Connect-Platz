@@ -162,7 +162,7 @@ Specs em `tests/e2e/` (`npm run test:e2e`), executadas contra um servidor já at
 | **E2E-03** | `leads-sale-sync.spec.ts` | Venda registrada (`POST /api/vendas`, código `CP-AAAA-NNN`) → lead na coluna Ganho, sem banner de pendência → drawer, aba **"Histórico & Timeline"**, mostra *"Venda CP-… registrada com sucesso"*. | A UI de Vendas não é dirigida (não há botão "Novo contrato"). |
 | **E2E-04** | `leads-agenda-sync.spec.ts` | Compromisso `VISITA` criado (`POST /api/agenda`) → lead em **"Visita Agendada"** (API e coluna do Kanban) → drawer lista o título em *"Compromissos Agendados"*. | A UI da Agenda não é dirigida. |
 
-**Seletores estáveis adicionados aos componentes:** `LeadCard` → `data-testid="lead-card"` + `data-lead-id`; `KanbanColumn` → `data-testid="kanban-column"` + `data-stage-name` (nome da etapa: `Novo Lead`, `Primeiro Contato`, `Visita Agendada`, `Proposta Enviada`, `Análise de Crédito`, `Fechado / Ganho`, `Encerrado`).
+**Seletores estáveis adicionados aos componentes:** `ChangeBrokerModal` → `data-testid="broker-option"` / `"broker-name"`; `LeadCard` → `data-testid="lead-card"` + `data-lead-id`; `KanbanColumn` → `data-testid="kanban-column"` + `data-stage-name` (nome da etapa: `Novo Lead`, `Primeiro Contato`, `Visita Agendada`, `Proposta Enviada`, `Análise de Crédito`, `Fechado / Ganho`, `Encerrado`).
 
 **Fora da cobertura E2E atual:** drag & drop real entre colunas, preenchimento/salvamento do modal de venda pela UI e criação de compromisso pelo modal da Agenda.
 

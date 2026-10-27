@@ -13,10 +13,10 @@ test.describe("E2E-01: Mudar corretor / RBAC", () => {
 
     await expect(page.getByText("Mudar Corretor Responsável")).toBeVisible();
     // Escolhe um corretor que não seja o atual responsável
-    const options = page.locator("div.max-h-56 button").filter({ hasNotText: "(Atual responsável)" });
+    const options = page.getByTestId("broker-option").filter({ hasNotText: "(Atual responsável)" });
     await expect(options.first()).toBeVisible();
     const target = options.first();
-    const newName = (await target.locator("span.block").first().innerText()).trim();
+    const newName = (await target.getByTestId("broker-name").innerText()).trim();
     await target.click();
     await page.getByRole("button", { name: /confirmar transferência/i }).click();
 

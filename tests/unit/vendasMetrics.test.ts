@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { periodWindow, inWindow, saleTime, computeTotals } from "@/components/crm/vendas/vendasMetrics";
 import { SaleItem } from "@/components/crm/vendas/types";
 
@@ -17,6 +17,41 @@ describe("vendasMetrics — Janelas e Filtros de Período", () => {
 
     expect(inWindow(saleEarlyMonth as SaleItem, window)).toBe(true);
     expect(inWindow(saleLateMonth as SaleItem, window)).toBe(true);
+  });
+
+  describe("com data fixa em 31/03/2026", () => {
+    afterEach(() => vi.useRealTimers());
+    const at = (iso: string) => ({ dataVendaIso: iso }) as SaleItem;
+    const fix = () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 2, 31, 10, 0, 0));
+    };
+
+    it("'mes' inclui o dia 31 e exclui o último dia do mês anterior; offset=1 é o mês anterior", () => {
+      fix();
+      expect(inWindow(at("2026-03-31"), periodWindow("mes"))).toBe(true);
+      expect(inWindow(at("2026-03-01"), periodWindow("mes"))).toBe(true);
+      expect(inWindow(at("2026-02-28"), periodWindow("mes"))).toBe(false);
+      expect(inWindow(at("2026-02-28"), periodWindow("mes", 1))).toBe(true);
+      expect(inWindow(at("2026-02-01"), periodWindow("mes", 1))).toBe(true);
+      expect(inWindow(at("2026-03-01"), periodWindow("mes", 1))).toBe(false);
+    });
+
+    it("'7d' cobre 25..31/03 e offset=1 cobre 18..24/03 sem sobreposição", () => {
+      fix();
+      expect(inWindow(at("2026-03-25"), periodWindow("7d"))).toBe(true);
+      expect(inWindow(at("2026-03-24"), periodWindow("7d"))).toBe(false);
+      expect(inWindow(at("2026-03-24"), periodWindow("7d", 1))).toBe(true);
+      expect(inWindow(at("2026-03-18"), periodWindow("7d", 1))).toBe(true);
+      expect(inWindow(at("2026-03-17"), periodWindow("7d", 1))).toBe(false);
+    });
+
+    it("'ano' com offset=1 é o ano anterior inteiro", () => {
+      fix();
+      expect(inWindow(at("2025-12-31"), periodWindow("ano", 1))).toBe(true);
+      expect(inWindow(at("2026-01-01"), periodWindow("ano", 1))).toBe(false);
+      expect(inWindow(at("2026-12-31"), periodWindow("ano"))).toBe(true);
+    });
   });
 
   it("computeTotals calcula corretamente VGV, total de vendas e comissões", () => {

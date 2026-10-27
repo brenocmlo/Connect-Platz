@@ -134,6 +134,7 @@ export function ChangeBrokerModal({
                 <button
                   key={member.id}
                   type="button"
+                  data-testid="broker-option"
                   onClick={() => setSelectedBrokerId(member.id)}
                   className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-all text-xs ${
                     isSelected
@@ -150,7 +151,7 @@ export function ChangeBrokerModal({
                       {member.nome.charAt(0).toUpperCase()}
                     </div>
                     <div className="truncate">
-                      <span className="block truncate">{member.nome}</span>
+                      <span data-testid="broker-name" className="block truncate">{member.nome}</span>
                       {isCurrent && (
                         <span className={`text-[10px] block ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
                           (Atual responsável)

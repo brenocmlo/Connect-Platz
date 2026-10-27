@@ -61,13 +61,15 @@ export function resolvePeriod(key: PeriodKey, now: Date = new Date()): PeriodRan
     case "7d":
     case "30d": {
       const days = key === "7d" ? 7 : 30;
+      // Hoje + (days - 1) dias anteriores, em dias de calendário; o anterior termina 1 ms antes do atual
       const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      const start = new Date(end.getTime() - days * DAY_MS);
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1), 0, 0, 0, 0);
+      const prevStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (2 * days - 1), 0, 0, 0, 0);
       return {
         key,
         label,
         current: { start, end },
-        previous: { start: new Date(start.getTime() - days * DAY_MS), end: start },
+        previous: { start: prevStart, end: new Date(start.getTime() - 1) },
       };
     }
     case "mes": {
