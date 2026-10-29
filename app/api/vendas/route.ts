@@ -14,7 +14,8 @@ import {
   LeadTemperature,
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, isAdmin } from "@/lib/auth/session";
+import { requireSession, isAdmin, canManageSaleValues } from "@/lib/auth/session";
+import { Role } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-server";
 import { normalizeBrPhone } from "@/lib/utils/phone";
 import {
@@ -32,12 +33,18 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
   const { session } = auth;
 
+  if (session.role === Role.FINANCEIRO_ALUGUEL || session.role === Role.CORRETOR_ALUGUEL) {
+    return NextResponse.json({ error: "Acesso restrito ao departamento de Vendas." }, { status: 403 });
+  }
+
+  const isSaleManager = canManageSaleValues(session.role);
+
   try {
     const sales = await prisma.sale.findMany({
       where: {
         organizationId: session.organizationId,
-        // Corretor vê apenas vendas em que é titular ou participante do split
-        ...(isAdmin(session.role)
+        // Financeiro de Vendas e Admin veem todas; Corretor vê apenas vendas em que participa
+        ...(isSaleManager
           ? {}
           : {
               OR: [
@@ -119,7 +126,16 @@ export async function POST(req: NextRequest) {
   if (auth.error) return auth.error;
   const { session } = auth;
   const orgId = session.organizationId;
-  const manager = isAdmin(session.role);
+
+  if (!canManageSaleValues(session.role)) {
+    return NextResponse.json(
+      {
+        error:
+          "Apenas o setor Financeiro e Administradores possuem autorização para formalizar e precificar vendas. Corretores devem solicitar o fechamento comercial no lead.",
+      },
+      { status: 403 }
+    );
+  }
 
   const body = await req.json().catch(() => null);
   const parsed = CreateSaleSchema.safeParse(body);
@@ -133,9 +149,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const titular = input.participants.find((p) => p.role === "CORRETOR_1")!;
-    if (!manager && titular.userId !== session.userId) {
-      throw new HttpError(403, "Corretores só podem registrar vendas próprias.");
-    }
 
     // Participantes precisam ser usuários ativos da organização
     const userIds = Array.from(new Set(input.participants.map((p) => p.userId)));
@@ -192,9 +205,6 @@ export async function POST(req: NextRequest) {
           select: { id: true, corretorId: true },
         });
         if (!lead) throw new HttpError(404, "Cliente/lead não encontrado.");
-        if (!manager && lead.corretorId !== session.userId) {
-          throw new HttpError(403, "Você só pode registrar vendas para os seus leads.");
-        }
       } else {
         const comprador = input.novoComprador!;
         const telefone = normalizeBrPhone(comprador.telefone);
@@ -205,9 +215,6 @@ export async function POST(req: NextRequest) {
           select: { id: true, corretorId: true },
         });
         if (existing) {
-          if (!manager && existing.corretorId && existing.corretorId !== session.userId) {
-            throw new HttpError(409, "Já existe um lead com este telefone em outra carteira.");
-          }
           leadId = existing.id;
         } else {
           const funnel = await tx.funnel.findFirst({
@@ -286,6 +293,7 @@ export async function POST(req: NextRequest) {
             valor: p.valor,
             dataVencimento: dataPrevista,
             status: PaymentStatus.PENDENTE,
+            modalidade: "VENDA",
             saleId: created.id,
           },
         });
@@ -316,6 +324,7 @@ export async function POST(req: NextRequest) {
           dataVencimento: dataPrevista,
           status: PaymentStatus.PENDENTE,
           meioPagamento: input.meioPagamento,
+          modalidade: "VENDA",
           saleId: created.id,
         },
       });

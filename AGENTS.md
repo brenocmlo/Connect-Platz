@@ -72,7 +72,7 @@
 - ❌ **Sem WhatsApp Integrado:** Manter botões e links diretos para WhatsApp Web / App (`https://wa.me/55...`), sem embutir cliente não oficial de mensagens.
 - ❌ **Sem Inteligência Artificial Externa:** Regras de negócio, cálculos de SLA, roleta e scores devem ser 100% determinísticos.
 - ❌ **Sem Treinamentos e Assinatura:** Não devem existir itens de menu, abas ou telas para "Treinamentos" e "Assinatura" no CRM.
-- 👥 **Perfis de acesso:** o sistema tem somente dois perfis — `ADMINISTRADOR` e `CORRETOR`. Não existem perfis Diretor ou Gerente (enum `Role` no Prisma).
+- 👥 **Perfis de acesso:** o sistema possui 5 perfis oficiais segregados por modalidade e responsabilidade — `ADMINISTRADOR` (gestão total), `FINANCEIRO_VENDA` (financeiro e ERP exclusivo de vendas), `FINANCEIRO_ALUGUEL` (financeiro e ERP exclusivo de locações/temporada), `CORRETOR_VENDA` (leads e vendas próprios; sem lançamento de valores contábeis) e `CORRETOR_ALUGUEL` (leads e locações próprios; sem lançamento de valores contábeis). Corretores não lançam valores financeiros (VGV/aluguel); apenas solicitam o fechamento comercial para o setor Financeiro formalizar.
 - 🔒 **Restrição Rígida de Acesso do Corretor (RBAC) & Menu Lateral:**
   - **Menu Lateral sem "Administração":** O item "Administração" NÃO deve constar no menu lateral (pois seus ajustes estão centralizados no painel de Configurações para gestores).
   - **Corretor sem Acesso à Gestão/Administração:** Corretores têm acesso estritamente à sua conta/perfil profissional em Configurações ("Minha Conta"). As abas de dados corporativos da imobiliária e parametrização de SLAs, bem como os módulos de Fluxo de Caixa, DRE, Equipes e Integrações, são 100% bloqueados para o cargo `CORRETOR`.

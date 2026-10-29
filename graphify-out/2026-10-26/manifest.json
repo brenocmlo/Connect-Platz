@@ -222,9 +222,9 @@
     "semantic_hash": ""
   },
   "components/crm/LeadDrawer.tsx": {
-    "mtime": 1793058298.4126642,
-    "seen": 1793060890.923967,
-    "ast_hash": "6a18e09748148a50d02713dc0e827f97",
+    "mtime": 1793067324.1287084,
+    "seen": 1793067964.80179,
+    "ast_hash": "8ee6cc6e74d0a6cce1ea0322a4ba73c2",
     "semantic_hash": ""
   },
   "components/crm/PageHeader.tsx": {
@@ -438,9 +438,9 @@
     "semantic_hash": ""
   },
   "components/crm/lead-drawer/LeadDetailsSections.tsx": {
-    "mtime": 1793058455.9786716,
-    "seen": 1793060890.933665,
-    "ast_hash": "358901cbe1d65b73945e914d59ca27dd",
+    "mtime": 1793067363.5759513,
+    "seen": 1793067964.80967,
+    "ast_hash": "48251a17542fd2260c03d368a4f45aee",
     "semantic_hash": ""
   },
   "components/crm/lead-drawer/LeadDrawerActions.tsx": {
@@ -486,9 +486,9 @@
     "semantic_hash": ""
   },
   "components/crm/leads/LeadCard.tsx": {
-    "mtime": 1793064987.6318731,
-    "seen": 1793065749.8331761,
-    "ast_hash": "09c8e3703f7a5063091daff2600e638c",
+    "mtime": 1793067434.667212,
+    "seen": 1793067964.811085,
+    "ast_hash": "1f49f0cb3d22284e9d6fcb3ff8ba8fba",
     "semantic_hash": ""
   },
   "components/crm/leads/LeadCardMenu.tsx": {
@@ -546,9 +546,9 @@
     "semantic_hash": ""
   },
   "components/crm/leads/leadCalculations.ts": {
-    "mtime": 1792682103.0041559,
-    "seen": 1792701542.71403,
-    "ast_hash": "c0fa7b11055b9e8eefbd0beb3c3604e3",
+    "mtime": 1793067401.4619257,
+    "seen": 1793067964.8123531,
+    "ast_hash": "120b816691bb3327d2a5eba381cc6f24",
     "semantic_hash": ""
   },
   "components/crm/leads/useLeadsFilter.ts": {
@@ -1938,9 +1938,9 @@
     "semantic_hash": ""
   },
   "app/api/dashboard/_lib/period.ts": {
-    "mtime": 1792682378.47711,
-    "seen": 1792701542.71185,
-    "ast_hash": "5d2a79b06b1ab20957aec88b2f3f8987",
+    "mtime": 1793067485.5278866,
+    "seen": 1793067964.791451,
+    "ast_hash": "9631761ac45b7ef76cc8666b19a4c477",
     "semantic_hash": ""
   },
   "app/api/dashboard/_lib/scope.ts": {
@@ -1992,9 +1992,9 @@
     "semantic_hash": ""
   },
   "app/api/leads/_lib/leadAccess.ts": {
-    "mtime": 1793064600.0381045,
-    "seen": 1793065749.8098419,
-    "ast_hash": "ff2e4171e1b6ff38895376538f151066",
+    "mtime": 1793067292.8779576,
+    "seen": 1793067964.792928,
+    "ast_hash": "e1d9b5a305cbd492a7adcdeca9b97fd1",
     "semantic_hash": ""
   },
   "app/api/leads/_lib/leadPayload.ts": {
@@ -2340,9 +2340,9 @@
     "semantic_hash": ""
   },
   "components/crm/vendas/vendasMetrics.ts": {
-    "mtime": 1792882670.5947332,
-    "seen": 1792889503.064446,
-    "ast_hash": "4deb22357a8c2d424cc57b4c058f766f",
+    "mtime": 1793067511.2292905,
+    "seen": 1793067964.8224,
+    "ast_hash": "8abcf8ae3a94562f10544c3ca99606c9",
     "semantic_hash": ""
   },
   "components/portal/PortalSettingsContext.tsx": {
@@ -2466,8 +2466,8 @@
     "semantic_hash": ""
   },
   "playwright.config.ts": {
-    "mtime": 1793064722.2539945,
-    "seen": 1793065749.854225,
+    "mtime": 1793067807.0172606,
+    "seen": 1793067964.830004,
     "ast_hash": "5cd21fc15b29a932f515e91dec73933b",
     "semantic_hash": ""
   },
@@ -2490,9 +2490,9 @@
     "semantic_hash": ""
   },
   "tests/unit/LeadCard.test.tsx": {
-    "mtime": 1793065476.0312097,
-    "seen": 1793065749.855479,
-    "ast_hash": "03ad7464ac4cd32df8d9fa6d6ebb861a",
+    "mtime": 1793067606.7246685,
+    "seen": 1793067964.831946,
+    "ast_hash": "3bb7d24297ca32393c30dac680521788",
     "semantic_hash": ""
   },
   "tests/unit/LeadCardMenu.test.tsx": {
@@ -2511,6 +2511,18 @@
     "mtime": 1793064855.2958288,
     "seen": 1793065749.8555672,
     "ast_hash": "af6889e2197628cf9c989261230258dd",
+    "semantic_hash": ""
+  },
+  "components/crm/lead-drawer/LeadSaleSection.tsx": {
+    "mtime": 1793067340.802072,
+    "seen": 1793067964.809991,
+    "ast_hash": "0cd6667590f129c107c63fab4e2cc759",
+    "semantic_hash": ""
+  },
+  "tests/unit/vendasMetrics.test.ts": {
+    "mtime": 1793067615.1269393,
+    "seen": 1793067964.832308,
+    "ast_hash": "8d22d5f5bd9cb7c9282c178ce71eb478",
     "semantic_hash": ""
   }
 }

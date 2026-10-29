@@ -43,7 +43,8 @@ const TABS = [
 
 export default function VendasComissoesPage() {
   const { user, setActionMessage, selectedPeriod, hideValues, toggleHideValues } = useCrm();
-  const canManagePayments = user?.role === "ADMINISTRADOR";
+  const canManageSales = user?.role === "ADMINISTRADOR" || user?.role === "FINANCEIRO_VENDA";
+  const canManagePayments = canManageSales;
 
   const [sales, setSales] = useState<SaleItem[]>([]);
   const [loadingSales, setLoadingSales] = useState(true);
@@ -173,13 +174,15 @@ export default function VendasComissoesPage() {
             <Filter className="w-3.5 h-3.5" />
             Filtros
           </button>
-          <button
-            onClick={() => setIsNewModalOpen(true)}
-            className="bg-connect-blue hover:bg-connect-deep-blue text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-lg shadow-connect-blue/20 hover:shadow-connect-blue/30 transition-all hover:scale-[1.02]"
-          >
-            <Plus className="w-4 h-4" />
-            Nova Venda
-          </button>
+          {canManageSales && (
+            <button
+              onClick={() => setIsNewModalOpen(true)}
+              className="bg-connect-blue hover:bg-connect-deep-blue text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-lg shadow-connect-blue/20 hover:shadow-connect-blue/30 transition-all hover:scale-[1.02]"
+            >
+              <Plus className="w-4 h-4" />
+              Nova Venda
+            </button>
+          )}
         </div>
       </div>
 

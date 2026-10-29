@@ -13,6 +13,10 @@ interface TeamMembersTableProps {
 
 const ROLE_BADGE: Record<string, string> = {
   ADMINISTRADOR: "bg-platz-gold/20 text-amber-700 dark:text-platz-gold border border-platz-gold/40",
+  FINANCEIRO_VENDA: "bg-connect-blue/15 text-connect-blue border border-connect-blue/30",
+  FINANCEIRO_ALUGUEL: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30",
+  CORRETOR_VENDA: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+  CORRETOR_ALUGUEL: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
   CORRETOR: "bg-muted text-muted-foreground border border-border",
 };
 
@@ -79,12 +83,16 @@ export function TeamMembersTable({ team, loading, isAdmin, onRequestRemove }: Te
                   </span>
                 </td>
                 <td className="py-3.5 px-4 text-center text-muted-foreground">
-                  {member.role === "CORRETOR" ? (member.hasCheckedInToday ? "Sim" : "Não") : "—"}
+                  {member.role === "CORRETOR_VENDA" || member.role === "CORRETOR_ALUGUEL" || member.role === "CORRETOR"
+                    ? member.hasCheckedInToday
+                      ? "Sim"
+                      : "Não"
+                    : "—"}
                 </td>
                 <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">{member.email}</td>
                 {isAdmin && (
                   <td className="py-3.5 px-4 text-center">
-                    {member.role === "CORRETOR" ? (
+                    {member.role !== "ADMINISTRADOR" ? (
                       <button
                         type="button"
                         onClick={() => onRequestRemove?.(member)}

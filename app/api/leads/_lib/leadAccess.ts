@@ -83,28 +83,62 @@ export function serializeLead(lead: LeadWithInclude, ctx: RLSUserContext) {
     documentsCount: _count?.documents ?? 0,
     salesCount: _count?.sales ?? (sales?.length ?? 0),
     sales,
+    modalidade: lead.modalidade,
+    financialApprovalStatus: lead.financialApprovalStatus,
   };
 }
 
 export function canViewLead(
-  lead: { corretorId: string | null; isBolsao: boolean; isClosed: boolean },
+  lead: { corretorId: string | null; isBolsao: boolean; isClosed: boolean; modalidade?: string },
   session: SessionPayload
 ): boolean {
   if (isAdmin(session.role)) return true;
+  if (session.role === "FINANCEIRO_VENDA") {
+    return !lead.modalidade || lead.modalidade === "VENDA";
+  }
+  if (session.role === "FINANCEIRO_ALUGUEL") {
+    return lead.modalidade === "ALUGUEL";
+  }
+  if (session.role === "CORRETOR_VENDA") {
+    if (lead.modalidade && lead.modalidade !== "VENDA") return false;
+    if (lead.corretorId === session.userId) return true;
+    return lead.isBolsao && !lead.isClosed;
+  }
+  if (session.role === "CORRETOR_ALUGUEL") {
+    if (lead.modalidade !== "ALUGUEL") return false;
+    if (lead.corretorId === session.userId) return true;
+    return lead.isBolsao && !lead.isClosed;
+  }
   if (lead.corretorId === session.userId) return true;
   return lead.isBolsao && !lead.isClosed;
 }
 
 /**
- * Administradores alteram qualquer lead da organização; corretor só altera o próprio
- * (ou assume um lead disponível no bolsão).
+ * Administradores alteram qualquer lead; corretores só alteram os seus próprios da sua modalidade
+ * (ou assumem bolsão da sua modalidade).
  */
 export function canModifyLead(
-  lead: { corretorId: string | null; isBolsao: boolean; isClosed: boolean },
+  lead: { corretorId: string | null; isBolsao: boolean; isClosed: boolean; modalidade?: string },
   session: SessionPayload,
   action?: string
 ): boolean {
   if (isAdmin(session.role)) return true;
+  if (session.role === "FINANCEIRO_VENDA") {
+    return !lead.modalidade || lead.modalidade === "VENDA";
+  }
+  if (session.role === "FINANCEIRO_ALUGUEL") {
+    return lead.modalidade === "ALUGUEL";
+  }
+  if (session.role === "CORRETOR_VENDA") {
+    if (lead.modalidade && lead.modalidade !== "VENDA") return false;
+    if (action === "ASSUMIR_BOLSAO") return lead.isBolsao && !lead.isClosed;
+    return lead.corretorId === session.userId;
+  }
+  if (session.role === "CORRETOR_ALUGUEL") {
+    if (lead.modalidade !== "ALUGUEL") return false;
+    if (action === "ASSUMIR_BOLSAO") return lead.isBolsao && !lead.isClosed;
+    return lead.corretorId === session.userId;
+  }
   if (action === "ASSUMIR_BOLSAO") return lead.isBolsao && !lead.isClosed;
   return lead.corretorId === session.userId;
 }

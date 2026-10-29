@@ -1,7 +1,7 @@
 // app/api/dashboard/_lib/dashboardLists.ts
 // Listas da Dashboard: leads quentes, compromissos, performance da equipe e atividades recentes.
 
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus, Role } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getOrgScoreRules } from "@/lib/domain/settings/orgSettings";
 import { temperatureFromScore } from "@/lib/domain/scoring/leadScore";
@@ -105,7 +105,11 @@ export async function loadTeam(
 
   const [users, metrics] = await Promise.all([
     prisma.user.findMany({
-      where: { organizationId: scope.organizationId, isActive: true, role: "CORRETOR" },
+      where: {
+        organizationId: scope.organizationId,
+        isActive: true,
+        role: { in: [Role.CORRETOR_VENDA, Role.CORRETOR_ALUGUEL] },
+      },
       select: { id: true, nome: true, role: true, photoUrl: true },
     }),
     computeUserMetrics(scope.organizationId, period.current),

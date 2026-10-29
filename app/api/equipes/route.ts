@@ -17,7 +17,14 @@ const InviteCollaboratorSchema = z.object({
   email: z.string().trim().toLowerCase().email("E-mail inválido."),
   telefone: z.string().trim().max(30).optional().nullable(),
   creci: z.string().trim().max(30).optional().nullable(),
-  role: z.enum(["ADMINISTRADOR", "CORRETOR"]),
+  role: z.enum([
+    "ADMINISTRADOR",
+    "FINANCEIRO_VENDA",
+    "FINANCEIRO_ALUGUEL",
+    "CORRETOR_VENDA",
+    "CORRETOR_ALUGUEL",
+    "CORRETOR",
+  ]),
   senhaTemporaria: z
     .string()
     .min(8, "A senha provisória deve ter no mínimo 8 caracteres.")
@@ -116,7 +123,7 @@ export async function POST(req: NextRequest) {
         email: data.email,
         telefone,
         creci: data.creci || null,
-        role: data.role as Role,
+        role: (data.role === "CORRETOR" ? Role.CORRETOR_VENDA : data.role) as Role,
         status: CorretorStatus.OFFLINE,
         passwordHash,
       },
@@ -257,9 +264,9 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    if (target.role !== Role.CORRETOR) {
+    if (target.role === Role.ADMINISTRADOR) {
       return NextResponse.json(
-        { error: "Apenas corretores podem ser removidos da equipe comercial." },
+        { error: "Usuários administradores não podem ser removidos por esta rota." },
         { status: 400 }
       );
     }

@@ -1,12 +1,15 @@
--- Migração de perfis: o sistema passa a ter apenas ADMINISTRADOR e CORRETOR.
--- Idempotente: pode rodar a cada deploy (docker-entrypoint.sh) antes do `prisma db push`.
---   DIRETOR  -> ADMINISTRADOR (mesmas permissões)
---   GERENTE  -> CORRETOR      (menor privilégio)
---   Split "Gestor / Sócio": CommissionBeneficiaryType DIRETOR renomeado para SOCIO_GESTOR
---   Split de Gerente (removido): passa a PARCEIRO_EXTERNO, preservando nome e valor
+-- Migração de perfis legados para o novo padrão segregado:
+-- ADMINISTRADOR, FINANCEIRO_VENDA, FINANCEIRO_ALUGUEL, CORRETOR_VENDA, CORRETOR_ALUGUEL
 
+-- 1. Garante novos valores no enum Role
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'FINANCEIRO_VENDA';
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'FINANCEIRO_ALUGUEL';
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'CORRETOR_VENDA';
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'CORRETOR_ALUGUEL';
+
+-- 2. Migração de dados legados
 UPDATE users SET role = 'ADMINISTRADOR' WHERE role::text = 'DIRETOR';
-UPDATE users SET role = 'CORRETOR' WHERE role::text = 'GERENTE';
+UPDATE users SET role = 'CORRETOR_VENDA' WHERE role::text IN ('GERENTE', 'CORRETOR');
 
 DO $$
 BEGIN

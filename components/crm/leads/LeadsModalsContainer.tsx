@@ -13,7 +13,9 @@ import { WhatsAppTemplatesModal } from "@/components/crm/leads/WhatsAppTemplates
 import { ToastFeedback } from "@/components/crm/primitives";
 import { ChangeBrokerModal } from "./ChangeBrokerModal";
 import { NewSaleModal } from "@/components/crm/vendas/NewSaleModal";
+import { RequestClosingModal } from "./RequestClosingModal";
 import { LookupMember } from "@/components/crm/agenda/useCrmLookups";
+import { useCrm } from "@/components/crm/CrmContext";
 
 interface LeadsModalsContainerProps {
   isNewLeadModalOpen: boolean;
@@ -133,6 +135,12 @@ export function LeadsModalsContainer({
   toastType = "success",
   onCloseToast,
 }: LeadsModalsContainerProps) {
+  const { user } = useCrm();
+  const isBroker =
+    user?.role === "CORRETOR_VENDA" ||
+    user?.role === "CORRETOR_ALUGUEL" ||
+    user?.role === "CORRETOR";
+
   return (
     <>
       <NewLeadModal
@@ -201,12 +209,21 @@ export function LeadsModalsContainer({
       )}
 
       {saleModalTarget && onSubmitSale && onCloseSaleModal && (
-        <NewSaleModal
-          isOpen={Boolean(saleModalTarget)}
-          preselectedLead={saleModalTarget}
-          onClose={onCloseSaleModal}
-          onSubmit={onSubmitSale}
-        />
+        isBroker ? (
+          <RequestClosingModal
+            isOpen={Boolean(saleModalTarget)}
+            lead={saleModalTarget}
+            onClose={onCloseSaleModal}
+            onSuccess={() => onSubmitSale(null)}
+          />
+        ) : (
+          <NewSaleModal
+            isOpen={Boolean(saleModalTarget)}
+            preselectedLead={saleModalTarget}
+            onClose={onCloseSaleModal}
+            onSubmit={onSubmitSale}
+          />
+        )
       )}
 
       <NewAppointmentModal

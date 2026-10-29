@@ -60,7 +60,8 @@ const mockBookings: BookingItem[] = [
 ];
 
 export default function TemporadaVeraneioPage() {
-  const { setActionMessage, hideValues } = useCrm();
+  const { user, setActionMessage, hideValues } = useCrm();
+  const canManageRental = user?.role === "ADMINISTRADOR" || user?.role === "FINANCEIRO_ALUGUEL";
   const [bookings, setBookings] = useState<BookingItem[]>(mockBookings);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -106,8 +107,8 @@ export default function TemporadaVeraneioPage() {
       <PageHeader
         title="Temporada & Veraneio"
         subtitle="Gestão de diárias, bloqueio estrito de calendário sem conflitos e conciliação automática no ERP."
-        actionLabel="Nova Reserva"
-        onActionClick={() => setIsModalOpen(true)}
+        actionLabel={canManageRental ? "Nova Reserva" : undefined}
+        onActionClick={canManageRental ? () => setIsModalOpen(true) : undefined}
         showPeriodSelector={true}
         showExportButton={true}
       />

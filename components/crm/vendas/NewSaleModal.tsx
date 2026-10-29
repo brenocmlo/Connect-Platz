@@ -66,8 +66,8 @@ function initialParticipants(): ParticipantsForm {
 
 export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: NewSaleModalProps) {
   const { user } = useCrm();
-  const isCorretor = user?.role === "CORRETOR";
-  const { leads, properties, members, loading } = useCrmLookups({ enabled: isOpen, members: !isCorretor });
+  const canManage = user?.role === "ADMINISTRADOR" || user?.role === "FINANCEIRO_VENDA";
+  const { leads, properties, members, loading } = useCrmLookups({ enabled: isOpen, members: true });
 
   const [activeTab, setActiveTab] = useState<"dados" | "resumo" | "anexos">("dados");
   const [deal, setDeal] = useState<SaleDealState>(() => initialDeal(preselectedLead));
@@ -131,8 +131,6 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
     }
   }, [preselectedLead, isOpen, properties]);
 
-  const lockedTitular = isCorretor && user ? { id: user.id, nome: user.nome } : null;
-
   // Papéis ativos: titular sempre; demais apenas com participante escolhido
   const activeRoles = ROLES.filter((role) => {
     if (role === "CORRETOR_1") return true;
@@ -143,12 +141,11 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
   const nameByRole = useMemo(() => {
     const map: Partial<Record<string, string>> = {};
     ROLES.forEach((role) => {
-      const id = role === "CORRETOR_1" && lockedTitular ? lockedTitular.id : participants[role].userId;
-      map[role] = (lockedTitular && lockedTitular.id === id ? lockedTitular.nome : undefined) ||
-        members.find((m) => m.id === id)?.nome;
+      const id = participants[role].userId;
+      map[role] = members.find((m) => m.id === id)?.nome;
     });
     return map;
-  }, [participants, members, lockedTitular]);
+  }, [participants, members]);
 
   const calculated = calculateSaleValues({
     vgvValue: deal.vgv,
@@ -156,7 +153,7 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
     impostoPercentual: deal.impostoPercentual,
     participants: activeRoles.map((role) => ({
       role,
-      userId: role === "CORRETOR_1" && lockedTitular ? lockedTitular.id : participants[role].userId,
+      userId: participants[role].userId,
       nome: nameByRole[role] || "",
       percentual: participants[role].percentual,
       desconto: participants[role].desconto,
@@ -192,7 +189,7 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
     if (!deal.dataVenda) return setError("Informe a data da venda.");
     if (deal.percentualComissao <= 0) return setError("Informe a % de comissão bruta.");
     if (deal.vgv <= 0) return setError("Informe o VGV da venda.");
-    const titularId = lockedTitular?.id || participants.CORRETOR_1.userId;
+    const titularId = participants.CORRETOR_1.userId;
     if (!titularId) return setError("Selecione o Corretor 1 (titular).");
     const orphan = ROLES.find((r) => r !== "CORRETOR_1" && participants[r].percentual > 0 && !participants[r].userId);
     if (orphan) return setError("Há percentual definido para um papel sem participante selecionado.");
@@ -253,6 +250,8 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
     { id: "anexos" as const, label: `Anexos${attachments.length > 0 ? ` (${attachments.length})` : ""}` },
   ];
 
+  if (!isOpen || !canManage) return null;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0">
       <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200">
@@ -308,7 +307,7 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
                 hasCorretor2={hasCorretor2}
                 setHasCorretor2={setHasCorretor2}
                 members={members}
-                lockedTitular={lockedTitular}
+                lockedTitular={null}
               />
             </div>
 

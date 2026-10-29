@@ -23,8 +23,8 @@ export function TeamStatCards({ team, loading }: { team: TeamMember[]; loading?:
       tint: "bg-amber-500/10 text-amber-500",
     },
     {
-      label: "Liderança / Gestão",
-      value: team.filter((m) => m.role !== "CORRETOR").length,
+      label: "Gestão & Financeiro",
+      value: team.filter((m) => m.role === "ADMINISTRADOR" || m.role === "FINANCEIRO_VENDA" || m.role === "FINANCEIRO_ALUGUEL").length,
       icon: Crown,
       cls: "text-foreground",
       tint: "bg-platz-gold/15 text-amber-600 dark:text-platz-gold",

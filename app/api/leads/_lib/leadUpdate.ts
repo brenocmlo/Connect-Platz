@@ -16,6 +16,7 @@ export const LEAD_ACTIONS = [
   "MOVER_BOLSAO",
   "REGISTRAR_CONTATO",
   "MUDAR_ETAPA",
+  "SOLICITAR_FECHAMENTO",
   "ATUALIZAR_CREDITO",
   "ATUALIZAR_TAGS",
   "EDITAR",
@@ -26,6 +27,7 @@ export const UpdateLeadSchema = z.object({
   stageId: z.string().optional().nullable(),
   etapaId: z.string().optional().nullable(),
   corretorId: z.string().optional().nullable(),
+  financialApprovalStatus: z.enum(["PENDENTE", "APROVADO", "REJEITADO"]).optional().nullable(),
   nome: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres.").optional(),
   telefone: z.string().optional(),
   canal: z.string().max(40).optional(),
@@ -123,6 +125,33 @@ export async function buildLeadUpdate(
       tipo: "status_change",
       conteudo: `Etapa alterada de "${lead.stage.nome}" para "${nextStage.nome}".`,
       metadata: { de: lead.stage.nome, para: nextStage.nome },
+    });
+
+    const isClosingStage = /vend|fechad|ganh/i.test(nextStage.nome);
+    if (isClosingStage && lead.financialApprovalStatus !== "APROVADO") {
+      set("financialApprovalStatus", "PENDENTE");
+      plan.events.push({
+        tipo: "fechamento_solicitado",
+        conteudo: `Fechamento comercial registrado por ${session.nome}. Enviado para precificação e formalização do Financeiro.`,
+      });
+    }
+  }
+
+  // 3.1 Ação explícita de solicitar fechamento
+  if (input.action === "SOLICITAR_FECHAMENTO") {
+    set("financialApprovalStatus", "PENDENTE");
+    plan.events.push({
+      tipo: "fechamento_solicitado",
+      conteudo: `Fechamento comercial solicitado por ${session.nome}. Aguardando lançamento de valores pelo Financeiro.`,
+    });
+  }
+
+  // 3.2 Atualização de status financeiro
+  if (input.financialApprovalStatus && input.financialApprovalStatus !== lead.financialApprovalStatus) {
+    set("financialApprovalStatus", input.financialApprovalStatus);
+    plan.events.push({
+      tipo: "aprovacao_financeira",
+      conteudo: `Status financeiro alterado para "${input.financialApprovalStatus}" por ${session.nome}.`,
     });
   }
 

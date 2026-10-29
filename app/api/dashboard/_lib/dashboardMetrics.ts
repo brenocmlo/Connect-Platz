@@ -9,6 +9,7 @@ import {
   CreditAnalysisStatus,
   PaymentStatus,
   Prisma,
+  Role,
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type { DashboardData, SalesSeriesPoint } from "@/components/crm/dashboard/types";
@@ -194,9 +195,20 @@ export async function loadOperational(
     }),
     visitCounts(scope, period.current),
     period.previous ? visitCounts(scope, period.previous) : Promise.resolve(null),
-    prisma.user.count({ where: { organizationId: orgId, isActive: true, role: "CORRETOR" } }),
     prisma.user.count({
-      where: { organizationId: orgId, isActive: true, role: "CORRETOR", status: "DISPONIVEL" },
+      where: {
+        organizationId: orgId,
+        isActive: true,
+        role: { in: [Role.CORRETOR_VENDA, Role.CORRETOR_ALUGUEL] },
+      },
+    }),
+    prisma.user.count({
+      where: {
+        organizationId: orgId,
+        isActive: true,
+        role: { in: [Role.CORRETOR_VENDA, Role.CORRETOR_ALUGUEL] },
+        status: "DISPONIVEL",
+      },
     }),
     prisma.lead.count({ where: { ...leadBase, createdAt: rangeFilter(period.current) } }),
     period.previous

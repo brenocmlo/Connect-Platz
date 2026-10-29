@@ -15,7 +15,12 @@ import {
   Shield,
 } from "lucide-react";
 
-export type InviteRole = "CORRETOR" | "ADMINISTRADOR";
+export type InviteRole =
+  | "ADMINISTRADOR"
+  | "FINANCEIRO_VENDA"
+  | "FINANCEIRO_ALUGUEL"
+  | "CORRETOR_VENDA"
+  | "CORRETOR_ALUGUEL";
 
 export interface InviteCollaboratorData {
   nome: string;
@@ -49,7 +54,7 @@ export function InviteCollaboratorModal({
 }: InviteCollaboratorModalProps) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<InviteRole>("CORRETOR");
+  const [role, setRole] = useState<InviteRole>("CORRETOR_VENDA");
   const [creci, setCreci] = useState("");
   const [telefone, setTelefone] = useState("");
   const [senhaTemporaria, setSenhaTemporaria] = useState("");
@@ -88,7 +93,7 @@ export function InviteCollaboratorModal({
       setEmail("");
       setCreci("");
       setTelefone("");
-      setRole("CORRETOR");
+      setRole("CORRETOR_VENDA");
       setSenhaTemporaria("");
       setShowPassword(false);
       onClose();
@@ -171,8 +176,11 @@ export function InviteCollaboratorModal({
                 onChange={(e) => setRole(e.target.value as InviteRole)}
                 className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
               >
-                <option value="CORRETOR">Corretor (Leads próprios & Agenda)</option>
-                <option value="ADMINISTRADOR">Administrador (Gestão completa)</option>
+                <option value="CORRETOR_VENDA">Corretor Venda (Leads e Vendas)</option>
+                <option value="CORRETOR_ALUGUEL">Corretor Aluguel (Locações e Temporada)</option>
+                <option value="FINANCEIRO_VENDA">Financeiro Venda (VGV, Comissões e ERP Venda)</option>
+                <option value="FINANCEIRO_ALUGUEL">Financeiro Aluguel (Locações, Diárias e ERP Aluguel)</option>
+                <option value="ADMINISTRADOR">Administrador (Gestão completa irrestrita)</option>
               </select>
             </div>
           </div>

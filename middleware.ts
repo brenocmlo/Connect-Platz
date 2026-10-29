@@ -7,7 +7,13 @@ interface DecodedSession {
   userId: string;
   email: string;
   nome: string;
-  role: "ADMINISTRADOR" | "CORRETOR";
+  role:
+    | "ADMINISTRADOR"
+    | "FINANCEIRO_VENDA"
+    | "FINANCEIRO_ALUGUEL"
+    | "CORRETOR_VENDA"
+    | "CORRETOR_ALUGUEL"
+    | "CORRETOR";
   organizationId: string;
   exp?: number;
 }
@@ -105,14 +111,42 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // 3. Verificação Rígida de RBAC
-    if (session.role === "CORRETOR") {
-      const isForbidden = ADMIN_ONLY_ROUTES.some((route) =>
-        pathname.startsWith(route)
-      );
+    // 3. Verificação Rígida de RBAC (Zero-Trust)
+    const isBroker =
+      session.role === "CORRETOR_VENDA" ||
+      session.role === "CORRETOR_ALUGUEL" ||
+      session.role === "CORRETOR";
+
+    if (isBroker) {
+      const isForbidden =
+        ADMIN_ONLY_ROUTES.some((route) => pathname.startsWith(route)) ||
+        (session.role === "CORRETOR_VENDA" && pathname.startsWith("/crm/temporada")) ||
+        (session.role === "CORRETOR_ALUGUEL" && pathname.startsWith("/crm/vendas"));
+
       if (isForbidden) {
-        // Redireciona o corretor para o Kanban de Leads com mensagem de alerta
         const forbiddenRedirect = new URL("/crm/leads", request.url);
+        forbiddenRedirect.searchParams.set("denied", "true");
+        return NextResponse.redirect(forbiddenRedirect);
+      }
+    } else if (session.role === "FINANCEIRO_VENDA") {
+      const isForbidden =
+        pathname.startsWith("/crm/temporada") ||
+        pathname.startsWith("/crm/auditoria") ||
+        pathname.startsWith("/crm/integracoes");
+
+      if (isForbidden) {
+        const forbiddenRedirect = new URL("/crm/vendas", request.url);
+        forbiddenRedirect.searchParams.set("denied", "true");
+        return NextResponse.redirect(forbiddenRedirect);
+      }
+    } else if (session.role === "FINANCEIRO_ALUGUEL") {
+      const isForbidden =
+        pathname.startsWith("/crm/vendas") ||
+        pathname.startsWith("/crm/auditoria") ||
+        pathname.startsWith("/crm/integracoes");
+
+      if (isForbidden) {
+        const forbiddenRedirect = new URL("/crm/temporada", request.url);
         forbiddenRedirect.searchParams.set("denied", "true");
         return NextResponse.redirect(forbiddenRedirect);
       }

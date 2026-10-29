@@ -69,7 +69,7 @@ export async function ensureInitialSeed(): Promise<{ seeded: boolean; message: s
         nome: c.nome,
         email: c.email,
         passwordHash: defaultPasswordHash,
-        role: Role.CORRETOR,
+        role: Role.CORRETOR_VENDA,
         status: CorretorStatus.DISPONIVEL,
         telefone: c.telefone,
         creci: c.creci,

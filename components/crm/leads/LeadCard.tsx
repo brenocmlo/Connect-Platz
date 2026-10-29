@@ -66,7 +66,11 @@ export function LeadCard({
   onChangeBroker,
   onRegisterSale,
 }: LeadCardProps) {
-  const { hideValues, formatMoney } = useCrm();
+  const { hideValues, formatMoney, user } = useCrm();
+  const isBroker =
+    user?.role === "CORRETOR_VENDA" ||
+    user?.role === "CORRETOR_ALUGUEL" ||
+    user?.role === "CORRETOR";
 
   const rawPhone = normalizeBrPhone(lead.telefone);
   const whatsappUrl = buildWhatsAppUrl(lead.telefone, defaultLeadGreeting(lead.nome));
@@ -139,14 +143,20 @@ export function LeadCard({
             onRegisterSale?.(lead);
           }}
           className="mb-2 p-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-bold flex items-center justify-between gap-1 cursor-pointer hover:bg-amber-500/25 transition-all shadow-xs"
-          title="Clique para cadastrar os dados da venda deste lead"
+          title={
+            isBroker
+              ? "Aguardando lançamento e formalização do Financeiro"
+              : "Clique para formalizar e precificar os dados da venda deste lead"
+          }
         >
           <span className="flex items-center gap-1 truncate">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            Pendência Financeira
+            {lead.financialApprovalStatus === "PENDENTE"
+              ? "⏳ Aguardando Financeiro"
+              : "Pendência Financeira"}
           </span>
           <span className="text-[10px] underline underline-offset-2 flex items-center gap-0.5 shrink-0 text-amber-600 dark:text-amber-300 font-semibold">
-            Cadastrar Venda <ArrowRight className="w-3 h-3" />
+            {isBroker ? "Ver Proposta" : "Formalizar Venda"} <ArrowRight className="w-3 h-3" />
           </span>
         </div>
       )}

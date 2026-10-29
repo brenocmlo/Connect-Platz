@@ -39,16 +39,17 @@ export async function withRLS<T>(
 /**
  * Filtro de defesa em profundidade para consultas de Leads.
  * Garante em tempo de aplicação e em nível de banco que corretores só recebam seus próprios leads
- * ou leads públicos do Bolsão de resgate.
+ * da sua modalidade (ou bolsão da sua modalidade), e financeiros vejam leads da sua modalidade.
  */
 export function buildLeadRLSWhere(context: RLSUserContext): Prisma.LeadWhereInput {
   const baseWhere: Prisma.LeadWhereInput = {
     organizationId: context.organizationId,
   };
 
-  if (context.role === "CORRETOR") {
+  if (context.role === Role.CORRETOR_VENDA) {
     return {
       ...baseWhere,
+      modalidade: "VENDA",
       OR: [
         { corretorId: context.userId },
         { isBolsao: true, isClosed: false },
@@ -56,21 +57,48 @@ export function buildLeadRLSWhere(context: RLSUserContext): Prisma.LeadWhereInpu
     };
   }
 
-  // Administradores visualizam toda a organização
+  if (context.role === Role.CORRETOR_ALUGUEL) {
+    return {
+      ...baseWhere,
+      modalidade: "ALUGUEL",
+      OR: [
+        { corretorId: context.userId },
+        { isBolsao: true, isClosed: false },
+      ],
+    };
+  }
+
+  if (context.role === Role.FINANCEIRO_VENDA) {
+    return {
+      ...baseWhere,
+      modalidade: "VENDA",
+    };
+  }
+
+  if (context.role === Role.FINANCEIRO_ALUGUEL) {
+    return {
+      ...baseWhere,
+      modalidade: "ALUGUEL",
+    };
+  }
+
+  // Administradores visualizam toda a organização (todas as modalidades)
   return baseWhere;
 }
 
 /**
  * Aplica máscara de privacidade no número de telefone do lead caso o usuário atual
- * não seja o corretor titular ou administrador (Regra de Ouro LGPD).
+ * não seja o corretor titular ou administrador / financeiro autorizado (Regra de Ouro LGPD).
  */
 export function maskLeadSensitiveData<
-  T extends { telefone: string; email?: string | null; corretorId?: string | null }
+  T extends { telefone: string; email?: string | null; corretorId?: string | null; modalidade?: string }
 >(lead: T, context: RLSUserContext): T {
   const isOwner = lead.corretorId === context.userId;
-  const isAdmin = context.role === "ADMINISTRADOR";
+  const isAdmin = context.role === Role.ADMINISTRADOR;
+  const isFinVenda = context.role === Role.FINANCEIRO_VENDA && (!lead.modalidade || lead.modalidade === "VENDA");
+  const isFinAluguel = context.role === Role.FINANCEIRO_ALUGUEL && lead.modalidade === "ALUGUEL";
 
-  if (isOwner || isAdmin) {
+  if (isOwner || isAdmin || isFinVenda || isFinAluguel) {
     return lead;
   }
 
