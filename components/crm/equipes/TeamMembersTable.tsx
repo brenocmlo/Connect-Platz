@@ -1,14 +1,16 @@
 "use client";
 
 import React from "react";
-import { Users2, Trash2 } from "lucide-react";
+import { Users2, Trash2, Pencil } from "lucide-react";
 import { TeamMember, ROLE_LABEL, STATUS_META, MemberRole } from "./types";
 
 interface TeamMembersTableProps {
   team: TeamMember[];
   loading?: boolean;
   isAdmin?: boolean;
+  userRole?: string;
   onRequestRemove?: (member: TeamMember) => void;
+  onRequestEdit?: (member: TeamMember) => void;
   onRoleChange?: (userId: string, newRole: MemberRole) => Promise<void> | void;
 }
 
@@ -25,9 +27,24 @@ export function TeamMembersTable({
   team,
   loading,
   isAdmin,
+  userRole,
   onRequestRemove,
+  onRequestEdit,
   onRoleChange,
 }: TeamMembersTableProps) {
+  const canUserEdit = (member: TeamMember): boolean => {
+    if (isAdmin) return true;
+    if (userRole === "FINANCEIRO_VENDA") {
+      return member.role === "CORRETOR_VENDA" || member.role === "CORRETOR";
+    }
+    if (userRole === "FINANCEIRO_ALUGUEL") {
+      return member.role === "CORRETOR_ALUGUEL" || member.role === "CORRETOR";
+    }
+    return false;
+  };
+
+  const showActionsColumn = Boolean(onRequestEdit || (isAdmin && onRequestRemove));
+
   if (loading && team.length === 0) {
     return (
       <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
@@ -64,7 +81,7 @@ export function TeamMembersTable({
               <th className="py-3 px-4 text-center">Status Roleta</th>
               <th className="py-3 px-4 text-center">Check-in Hoje</th>
               <th className="py-3 px-4 text-right">E-mail</th>
-              {isAdmin && <th className="py-3 px-4 text-center">Ações</th>}
+              {showActionsColumn && <th className="py-3 px-4 text-center">Ações</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -109,20 +126,33 @@ export function TeamMembersTable({
                     : "—"}
                 </td>
                 <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">{member.email}</td>
-                {isAdmin && (
+                {showActionsColumn && (
                   <td className="py-3.5 px-4 text-center">
-                    {member.role !== "ADMINISTRADOR" ? (
-                      <button
-                        type="button"
-                        onClick={() => onRequestRemove?.(member)}
-                        title={`Remover ${member.nome} da equipe`}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground/40">—</span>
-                    )}
+                    <div className="flex items-center justify-center gap-1.5">
+                      {canUserEdit(member) && onRequestEdit && (
+                        <button
+                          type="button"
+                          onClick={() => onRequestEdit(member)}
+                          title={`Editar dados de ${member.nome}`}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-connect-blue hover:bg-connect-blue/10 transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                      {isAdmin && member.role !== "ADMINISTRADOR" && onRequestRemove && (
+                        <button
+                          type="button"
+                          onClick={() => onRequestRemove(member)}
+                          title={`Remover ${member.nome} da equipe`}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {!canUserEdit(member) && (!isAdmin || member.role === "ADMINISTRADOR") && (
+                        <span className="text-[11px] text-muted-foreground/40">—</span>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

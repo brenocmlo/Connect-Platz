@@ -8,6 +8,7 @@ import { SectionTitle } from "@/components/crm/SectionTitle";
 import { AccessDeniedCard } from "@/components/crm/AccessDeniedCard";
 import { RoletaDistributionPanel } from "@/components/crm/equipes/RoletaDistributionPanel";
 import { InviteCollaboratorModal, InviteCollaboratorData } from "@/components/crm/equipes/InviteCollaboratorModal";
+import { EditCollaboratorModal, EditCollaboratorData } from "@/components/crm/equipes/EditCollaboratorModal";
 import { RemoveBrokerModal } from "@/components/crm/equipes/RemoveBrokerModal";
 import { TeamStatCards } from "@/components/crm/equipes/TeamStatCards";
 import { TeamMembersTable } from "@/components/crm/equipes/TeamMembersTable";
@@ -25,6 +26,7 @@ export default function EquipesPage() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [brokerToRemove, setBrokerToRemove] = useState<TeamMember | null>(null);
+  const [brokerToEdit, setBrokerToEdit] = useState<TeamMember | null>(null);
   const [activeTab, setActiveTab] = useState<"membros" | "roleta">("membros");
 
   const flash = (msg: string) => {
@@ -91,6 +93,21 @@ export default function EquipesPage() {
     if (!res.ok) throw new Error(data?.error || "Falha ao remover o corretor.");
     setTeam((prev) => prev.filter((m) => m.id !== member.id));
     flash(data?.message || `${member.nome} foi removido(a) da equipe com sucesso.`);
+  };
+
+  const handleEditMember = async (data: EditCollaboratorData) => {
+    const res = await fetch("/api/equipes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body?.error || "Não foi possível atualizar o colaborador.");
+    const updated = body.member as TeamMember;
+    setTeam((prev) =>
+      prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
+    );
+    flash(`Colaborador ${data.nome} atualizado com sucesso.`);
   };
 
   const handleRoleChange = async (id: string, newRole: MemberRole) => {
@@ -180,8 +197,10 @@ export default function EquipesPage() {
             team={team}
             loading={loading}
             isAdmin={isAdmin}
+            userRole={user?.role}
             onRoleChange={isAdmin ? handleRoleChange : undefined}
             onRequestRemove={(m) => setBrokerToRemove(m)}
+            onRequestEdit={(m) => setBrokerToEdit(m)}
           />
         </div>
       )}
@@ -191,6 +210,14 @@ export default function EquipesPage() {
         onClose={() => setIsInviteModalOpen(false)}
         onInvite={handleInvite}
         userRole={user?.role}
+      />
+
+      <EditCollaboratorModal
+        isOpen={Boolean(brokerToEdit)}
+        member={brokerToEdit}
+        onClose={() => setBrokerToEdit(null)}
+        onSave={handleEditMember}
+        currentUserRole={user?.role}
       />
 
       <RemoveBrokerModal

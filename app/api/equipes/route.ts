@@ -3,45 +3,19 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma, Role, CorretorStatus } from "@prisma/client";
-import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireSession, ADMIN_ROLES, FINANCE_ROLES, isAdmin } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { hashPassword } from "@/lib/auth/password";
 import { normalizeBrPhone } from "@/lib/utils/phone";
+import {
+  InviteCollaboratorSchema,
+  UpdateMemberSchema,
+  startOfToday,
+} from "./equipesSchemas";
+import { handleRemoveMember } from "./equipesDeleteHandler";
 
 export const dynamic = "force-dynamic";
-
-const InviteCollaboratorSchema = z.object({
-  nome: z.string().trim().min(2, "Nome é obrigatório.").max(120),
-  email: z.string().trim().toLowerCase().email("E-mail inválido."),
-  telefone: z.string().trim().max(30).optional().nullable(),
-  creci: z.string().trim().max(30).optional().nullable(),
-  role: z.enum([
-    "ADMINISTRADOR",
-    "FINANCEIRO_VENDA",
-    "FINANCEIRO_ALUGUEL",
-    "CORRETOR_VENDA",
-    "CORRETOR_ALUGUEL",
-    "CORRETOR",
-  ]),
-  senhaTemporaria: z
-    .string()
-    .min(8, "A senha provisória deve ter no mínimo 8 caracteres.")
-    .max(128),
-});
-
-const UpdateMemberSchema = z.object({
-  userId: z.string().uuid("Colaborador inválido."),
-  status: z.nativeEnum(CorretorStatus).optional(),
-  role: z.nativeEnum(Role).optional(),
-});
-
-function startOfToday(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 export async function GET(req: NextRequest) {
   const auth = requireSession(req, FINANCE_ROLES);
@@ -122,7 +96,7 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
 
-  const targetRole = (data.role === "CORRETOR" ? Role.CORRETOR_VENDA : data.role) as Role;
+  const targetRole = data.role;
 
   if (session.role === Role.FINANCEIRO_VENDA && targetRole !== Role.CORRETOR_VENDA) {
     return NextResponse.json(
@@ -192,7 +166,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** Altera o status operacional (roleta) ou cargo de um colaborador da organização. */
+/** Altera dados cadastrais, cargo ou status operacional de um colaborador da organização. */
 export async function PATCH(req: NextRequest) {
   const auth = requireSession(req, FINANCE_ROLES);
   if (auth.error) return auth.error;
@@ -212,171 +186,121 @@ export async function PATCH(req: NextRequest) {
       { status: 400 }
     );
   }
-  const { userId, status, role } = parsed.data;
-
-  // Apenas Administrador pode trocar o cargo (role) de um corretor
-  if (role && !isAdmin(session.role)) {
-    return NextResponse.json(
-      { error: "Apenas o Administrador pode alterar o tipo ou cargo do corretor." },
-      { status: 403 }
-    );
-  }
+  const { userId, nome, email, telefone, creci, status, role } = parsed.data;
 
   try {
     const target = await prisma.user.findFirst({
       where: { id: userId, organizationId: session.organizationId, isActive: true },
-      select: { id: true, nome: true, status: true, role: true },
+      select: { id: true, nome: true, email: true, telefone: true, creci: true, status: true, role: true },
     });
     if (!target) {
       return NextResponse.json({ error: "Colaborador não encontrado." }, { status: 404 });
     }
 
+    const isSessionAdmin = isAdmin(session.role);
+    const isSessionFinVenda = session.role === Role.FINANCEIRO_VENDA;
+    const isSessionFinAluguel = session.role === Role.FINANCEIRO_ALUGUEL;
+
+    // Regras de autorização por perfil:
+    // Admin: pode editar corretores e financeiro (e outros administradores).
+    // Financeiro Venda: pode editar corretores de venda.
+    // Financeiro Aluguel: pode editar corretores de aluguel.
+    if (!isSessionAdmin) {
+      if (isSessionFinVenda && target.role !== Role.CORRETOR_VENDA) {
+        return NextResponse.json(
+          { error: "Gestor de Vendas só pode editar corretores do time de Vendas." },
+          { status: 403 }
+        );
+      }
+      if (isSessionFinAluguel && target.role !== Role.CORRETOR_ALUGUEL) {
+        return NextResponse.json(
+          { error: "Gestor de Aluguel só pode editar corretores do time de Aluguel." },
+          { status: 403 }
+        );
+      }
+      if (role && role !== target.role) {
+        return NextResponse.json(
+          { error: "Apenas o Administrador pode alterar o tipo ou cargo do colaborador." },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Se email foi alterado, checar se já está em uso
+    if (email && email !== target.email) {
+      const existing = await prisma.user.findUnique({ where: { email } });
+      if (existing && existing.id !== target.id) {
+        return NextResponse.json(
+          { error: "Este e-mail já está em uso por outro usuário." },
+          { status: 409 }
+        );
+      }
+    }
+
     const updateData: any = {};
+    if (nome) updateData.nome = nome;
+    if (email) updateData.email = email;
+    if (telefone !== undefined) updateData.telefone = telefone ? normalizeBrPhone(telefone) : null;
+    if (creci !== undefined) updateData.creci = creci || null;
     if (status) updateData.status = status;
-    if (role) updateData.role = role;
+    if (role && isSessionAdmin) updateData.role = role;
 
     const updated = await prisma.user.update({
       where: { id: target.id },
       data: updateData,
-      select: { id: true, nome: true, status: true, role: true },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        telefone: true,
+        creci: true,
+        photoUrl: true,
+        role: true,
+        status: true,
+        lastLeadAssignedAt: true,
+      },
     });
 
     await recordAudit({
       req,
       organizationId: session.organizationId,
       userId: session.userId,
-      acao: role ? "Alteração de Cargo do Colaborador" : "Alteração de Status na Roleta",
-      tipoAcao: role ? "UPDATE" : "STATUS_CHANGE",
+      acao: role && role !== target.role ? "Alteração de Cargo do Colaborador" : "Edição de Colaborador",
+      tipoAcao: "UPDATE",
       modulo: "EQUIPES",
       entidade: "User",
       entidadeId: updated.id,
       entidadeNome: updated.nome,
-      descricao: role
-        ? `Cargo de ${updated.nome} alterado de ${target.role} para ${updated.role} pela administração.`
-        : `Status de ${updated.nome} alterado de ${target.status} para ${updated.status} pela gestão.`,
-      dadosAntes: { status: target.status, role: target.role },
-      dadosDepois: { status: updated.status, role: updated.role },
+      descricao: `Colaborador ${updated.nome} atualizado por ${session.nome}.`,
+      dadosAntes: {
+        nome: target.nome,
+        email: target.email,
+        telefone: target.telefone,
+        creci: target.creci,
+        status: target.status,
+        role: target.role,
+      },
+      dadosDepois: {
+        nome: updated.nome,
+        email: updated.email,
+        telefone: updated.telefone,
+        creci: updated.creci,
+        status: updated.status,
+        role: updated.role,
+      },
     });
 
     return NextResponse.json({ member: updated });
   } catch (err) {
     console.error("[EQUIPES] PATCH:", err);
-    return NextResponse.json({ error: "Erro ao alterar o status do colaborador." }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao atualizar o colaborador." }, { status: 500 });
   }
 }
 
-/** Remove um corretor da organização (gestão). */
+/** Remove um colaborador da organização (gestão). */
 export async function DELETE(req: NextRequest) {
   const auth = requireSession(req, ADMIN_ROLES);
   if (auth.error) return auth.error;
-  const { session } = auth;
-
-  let userId = req.nextUrl.searchParams.get("userId");
-  if (!userId) {
-    try {
-      const body = await req.json();
-      userId = body.userId;
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!userId) {
-    return NextResponse.json({ error: "ID do corretor é obrigatório." }, { status: 400 });
-  }
-
-  try {
-    const target = await prisma.user.findFirst({
-      where: { id: userId, organizationId: session.organizationId, isActive: true },
-      include: {
-        _count: {
-          select: { leads: { where: { isClosed: false } } },
-        },
-      },
-    });
-
-    if (!target) {
-      return NextResponse.json({ error: "Colaborador não encontrado ou já removido." }, { status: 404 });
-    }
-
-    if (target.id === session.userId) {
-      return NextResponse.json(
-        { error: "Você não pode remover seu próprio usuário administrador." },
-        { status: 400 }
-      );
-    }
-
-    if (target.role === Role.ADMINISTRADOR) {
-      return NextResponse.json(
-        { error: "Usuários administradores não podem ser removidos por esta rota." },
-        { status: 400 }
-      );
-    }
-
-    // 1. Transfere leads ativos do corretor para o Bolsão de Leads
-    const transferCount = target._count.leads;
-    if (transferCount > 0) {
-      await prisma.lead.updateMany({
-        where: { corretorId: target.id, isClosed: false },
-        data: {
-          corretorId: null,
-          isBolsao: true,
-          bolsaoEnteredAt: new Date(),
-        },
-      });
-    }
-
-    // 2. Desvincula compromissos e limpa check-ins
-    await prisma.appointment.deleteMany({ where: { userId: target.id } });
-    await prisma.checkIn.deleteMany({ where: { userId: target.id } });
-
-    // 3. Tenta exclusão definitiva; se houver histórico de vendas/comissões, inativa com segurança
-    try {
-      await prisma.lead.updateMany({
-        where: { corretorId: target.id },
-        data: { corretorId: null },
-      });
-      await prisma.user.delete({ where: { id: target.id } });
-    } catch {
-      await prisma.user.update({
-        where: { id: target.id },
-        data: {
-          isActive: false,
-          status: CorretorStatus.OFFLINE,
-        },
-      });
-    }
-
-    // 4. Registra auditoria
-    await recordAudit({
-      req,
-      organizationId: session.organizationId,
-      userId: session.userId,
-      acao: "Remoção de Corretor",
-      tipoAcao: "DELETE",
-      modulo: "EQUIPES",
-      entidade: "User",
-      entidadeId: target.id,
-      entidadeNome: target.nome,
-      descricao: `Corretor ${target.nome} (${target.email}) removido da equipe pelo administrador.${
-        transferCount > 0 ? ` ${transferCount} lead(s) transferido(s) para o Bolsão.` : ""
-      }`,
-      dadosAntes: {
-        nome: target.nome,
-        email: target.email,
-        role: target.role,
-        leadsAtivos: transferCount,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: `Corretor ${target.nome} removido com sucesso.`,
-      transferredLeads: transferCount,
-    });
-  } catch (err) {
-    console.error("[EQUIPES] DELETE:", err);
-    return NextResponse.json({ error: "Erro ao remover o corretor da equipe." }, { status: 500 });
-  }
+  return handleRemoveMember(req, auth.session);
 }
 
