@@ -43,6 +43,17 @@ export function SaleParticipantsSection({
   members,
   lockedTitular,
 }: SaleParticipantsSectionProps) {
+  // Filtro estrito: apenas corretores e gestores da modalidade VENDA podem participar de vendas
+  const saleMembers = React.useMemo(() => {
+    return members.filter(
+      (m) =>
+        m.role === "CORRETOR_VENDA" ||
+        m.role === "ADMINISTRADOR" ||
+        m.role === "FINANCEIRO_VENDA" ||
+        m.role === "CORRETOR"
+    );
+  }, [members]);
+
   const renderRow = (role: ParticipantRole, extra?: React.ReactNode) => {
     const state = participants[role];
     const isLocked = role === "CORRETOR_1" && Boolean(lockedTitular);
@@ -69,7 +80,7 @@ export function SaleParticipantsSection({
               className={fieldClass}
             >
               <option value="">{role === "CORRETOR_1" ? "Selecione o corretor" : "Sem participante"}</option>
-              {members.map((m) => (
+              {saleMembers.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.nome}
                 </option>
@@ -92,7 +103,7 @@ export function SaleParticipantsSection({
     );
   };
 
-  const canPickOthers = members.length > 0;
+  const canPickOthers = saleMembers.length > 0;
 
   return (
     <div className="space-y-3 pt-2">

@@ -154,10 +154,14 @@ export async function POST(req: NextRequest) {
     const userIds = Array.from(new Set(input.participants.map((p) => p.userId)));
     const users = await prisma.user.findMany({
       where: { id: { in: userIds }, organizationId: orgId, isActive: true },
-      select: { id: true, nome: true },
+      select: { id: true, nome: true, role: true },
     });
     if (users.length !== userIds.length) {
       throw new HttpError(400, "Um ou mais participantes não pertencem à organização.");
+    }
+    const invalidParticipant = users.find((u) => u.role === Role.CORRETOR_ALUGUEL || u.role === Role.FINANCEIRO_ALUGUEL);
+    if (invalidParticipant) {
+      throw new HttpError(400, `O profissional ${invalidParticipant.nome} pertence à modalidade de Aluguel e não pode participar de vendas.`);
     }
     const nameById = new Map(users.map((u) => [u.id, u.nome]));
 

@@ -162,10 +162,16 @@ export async function buildLeadUpdate(
     const target = input.corretorId && isUuid(input.corretorId)
       ? await prisma.user.findFirst({
           where: { id: input.corretorId, organizationId: session.organizationId, isActive: true },
-          select: { id: true, nome: true },
+          select: { id: true, nome: true, role: true },
         })
       : null;
     if (!target) throw new LeadUpdateError("Corretor informado não pertence à sua organização.");
+    if (session.role === "FINANCEIRO_VENDA" && target.role !== "CORRETOR_VENDA" && target.role !== "ADMINISTRADOR") {
+      throw new LeadUpdateError("Gestor de Venda só pode transferir leads para corretores de Venda.", 403);
+    }
+    if (session.role === "FINANCEIRO_ALUGUEL" && target.role !== "CORRETOR_ALUGUEL" && target.role !== "ADMINISTRADOR") {
+      throw new LeadUpdateError("Gestor de Aluguel só pode transferir leads para corretores de Aluguel.", 403);
+    }
     set("corretorId", target.id);
     set("isBolsao", false);
     const prevName = lead.corretor?.nome;

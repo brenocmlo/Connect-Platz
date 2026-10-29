@@ -36,6 +36,7 @@ interface InviteCollaboratorModalProps {
   onClose: () => void;
   /** Deve lançar erro (com mensagem) se o cadastro falhar; o modal só fecha após sucesso. */
   onInvite: (data: InviteCollaboratorData) => Promise<void>;
+  userRole?: string;
 }
 
 /** Senha provisória aleatória (crypto) com 12 caracteres. */
@@ -51,16 +52,27 @@ export function InviteCollaboratorModal({
   isOpen,
   onClose,
   onInvite,
+  userRole,
 }: InviteCollaboratorModalProps) {
+  const isFinanceiroVenda = userRole === "FINANCEIRO_VENDA";
+  const isFinanceiroAluguel = userRole === "FINANCEIRO_ALUGUEL";
+
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<InviteRole>("CORRETOR_VENDA");
+  const [role, setRole] = useState<InviteRole>(
+    isFinanceiroAluguel ? "CORRETOR_ALUGUEL" : "CORRETOR_VENDA"
+  );
   const [creci, setCreci] = useState("");
   const [telefone, setTelefone] = useState("");
   const [senhaTemporaria, setSenhaTemporaria] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isFinanceiroVenda) setRole("CORRETOR_VENDA");
+    else if (isFinanceiroAluguel) setRole("CORRETOR_ALUGUEL");
+  }, [isFinanceiroVenda, isFinanceiroAluguel, isOpen]);
 
   if (!isOpen) return null;
 
@@ -80,10 +92,16 @@ export function InviteCollaboratorModal({
     setSubmitting(true);
     setError(null);
     try {
+      const finalRole: InviteRole = isFinanceiroVenda
+        ? "CORRETOR_VENDA"
+        : isFinanceiroAluguel
+        ? "CORRETOR_ALUGUEL"
+        : role;
+
       await onInvite({
         nome: nome.trim(),
         email: email.trim(),
-        role,
+        role: finalRole,
         creci: creci.trim() || undefined,
         telefone: telefone.trim() || undefined,
         senhaTemporaria: senhaTemporaria.trim(),
@@ -93,7 +111,7 @@ export function InviteCollaboratorModal({
       setEmail("");
       setCreci("");
       setTelefone("");
-      setRole("CORRETOR_VENDA");
+      setRole(isFinanceiroAluguel ? "CORRETOR_ALUGUEL" : "CORRETOR_VENDA");
       setSenhaTemporaria("");
       setShowPassword(false);
       onClose();
@@ -171,17 +189,27 @@ export function InviteCollaboratorModal({
               <label className="block text-foreground font-semibold mb-1">
                 Nível de Acesso *
               </label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as InviteRole)}
-                className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-              >
-                <option value="CORRETOR_VENDA">Corretor Venda (Leads e Vendas)</option>
-                <option value="CORRETOR_ALUGUEL">Corretor Aluguel (Locações e Temporada)</option>
-                <option value="FINANCEIRO_VENDA">Financeiro Venda (VGV, Comissões e ERP Venda)</option>
-                <option value="FINANCEIRO_ALUGUEL">Financeiro Aluguel (Locações, Diárias e ERP Aluguel)</option>
-                <option value="ADMINISTRADOR">Administrador (Gestão completa irrestrita)</option>
-              </select>
+              {isFinanceiroVenda ? (
+                <div className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-semibold text-xs">
+                  Corretor Venda (Time de Vendas)
+                </div>
+              ) : isFinanceiroAluguel ? (
+                <div className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-semibold text-xs">
+                  Corretor Aluguel (Time de Aluguel/Temporada)
+                </div>
+              ) : (
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as InviteRole)}
+                  className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
+                >
+                  <option value="CORRETOR_VENDA">Corretor Venda (Leads e Vendas)</option>
+                  <option value="CORRETOR_ALUGUEL">Corretor Aluguel (Locações e Temporada)</option>
+                  <option value="FINANCEIRO_VENDA">Financeiro Venda (VGV, Comissões e ERP Venda)</option>
+                  <option value="FINANCEIRO_ALUGUEL">Financeiro Aluguel (Locações, Diárias e ERP Aluguel)</option>
+                  <option value="ADMINISTRADOR">Administrador (Gestão completa irrestrita)</option>
+                </select>
+              )}
             </div>
           </div>
 

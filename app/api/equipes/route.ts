@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma, Role, CorretorStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, ADMIN_ROLES, FINANCE_ROLES } from "@/lib/auth/session";
+import { requireSession, ADMIN_ROLES, FINANCE_ROLES, isAdmin } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { hashPassword } from "@/lib/auth/password";
 import { normalizeBrPhone } from "@/lib/utils/phone";
@@ -31,9 +31,10 @@ const InviteCollaboratorSchema = z.object({
     .max(128),
 });
 
-const StatusSchema = z.object({
+const UpdateMemberSchema = z.object({
   userId: z.string().uuid("Colaborador inválido."),
-  status: z.nativeEnum(CorretorStatus),
+  status: z.nativeEnum(CorretorStatus).optional(),
+  role: z.nativeEnum(Role).optional(),
 });
 
 function startOfToday(): Date {
@@ -49,8 +50,20 @@ export async function GET(req: NextRequest) {
 
   try {
     const today = startOfToday();
+    const userRole = session.role;
+    const roleFilter =
+      userRole === Role.FINANCEIRO_VENDA
+        ? { in: [Role.CORRETOR_VENDA, Role.ADMINISTRADOR, Role.FINANCEIRO_VENDA] }
+        : userRole === Role.FINANCEIRO_ALUGUEL
+        ? { in: [Role.CORRETOR_ALUGUEL, Role.ADMINISTRADOR, Role.FINANCEIRO_ALUGUEL] }
+        : undefined;
+
     const users = await prisma.user.findMany({
-      where: { organizationId: session.organizationId, isActive: true },
+      where: {
+        organizationId: session.organizationId,
+        isActive: true,
+        ...(roleFilter ? { role: roleFilter } : {}),
+      },
       select: {
         id: true,
         nome: true,
@@ -89,7 +102,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = requireSession(req, ADMIN_ROLES);
+  const auth = requireSession(req, FINANCE_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -109,6 +122,21 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
 
+  const targetRole = (data.role === "CORRETOR" ? Role.CORRETOR_VENDA : data.role) as Role;
+
+  if (session.role === Role.FINANCEIRO_VENDA && targetRole !== Role.CORRETOR_VENDA) {
+    return NextResponse.json(
+      { error: "O Financeiro de Vendas só pode cadastrar corretores de venda para o seu time." },
+      { status: 403 }
+    );
+  }
+  if (session.role === Role.FINANCEIRO_ALUGUEL && targetRole !== Role.CORRETOR_ALUGUEL) {
+    return NextResponse.json(
+      { error: "O Financeiro de Aluguel só pode cadastrar corretores de aluguel para o seu time." },
+      { status: 403 }
+    );
+  }
+
   const telefone = data.telefone ? normalizeBrPhone(data.telefone) : null;
   if (telefone && telefone.length !== 10 && telefone.length !== 11) {
     return NextResponse.json({ error: "Telefone inválido: informe DDD + número." }, { status: 400 });
@@ -123,7 +151,7 @@ export async function POST(req: NextRequest) {
         email: data.email,
         telefone,
         creci: data.creci || null,
-        role: (data.role === "CORRETOR" ? Role.CORRETOR_VENDA : data.role) as Role,
+        role: targetRole,
         status: CorretorStatus.OFFLINE,
         passwordHash,
       },
@@ -164,9 +192,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** Altera o status operacional (roleta) de um colaborador da organização. */
+/** Altera o status operacional (roleta) ou cargo de um colaborador da organização. */
 export async function PATCH(req: NextRequest) {
-  const auth = requireSession(req, ADMIN_ROLES);
+  const auth = requireSession(req, FINANCE_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -177,43 +205,57 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
   }
 
-  const parsed = StatusSchema.safeParse(body);
+  const parsed = UpdateMemberSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message || "Dados inválidos." },
       { status: 400 }
     );
   }
-  const { userId, status } = parsed.data;
+  const { userId, status, role } = parsed.data;
+
+  // Apenas Administrador pode trocar o cargo (role) de um corretor
+  if (role && !isAdmin(session.role)) {
+    return NextResponse.json(
+      { error: "Apenas o Administrador pode alterar o tipo ou cargo do corretor." },
+      { status: 403 }
+    );
+  }
 
   try {
     const target = await prisma.user.findFirst({
       where: { id: userId, organizationId: session.organizationId, isActive: true },
-      select: { id: true, nome: true, status: true },
+      select: { id: true, nome: true, status: true, role: true },
     });
     if (!target) {
       return NextResponse.json({ error: "Colaborador não encontrado." }, { status: 404 });
     }
 
+    const updateData: any = {};
+    if (status) updateData.status = status;
+    if (role) updateData.role = role;
+
     const updated = await prisma.user.update({
       where: { id: target.id },
-      data: { status },
-      select: { id: true, nome: true, status: true },
+      data: updateData,
+      select: { id: true, nome: true, status: true, role: true },
     });
 
     await recordAudit({
       req,
       organizationId: session.organizationId,
       userId: session.userId,
-      acao: "Alteração de Status na Roleta",
-      tipoAcao: "STATUS_CHANGE",
+      acao: role ? "Alteração de Cargo do Colaborador" : "Alteração de Status na Roleta",
+      tipoAcao: role ? "UPDATE" : "STATUS_CHANGE",
       modulo: "EQUIPES",
       entidade: "User",
       entidadeId: updated.id,
       entidadeNome: updated.nome,
-      descricao: `Status de ${updated.nome} alterado de ${target.status} para ${updated.status} pela gestão.`,
-      dadosAntes: { status: target.status },
-      dadosDepois: { status: updated.status },
+      descricao: role
+        ? `Cargo de ${updated.nome} alterado de ${target.role} para ${updated.role} pela administração.`
+        : `Status de ${updated.nome} alterado de ${target.status} para ${updated.status} pela gestão.`,
+      dadosAntes: { status: target.status, role: target.role },
+      dadosDepois: { status: updated.status, role: updated.role },
     });
 
     return NextResponse.json({ member: updated });

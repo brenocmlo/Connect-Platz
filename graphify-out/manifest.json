@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/api/properties/route.ts": {
-    "mtime": 1792882743.932263,
-    "seen": 1792889503.043981,
-    "ast_hash": "66bd160e511890c0f956d1ab294460e8",
+    "mtime": 1793281503.0231333,
+    "seen": 1793283513.789685,
+    "ast_hash": "ef919a0ba0841e66d576f1a849c239ce",
     "semantic_hash": ""
   },
   "app/api/ranking/route.ts": {
@@ -102,15 +102,15 @@
     "semantic_hash": ""
   },
   "app/crm/empreendimentos/page.tsx": {
-    "mtime": 1792882743.9105704,
-    "seen": 1792889503.046368,
-    "ast_hash": "8c55cd9d29dafd23add15004ece4ecd2",
+    "mtime": 1793283010.07003,
+    "seen": 1793283513.793409,
+    "ast_hash": "744943ad2e0bc59d3cf7464e725c70da",
     "semantic_hash": ""
   },
   "app/crm/equipes/page.tsx": {
-    "mtime": 1792889392.579629,
-    "seen": 1792889503.04637,
-    "ast_hash": "77e29b5bfd220e166927ae6b3882041e",
+    "mtime": 1793282753.6525042,
+    "seen": 1793283513.7934139,
+    "ast_hash": "28e3c7e217f04122ba59d80bd663db34",
     "semantic_hash": ""
   },
   "app/crm/fluxo-de-caixa/page.tsx": {
@@ -660,9 +660,9 @@
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyListSection.tsx": {
-    "mtime": 1792882743.9944515,
-    "seen": 1792889503.060572,
-    "ast_hash": "5db573c9011b491836094566eaa14869",
+    "mtime": 1793282908.5187268,
+    "seen": 1793283513.81318,
+    "ast_hash": "3691e73305d6b2c22948bf77fe97bc2a",
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyMenu.tsx": {
@@ -678,9 +678,9 @@
     "semantic_hash": ""
   },
   "components/crm/properties/PropertyStatCards.tsx": {
-    "mtime": 1792682269.556132,
-    "seen": 1792701542.7158248,
-    "ast_hash": "12f2995035e74929beb2c284aa939f5e",
+    "mtime": 1793282961.9458852,
+    "seen": 1793283513.813706,
+    "ast_hash": "ec6b228c78312cd8683d75a86fa17730",
     "semantic_hash": ""
   },
   "components/crm/properties/PublishLandingModal.tsx": {
@@ -768,9 +768,9 @@
     "semantic_hash": ""
   },
   "components/crm/vendas/SaleParticipantsSection.tsx": {
-    "mtime": 1793245273.9265249,
-    "seen": 1793279498.100874,
-    "ast_hash": "39525279cc6bf145ab54f504c0ce721a",
+    "mtime": 1793282795.0410838,
+    "seen": 1793283513.818537,
+    "ast_hash": "30b84386bf7615132fd09b2a178fa6dd",
     "semantic_hash": ""
   },
   "components/crm/vendas/VendasFilterSheet.tsx": {
@@ -1230,9 +1230,9 @@
     "semantic_hash": ""
   },
   "components/crm/equipes/InviteCollaboratorModal.tsx": {
-    "mtime": 1793236414.8585865,
-    "seen": 1793237055.741722,
-    "ast_hash": "20aa546d58565a2d9fc7c3ba1c7a537b",
+    "mtime": 1793282703.2379615,
+    "seen": 1793283513.801653,
+    "ast_hash": "ed1c1a733acccefa7f805abf81464a1e",
     "semantic_hash": ""
   },
   "components/crm/lead-drawer/LeadAttachmentsSection.tsx": {
@@ -1734,9 +1734,9 @@
     "semantic_hash": ""
   },
   "app/api/equipes/route.ts": {
-    "mtime": 1793243235.8133276,
-    "seen": 1793279498.069592,
-    "ast_hash": "a1daf0832e7fce1d7a08b9287e858bb4",
+    "mtime": 1793283188.2018993,
+    "seen": 1793283513.783426,
+    "ast_hash": "9e17bf2607ecfcc47527d7c0bdf042d0",
     "semantic_hash": ""
   },
   "app/api/health/route.ts": {
@@ -1746,9 +1746,9 @@
     "semantic_hash": ""
   },
   "app/api/vendas/route.ts": {
-    "mtime": 1793236332.0506966,
-    "seen": 1793237055.73666,
-    "ast_hash": "343f4675f1cd9a689b4fc2281b2670bd",
+    "mtime": 1793281978.9748013,
+    "seen": 1793283513.7911549,
+    "ast_hash": "ad5fc2b8c4c84fae90e5b47aea4104f0",
     "semantic_hash": ""
   },
   "middleware.ts": {
@@ -2004,9 +2004,9 @@
     "semantic_hash": ""
   },
   "app/api/leads/_lib/leadUpdate.ts": {
-    "mtime": 1793243273.5295143,
-    "seen": 1793279498.070679,
-    "ast_hash": "775108345c850bf47933e2ca39e6f7a1",
+    "mtime": 1793282551.6974137,
+    "seen": 1793283513.786144,
+    "ast_hash": "958a2a4bf5f80ff2bd0931cdd54015fe",
     "semantic_hash": ""
   },
   "app/api/metas/_lib/goals.ts": {
@@ -2196,9 +2196,9 @@
     "semantic_hash": ""
   },
   "components/crm/equipes/TeamMembersTable.tsx": {
-    "mtime": 1793158531.6511638,
-    "seen": 1793237055.7417889,
-    "ast_hash": "0fddbd236d07974dfe22897affa6197e",
+    "mtime": 1793282627.438431,
+    "seen": 1793283513.802177,
+    "ast_hash": "5b102a1b448540e5f0b57240dbc45687",
     "semantic_hash": ""
   },
   "components/crm/equipes/TeamStatCards.tsx": {

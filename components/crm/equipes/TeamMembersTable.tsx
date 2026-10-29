@@ -2,13 +2,14 @@
 
 import React from "react";
 import { Users2, Trash2 } from "lucide-react";
-import { TeamMember, ROLE_LABEL, STATUS_META } from "./types";
+import { TeamMember, ROLE_LABEL, STATUS_META, MemberRole } from "./types";
 
 interface TeamMembersTableProps {
   team: TeamMember[];
   loading?: boolean;
   isAdmin?: boolean;
   onRequestRemove?: (member: TeamMember) => void;
+  onRoleChange?: (userId: string, newRole: MemberRole) => Promise<void> | void;
 }
 
 const ROLE_BADGE: Record<string, string> = {
@@ -20,7 +21,13 @@ const ROLE_BADGE: Record<string, string> = {
   CORRETOR: "bg-muted text-muted-foreground border border-border",
 };
 
-export function TeamMembersTable({ team, loading, isAdmin, onRequestRemove }: TeamMembersTableProps) {
+export function TeamMembersTable({
+  team,
+  loading,
+  isAdmin,
+  onRequestRemove,
+  onRoleChange,
+}: TeamMembersTableProps) {
   if (loading && team.length === 0) {
     return (
       <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
@@ -72,9 +79,21 @@ export function TeamMembersTable({ team, loading, isAdmin, onRequestRemove }: Te
                   </div>
                 </td>
                 <td className="py-3.5 px-4">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ROLE_BADGE[member.role]}`}>
-                    {ROLE_LABEL[member.role]}
-                  </span>
+                  {isAdmin && onRoleChange && (member.role === "CORRETOR_VENDA" || member.role === "CORRETOR_ALUGUEL" || member.role === "CORRETOR") ? (
+                    <select
+                      value={member.role === "CORRETOR" ? "CORRETOR_VENDA" : member.role}
+                      onChange={(e) => onRoleChange(member.id, e.target.value as MemberRole)}
+                      className="text-[10px] font-bold px-2 py-1 rounded-lg border border-border bg-background text-foreground cursor-pointer focus:ring-1 focus:ring-connect-blue"
+                      title="Clique para alternar entre Corretor Vendas e Corretor Aluguéis"
+                    >
+                      <option value="CORRETOR_VENDA">Corretor Vendas</option>
+                      <option value="CORRETOR_ALUGUEL">Corretor Aluguéis</option>
+                    </select>
+                  ) : (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ROLE_BADGE[member.role] || "bg-muted text-muted-foreground"}`}>
+                      {ROLE_LABEL[member.role] || member.role}
+                    </span>
+                  )}
                 </td>
                 <td className="py-3.5 px-4 text-center font-bold text-foreground">{member.leadsAtivos}</td>
                 <td className="py-3.5 px-4 text-center">

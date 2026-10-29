@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "app/crm/leads/page.tsx": {
-    "mtime": 1793069060.5662782,
-    "seen": 1793069833.0817122,
-    "ast_hash": "f581735447049397d695084dad4921dc",
+    "mtime": 1793243433.4864166,
+    "seen": 1793279498.0766232,
+    "ast_hash": "a03aa5fefae11b31ee147f68b40d78c5",
     "semantic_hash": ""
   },
   "app/crm/page.tsx": {
@@ -156,9 +156,9 @@
     "semantic_hash": ""
   },
   "app/crm/temporada/page.tsx": {
-    "mtime": 1793236973.9949665,
-    "seen": 1793237055.738,
-    "ast_hash": "608de07212728f3cc502de0b7d68552a",
+    "mtime": 1793279239.1984904,
+    "seen": 1793279498.077485,
+    "ast_hash": "0d82870ea7171d6246c06d48e37c3b2d",
     "semantic_hash": ""
   },
   "app/crm/vendas/page.tsx": {
@@ -744,9 +744,9 @@
     "semantic_hash": "b8bb743e4778088d6ff41fc344bc6105"
   },
   "components/crm/vendas/NewSaleModal.tsx": {
-    "mtime": 1793236939.172222,
-    "seen": 1793237055.748467,
-    "ast_hash": "9a863bf05ebcd5c30c20a566258f18ac",
+    "mtime": 1793245330.6787102,
+    "seen": 1793279498.100388,
+    "ast_hash": "4b3c1c62373f66b31fbedf1cc9a2c123",
     "semantic_hash": ""
   },
   "components/crm/vendas/SaleCalculationsTab.tsx": {
@@ -768,9 +768,9 @@
     "semantic_hash": ""
   },
   "components/crm/vendas/SaleParticipantsSection.tsx": {
-    "mtime": 1792888543.8646965,
-    "seen": 1792889503.0642428,
-    "ast_hash": "a369fc9e0eb7699316fa970fbf5313fb",
+    "mtime": 1793245273.9265249,
+    "seen": 1793279498.100874,
+    "ast_hash": "39525279cc6bf145ab54f504c0ce721a",
     "semantic_hash": ""
   },
   "components/crm/vendas/VendasFilterSheet.tsx": {
@@ -1734,9 +1734,9 @@
     "semantic_hash": ""
   },
   "app/api/equipes/route.ts": {
-    "mtime": 1793158429.1771808,
-    "seen": 1793237055.7347698,
-    "ast_hash": "3198519717296c05b133b9a85694d0a9",
+    "mtime": 1793243235.8133276,
+    "seen": 1793279498.069592,
+    "ast_hash": "a1daf0832e7fce1d7a08b9287e858bb4",
     "semantic_hash": ""
   },
   "app/api/health/route.ts": {
@@ -2004,9 +2004,9 @@
     "semantic_hash": ""
   },
   "app/api/leads/_lib/leadUpdate.ts": {
-    "mtime": 1793158151.9983923,
-    "seen": 1793237055.7352488,
-    "ast_hash": "fa3e0f0323b806b410cbb8d11f7bfd8c",
+    "mtime": 1793243273.5295143,
+    "seen": 1793279498.070679,
+    "ast_hash": "775108345c850bf47933e2ca39e6f7a1",
     "semantic_hash": ""
   },
   "app/api/metas/_lib/goals.ts": {
@@ -2118,9 +2118,9 @@
     "semantic_hash": ""
   },
   "components/crm/agenda/useCrmLookups.ts": {
-    "mtime": 1792681751.2412887,
-    "seen": 1792701542.7129421,
-    "ast_hash": "ace436ac017b459a5796ff43995a84d8",
+    "mtime": 1793279383.0651398,
+    "seen": 1793279498.081321,
+    "ast_hash": "10ceab6c9def58b96ecbdd34055a61cb",
     "semantic_hash": ""
   },
   "components/crm/auditoria/AuditDataDiff.tsx": {
@@ -2448,9 +2448,9 @@
     "semantic_hash": ""
   },
   "components/crm/leads/ChangeBrokerModal.tsx": {
-    "mtime": 1793109630.24043,
-    "seen": 1793237055.7433321,
-    "ast_hash": "7907bc7bab813ff280b01b552015a6f7",
+    "mtime": 1793243296.834992,
+    "seen": 1793279498.0881448,
+    "ast_hash": "25469b5df4de82ca9c0909acaaef482a",
     "semantic_hash": ""
   },
   "scripts/test-leads-bidirectional-sync.mjs": {
@@ -2589,6 +2589,18 @@
     "mtime": 1793238256.0965855,
     "seen": 1793238326.924496,
     "ast_hash": "2c41dd8ad1c370e053a5e1a768c8a34f",
+    "semantic_hash": ""
+  },
+  "components/crm/temporada/NewBookingModal.tsx": {
+    "mtime": 1793274224.089623,
+    "seen": 1793279498.099943,
+    "ast_hash": "af411f78c7cc47dfeda4326d7bcc26f4",
+    "semantic_hash": ""
+  },
+  "components/crm/temporada/types.ts": {
+    "mtime": 1793273434.1847582,
+    "seen": 1793279498.099946,
+    "ast_hash": "c1165b1eb08b4ba5e7cdd3e6011ce815",
     "semantic_hash": ""
   }
 }

@@ -9,6 +9,7 @@ interface PropertyStatCardsProps {
   totalAtivos: number;
   totalConstrutoras: number;
   totalVgv: number;
+  isAluguel?: boolean;
 }
 
 export function PropertyStatCards({
@@ -16,6 +17,7 @@ export function PropertyStatCards({
   totalAtivos,
   totalConstrutoras,
   totalVgv,
+  isAluguel,
 }: PropertyStatCardsProps) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -46,15 +48,19 @@ export function PropertyStatCards({
         legend="Construtoras distintas no catálogo"
       />
 
-      {/* 4. VGV Total */}
+      {/* 4. VGV Total ou Diárias */}
       <StatCard
-        label="VGV TOTAL DO CATÁLOGO"
+        label={isAluguel ? "DIÁRIAS DO CATÁLOGO" : "VGV TOTAL DO CATÁLOGO"}
         value={totalVgv}
         isCurrency={true}
         prefix="R$ "
         icon={DollarSign}
         iconColor="text-connect-blue bg-connect-blue/10"
-        legend="Soma dos valores de venda cadastrados"
+        legend={
+          isAluguel
+            ? "Soma das diárias de temporada cadastradas"
+            : "Soma dos valores de venda cadastrados"
+        }
       />
     </div>
   );

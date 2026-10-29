@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { PropertyProductCard, PropertyCardData } from "./PropertyProductCard";
 import { EmptyState } from "@/components/crm/primitives/EmptyState";
+import { useCrm } from "@/components/crm/CrmContext";
 
 interface PropertyListSectionProps {
   properties: PropertyCardData[];
@@ -37,17 +38,44 @@ export function PropertyListSection({
   onToggleLandingPage,
   onDeleteProperty,
 }: PropertyListSectionProps) {
+  const { user } = useCrm();
+  const isVendaOnly = user?.role === "FINANCEIRO_VENDA" || user?.role === "CORRETOR_VENDA";
+  const isAluguelOnly = user?.role === "FINANCEIRO_ALUGUEL" || user?.role === "CORRETOR_ALUGUEL";
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<
     "TODOS" | "TEMPORADA" | "VENDA" | "EMPREENDIMENTO" | "AVULSO" | "LANDING" | "LANCAMENTO" | "PRONTO"
   >("TODOS");
 
-  const filteredProperties = useMemo(() => {
+  const baseProperties = useMemo(() => {
     return properties.filter((p) => {
+      if (isVendaOnly) {
+        return (
+          p.modalidade === "VENDA" ||
+          p.modalidade === "AMBOS" ||
+          (!p.modalidade && Boolean(p.valorVenda))
+        );
+      }
+      if (isAluguelOnly) {
+        return (
+          p.modalidade === "VERANEIO_TEMPORADA" ||
+          p.modalidade === "LOCACAO_ANUAL" ||
+          p.modalidade === "AMBOS" ||
+          p.modalidade === "VERANEIO" ||
+          Boolean(p.valorDiaria)
+        );
+      }
+      return true;
+    });
+  }, [properties, isVendaOnly, isAluguelOnly]);
+
+  const filteredProperties = useMemo(() => {
+    return baseProperties.filter((p) => {
       // 1. Filtro por tipo/status/modalidade
       if (selectedFilter === "TEMPORADA") {
         const isVeraneio =
           p.modalidade === "VERANEIO_TEMPORADA" ||
+          p.modalidade === "LOCACAO_ANUAL" ||
           p.modalidade === "AMBOS" ||
           p.modalidade === "VERANEIO" ||
           Boolean(p.valorDiaria);
@@ -90,7 +118,7 @@ export function PropertyListSection({
 
       return true;
     });
-  }, [properties, selectedFilter, searchTerm]);
+  }, [baseProperties, selectedFilter, searchTerm]);
 
   return (
     <div className="space-y-5">
@@ -135,46 +163,55 @@ export function PropertyListSection({
       {/* 2. Filtros em Pílula (Segmented Style) */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
         {[
-          { id: "TODOS", label: `Todos (${properties.length})` },
-          {
-            id: "TEMPORADA",
-            label: `🏖️ Aluguel / Temporada (${
-              properties.filter(
-                (p) =>
-                  p.modalidade === "VERANEIO_TEMPORADA" ||
-                  p.modalidade === "AMBOS" ||
-                  p.modalidade === "VERANEIO" ||
-                  Boolean(p.valorDiaria)
-              ).length
-            })`,
-          },
-          {
-            id: "VENDA",
-            label: `🏢 Vendas (${
-              properties.filter(
-                (p) =>
-                  p.modalidade === "VENDA" ||
-                  p.modalidade === "AMBOS" ||
-                  (!p.modalidade && Boolean(p.valorVenda))
-              ).length
-            })`,
-          },
+          { id: "TODOS", label: `Todos (${baseProperties.length})` },
+          ...(!isVendaOnly
+            ? [
+                {
+                  id: "TEMPORADA",
+                  label: `🏖️ Aluguel / Temporada (${
+                    baseProperties.filter(
+                      (p) =>
+                        p.modalidade === "VERANEIO_TEMPORADA" ||
+                        p.modalidade === "LOCACAO_ANUAL" ||
+                        p.modalidade === "AMBOS" ||
+                        p.modalidade === "VERANEIO" ||
+                        Boolean(p.valorDiaria)
+                    ).length
+                  })`,
+                },
+              ]
+            : []),
+          ...(!isAluguelOnly
+            ? [
+                {
+                  id: "VENDA",
+                  label: `🏢 Vendas (${
+                    baseProperties.filter(
+                      (p) =>
+                        p.modalidade === "VENDA" ||
+                        p.modalidade === "AMBOS" ||
+                        (!p.modalidade && Boolean(p.valorVenda))
+                    ).length
+                  })`,
+                },
+              ]
+            : []),
           {
             id: "EMPREENDIMENTO",
             label: `Empreendimentos (${
-              properties.filter((p) => p.tipoCadastro !== "AVULSO").length
+              baseProperties.filter((p) => p.tipoCadastro !== "AVULSO").length
             })`,
           },
           {
             id: "AVULSO",
             label: `Avulsos (${
-              properties.filter((p) => p.tipoCadastro === "AVULSO").length
+              baseProperties.filter((p) => p.tipoCadastro === "AVULSO").length
             })`,
           },
           {
             id: "LANDING",
             label: `Na Landing Page (${
-              properties.filter((p) => p.exibirNaLandingPage !== false).length
+              baseProperties.filter((p) => p.exibirNaLandingPage !== false).length
             })`,
           },
           { id: "LANCAMENTO", label: "Lançamentos" },
