@@ -107,5 +107,14 @@
 >   2. **Sem sinais matemáticos repetidos:** Nunca exibir `++` ou `--` (ex: `++12.5%` ou `--3%`). O sinal deve ser rigorosamente único: `+12.5%` ou `-3%`.
 >   3. **Sem sufixos duplicados:** Nunca exibir `%%` (ex: `12.5%%`). Componentes como `TrendBadge` devem sanitizar valores em string para evitar concatenação de sufixos já existentes.
 
+---
+
+### 7. Regra Permanente do Graphify
+
+> **MANDATÓRIO / NÃO NEGOCIÁVEL:**  
+> - **Atualização Sob Demanda Exclusiva:** O comando de atualização do grafo de conhecimento (`graphify update .`) **NUNCA deve ser executado de forma automática**.  
+> - Atualize o Graphify **SOMENTE** quando o usuário solicitar expressamente em sua mensagem.
+
+
 
 
