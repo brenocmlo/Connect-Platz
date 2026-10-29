@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma, Role, CorretorStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
+import { requireSession, ADMIN_ROLES, FINANCE_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { hashPassword } from "@/lib/auth/password";
 import { normalizeBrPhone } from "@/lib/utils/phone";
@@ -43,7 +43,7 @@ function startOfToday(): Date {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = requireSession(req, ADMIN_ROLES);
+  const auth = requireSession(req, FINANCE_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 

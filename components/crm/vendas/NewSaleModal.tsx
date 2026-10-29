@@ -163,6 +163,24 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
 
   if (!isOpen) return null;
 
+  const handleDealChange = (patch: Partial<SaleDealState>) => {
+    setDeal((prev) => {
+      const next = { ...prev, ...patch };
+      // Se selecionou ou trocou o lead, sincronizar Corretor 1 automaticamente com o corretor responsável
+      if (patch.leadId !== undefined && patch.leadId !== prev.leadId && patch.leadId) {
+        const matched = effectiveLeads.find((l) => l.id === patch.leadId);
+        const brokerId = matched?.corretorId;
+        if (brokerId) {
+          setParticipants((p) => ({
+            ...p,
+            CORRETOR_1: { ...p.CORRETOR_1, userId: brokerId, percentual: p.CORRETOR_1.percentual || 50 },
+          }));
+        }
+      }
+      return next;
+    });
+  };
+
   const updateParticipant = (role: ParticipantRole, patch: Partial<ParticipantFormState>) =>
     setParticipants((prev) => ({ ...prev, [role]: { ...prev[role], ...patch } }));
 
@@ -295,7 +313,7 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
             <div className={activeTab === "dados" ? "space-y-4" : "hidden"}>
               <SaleDealFields
                 deal={deal}
-                onChange={(patch) => setDeal((prev) => ({ ...prev, ...patch }))}
+                onChange={handleDealChange}
                 leads={effectiveLeads}
                 properties={properties}
                 loading={loading}

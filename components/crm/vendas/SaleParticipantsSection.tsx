@@ -31,8 +31,8 @@ const fieldClass =
   "w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue";
 
 const ROLE_HINT: Partial<Record<ParticipantRole, string>> = {
+  CAPTADOR: "Opcional (Captação)",
   GESTOR: "Opcional",
-  CAPTADOR: "Opcional",
 };
 
 export function SaleParticipantsSection({
@@ -154,12 +154,12 @@ export function SaleParticipantsSection({
               )}
             </div>
           )}
-          {renderRow("GESTOR")}
           {renderRow("CAPTADOR")}
+          {renderRow("GESTOR")}
         </>
       ) : (
         <p className="text-[11px] text-muted-foreground bg-muted/40 border border-border rounded-lg p-2.5">
-          Gestor / Sócio e Captador são definidos pelo administrador. A parcela não alocada fica com a imobiliária.
+          Carregando colaboradores para divisão de split...
         </p>
       )}
     </div>

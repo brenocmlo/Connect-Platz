@@ -25,6 +25,8 @@ type ToastState = { message: string; type: "success" | "error" | "info" } | null
 export default function LeadsPage() {
   const { token, selectedPeriod, user } = useCrm();
   const isAdmin = user?.role === "ADMINISTRADOR";
+  const isFinanceiro = user?.role === "FINANCEIRO_VENDA" || user?.role === "FINANCEIRO_ALUGUEL";
+  const canAssignBroker = isAdmin || isFinanceiro;
   const { members: lookupMembers } = useCrmLookups({ enabled: true, members: true, leads: false, properties: false });
 
   const [viewMode, setViewMode] = useState<"kanban" | "table" | "bolsao" | "nightQueue">("kanban");
@@ -175,7 +177,7 @@ export default function LeadsPage() {
           onEditLead={(lead) => setEditingLead(lead)}
           onScheduleVisit={(lead) => setAppointmentLead(lead)}
           onOpenWhatsApp={(lead) => setWhatsAppLeadTarget(lead)}
-          isAdmin={isAdmin}
+          isAdmin={canAssignBroker}
           onChangeBroker={(lead) => setBrokerTarget(lead)}
           onRegisterSale={(lead) => setSaleTarget(lead)}
         />
@@ -275,7 +277,7 @@ export default function LeadsPage() {
         saleModalTarget={saleTarget}
         onCloseSaleModal={() => setSaleTarget(null)}
         onSubmitSale={handleSaleSuccess}
-        isAdmin={isAdmin}
+        isAdmin={canAssignBroker}
         onChangeBroker={(lead) => setBrokerTarget(lead)}
         onRegisterSale={(lead) => setSaleTarget(lead)}
         isFilterSheetOpen={isFilterSheetOpen}

@@ -4,31 +4,15 @@ import React, { useState } from "react";
 import {
   Calendar,
   ShieldCheck,
-  X,
   Palmtree,
-  CreditCard,
-  Building,
 } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
 import { CountUpNumber } from "@/components/crm/CountUpNumber";
 import { TrendBadge } from "@/components/crm/primitives/TrendBadge";
-import { NumericInput } from "@/components/crm/primitives/NumericInput";
-
-interface BookingItem {
-  id: string;
-  imovelNome: string;
-  locatarioNome: string;
-  checkIn: string;
-  checkOut: string;
-  diarias: number;
-  valorDiaria: number;
-  taxaLimpeza: number;
-  valorTotal: number;
-  meioPagamento: "PIX" | "CARTAO_CREDITO" | "CARTAO_DEBITO" | "BOLETO" | "TED";
-  status: "CONFIRMADA" | "PENDENTE" | "CONCLUIDA";
-}
+import { BookingItem } from "@/components/crm/temporada/types";
+import { NewBookingModal } from "@/components/crm/temporada/NewBookingModal";
 
 const mockBookings: BookingItem[] = [
   {
@@ -65,38 +49,10 @@ export default function TemporadaVeraneioPage() {
   const [bookings, setBookings] = useState<BookingItem[]>(mockBookings);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Form State
-  const [imovel, setImovel] = useState("Villa Platz Beach • Bangalô Coral Frente Mar");
-  const [cliente, setCliente] = useState("");
-  const [checkIn, setCheckIn] = useState("2026-11-01");
-  const [checkOut, setCheckOut] = useState("2026-11-05");
-  const [valorDiaria, setValorDiaria] = useState(1200);
-  const [taxaLimpeza, setTaxaLimpeza] = useState(250);
-  const [meioPagamento, setMeioPagamento] = useState<"PIX" | "CARTAO_CREDITO" | "BOLETO">("PIX");
-
-  const diffTime = Math.abs(new Date(checkOut).getTime() - new Date(checkIn).getTime());
-  const calculatedNights = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 1);
-  const totalCalculado = calculatedNights * valorDiaria + taxaLimpeza;
-
-  const handleCreateBooking = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newBooking: BookingItem = {
-      id: `bk-${Date.now()}`,
-      imovelNome: imovel,
-      locatarioNome: cliente || "Hóspede Cadastrado",
-      checkIn,
-      checkOut,
-      diarias: calculatedNights,
-      valorDiaria,
-      taxaLimpeza,
-      valorTotal: totalCalculado,
-      meioPagamento,
-      status: "CONFIRMADA",
-    };
+  const handleBookingCreated = (newBooking: BookingItem) => {
     setBookings([newBooking, ...bookings]);
-    setIsModalOpen(false);
     setActionMessage(
-      `Reserva confirmada de ${checkIn} a ${checkOut}! O calendário foi bloqueado e o lançamento efetuado no ERP.`
+      `Reserva confirmada de ${newBooking.checkIn} a ${newBooking.checkOut}! O calendário foi bloqueado e o lançamento efetuado no ERP.`
     );
     setTimeout(() => setActionMessage(null), 5000);
   };
@@ -212,125 +168,12 @@ export default function TemporadaVeraneioPage() {
         </div>
       </div>
 
-      {/* 4. MODAL NOVA RESERVA */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-foreground">Nova Reserva com Bloqueio de Calendário</h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateBooking} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-muted-foreground font-semibold mb-1">Imóvel de Veraneio</label>
-                <input
-                  type="text"
-                  value={imovel}
-                  onChange={(e) => setImovel(e.target.value)}
-                  className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-semibold mb-1">Nome do Hóspede / Lead</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Família Dr. Marcelo"
-                  value={cliente}
-                  onChange={(e) => setCliente(e.target.value)}
-                  className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground font-semibold mb-1">Data Check-in</label>
-                  <input
-                    type="date"
-                    required
-                    value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                    className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                  />
-                </div>
-                <div>
-                  <label className="block text-muted-foreground font-semibold mb-1">Data Check-out</label>
-                  <input
-                    type="date"
-                    required
-                    value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-muted-foreground font-semibold mb-1">Valor da Diária (R$)</label>
-                  <NumericInput
-                    value={valorDiaria}
-                    onChange={setValorDiaria}
-                    placeholder="0,00"
-                    className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                  />
-                </div>
-                <div>
-                  <label className="block text-muted-foreground font-semibold mb-1">Taxa Limpeza (R$)</label>
-                  <NumericInput
-                    value={taxaLimpeza}
-                    onChange={setTaxaLimpeza}
-                    placeholder="0,00"
-                    className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                  />
-                </div>
-                <div>
-                  <label className="block text-muted-foreground font-semibold mb-1">Meio de Pagamento</label>
-                  <select
-                    value={meioPagamento}
-                    onChange={(e) => setMeioPagamento(e.target.value as any)}
-                    className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                  >
-                    <option value="PIX">PIX</option>
-                    <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-                    <option value="BOLETO">Boleto</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="p-3 bg-muted/70 border border-border rounded-xl flex items-center justify-between font-bold">
-                <span className="text-muted-foreground">Total ({calculatedNights} noites + Limpeza):</span>
-                <span className="text-amber-700 dark:text-[#F8DA56] text-sm">
-                  {totalCalculado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </span>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-muted-foreground hover:bg-muted font-semibold transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-extrabold shadow-sm transition-all"
-                >
-                  Confirmar Reserva & Bloquear
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* 4. MODAL NOVA RESERVA COM SELETORES DINÂMICOS */}
+      <NewBookingModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleBookingCreated}
+      />
     </div>
   );
 }
