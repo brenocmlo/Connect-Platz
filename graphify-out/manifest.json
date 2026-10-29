@@ -2584,5 +2584,11 @@
     "seen": 1793237055.75568,
     "ast_hash": "09902fde569295b077c74823c4fe220e",
     "semantic_hash": ""
+  },
+  "scripts/seed-perfis.ts": {
+    "mtime": 1793238256.0965855,
+    "seen": 1793238326.924496,
+    "ast_hash": "2c41dd8ad1c370e053a5e1a768c8a34f",
+    "semantic_hash": ""
   }
 }
