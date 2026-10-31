@@ -19,6 +19,7 @@ export function cashFlowFromApi(raw: any): CashFlowItem {
     foiAntecipado: Boolean(raw.foiAntecipado),
     saleId: raw.saleId ?? null,
     bookingId: raw.bookingId ?? null,
+    modalidade: raw.modalidade ?? undefined,
     isRecorrente: Boolean(raw.isRecorrente),
   };
 }

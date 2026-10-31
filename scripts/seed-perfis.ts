@@ -275,6 +275,95 @@ async function main() {
     });
   }
 
+  // 6. Lançamentos Iniciais de Fluxo de Caixa para Locações & Temporada
+  const aluguelFlowsCount = await prisma.cashFlow.count({
+    where: { organizationId: org.id, modalidade: BusinessModality.ALUGUEL },
+  });
+
+  if (aluguelFlowsCount === 0) {
+    const today = new Date();
+    await prisma.cashFlow.createMany({
+      data: [
+        {
+          organizationId: org.id,
+          tipo: "RECEITA",
+          categoria: "Aluguel Veraneio",
+          descricao: "Diárias Temporada • Villa Platz Beach Bangalô Coral",
+          valor: 6250.0,
+          dataVencimento: today,
+          dataPagamento: today,
+          status: "PAGO",
+          meioPagamento: "PIX",
+          modalidade: BusinessModality.ALUGUEL,
+          centroCusto: "Temporada / Veraneio",
+        },
+        {
+          organizationId: org.id,
+          tipo: "RECEITA",
+          categoria: "Taxa de Limpeza Temporada",
+          descricao: "Taxa de Limpeza Check-in • Villa Platz Beach",
+          valor: 250.0,
+          dataVencimento: today,
+          dataPagamento: today,
+          status: "PAGO",
+          meioPagamento: "PIX",
+          modalidade: BusinessModality.ALUGUEL,
+          centroCusto: "Temporada / Veraneio",
+        },
+        {
+          organizationId: org.id,
+          tipo: "DESPESA",
+          categoria: "Repasse Proprietário Temporada",
+          descricao: "Repasse Líquido Proprietário • Bangalô Coral",
+          valor: 4800.0,
+          dataVencimento: today,
+          dataPagamento: today,
+          status: "PAGO",
+          meioPagamento: "TED",
+          modalidade: BusinessModality.ALUGUEL,
+          centroCusto: "Temporada / Veraneio",
+        },
+        {
+          organizationId: org.id,
+          tipo: "RECEITA",
+          categoria: "Aluguel Veraneio",
+          descricao: "Reserva Confirmada • Solarium Porto das Dunas",
+          valor: 4000.0,
+          dataVencimento: today,
+          dataPagamento: today,
+          status: "PAGO",
+          meioPagamento: "CARTAO_CREDITO",
+          modalidade: BusinessModality.ALUGUEL,
+          centroCusto: "Temporada / Veraneio",
+        },
+        {
+          organizationId: org.id,
+          tipo: "RECEITA",
+          categoria: "Aluguel Veraneio",
+          descricao: "Reserva Prevista • Villa Cumbuco Kitesurf",
+          valor: 3500.0,
+          dataVencimento: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 10),
+          status: "PENDENTE",
+          meioPagamento: "PIX",
+          modalidade: BusinessModality.ALUGUEL,
+          centroCusto: "Temporada / Veraneio",
+        },
+        {
+          organizationId: org.id,
+          tipo: "DESPESA",
+          categoria: "Repasse Proprietário Temporada",
+          descricao: "Repasse Previsto Proprietário • Villa Cumbuco",
+          valor: 2700.0,
+          dataVencimento: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 12),
+          status: "PENDENTE",
+          meioPagamento: "TED",
+          modalidade: BusinessModality.ALUGUEL,
+          centroCusto: "Temporada / Veraneio",
+        },
+      ],
+    });
+  }
+
   console.log("\n🎉 Seed concluído com sucesso!");
 }
 

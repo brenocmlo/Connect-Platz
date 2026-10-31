@@ -18,11 +18,14 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
   const { session } = auth;
 
+  const queryModality = req.nextUrl.searchParams.get("modalidade");
   const modalityFilter =
     session.role === Role.FINANCEIRO_VENDA
       ? "VENDA"
       : session.role === Role.FINANCEIRO_ALUGUEL
       ? "ALUGUEL"
+      : queryModality === "VENDA" || queryModality === "ALUGUEL"
+      ? queryModality
       : undefined;
 
   try {

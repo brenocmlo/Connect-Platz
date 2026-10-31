@@ -59,6 +59,7 @@ export class PrismaBookingRepository implements IBookingRepository {
           dataPagamento: new Date(),
           status: PaymentStatus.PAGO,
           meioPagamento: data.meioPagamento,
+          modalidade: "ALUGUEL",
           bookingId: booking.id,
         },
       });
