@@ -47,24 +47,9 @@ interface LeadCardProps {
 }
 
 export function LeadCard({
-  lead,
-  stages = [],
-  isDragging = false,
-  isGhost = false,
-  onSelectLead,
-  onDragStart,
-  onDragEnd,
-  onAdvanceStage,
-  onChangeStage,
-  onMoveToBolsao,
-  onDeleteLead,
-  onUpdateTags,
-  onEditLead,
-  onScheduleVisit,
-  onOpenWhatsApp,
-  isAdmin = false,
-  onChangeBroker,
-  onRegisterSale,
+  lead, stages = [], isDragging = false, isGhost = false, onSelectLead, onDragStart, onDragEnd,
+  onAdvanceStage, onChangeStage, onMoveToBolsao, onDeleteLead, onUpdateTags, onEditLead,
+  onScheduleVisit, onOpenWhatsApp, isAdmin = false, onChangeBroker, onRegisterSale,
 }: LeadCardProps) {
   const { hideValues, formatMoney, user } = useCrm();
   const isBroker =
@@ -76,14 +61,17 @@ export function LeadCard({
   const whatsappUrl = buildWhatsAppUrl(lead.telefone, defaultLeadGreeting(lead.nome));
   const isWinningStage = Boolean(
     lead.stage?.nome.toLowerCase().includes("ganho") ||
-    lead.stage?.nome.toLowerCase().includes("fechado")
+    lead.stage?.nome.toLowerCase().includes("fechado") ||
+    lead.stage?.nome.toLowerCase().includes("reserva")
   );
+  const isRentalLead = lead.modalidade === "ALUGUEL" || user?.role === "CORRETOR_ALUGUEL";
+  const isWon = isWinningStage && (isRentalLead ? lead.financialApprovalStatus === "APROVADO" : (lead.salesCount ?? 0) > 0);
   const awaitingFirstContact = !lead.firstContactAt && !lead.isBolsao && !isWinningStage;
 
   const nextStage = getNextStage(lead, stages);
   const currentStageIdx = findLeadStageIndex(lead, stages);
   const currentStage = stages[currentStageIdx];
-  const hasPendenciaFinanceira = isWinningStage && (!lead.salesCount || lead.salesCount === 0);
+  const hasPendenciaFinanceira = isWinningStage && !isWon;
 
   return (
     <div
@@ -144,31 +132,39 @@ export function LeadCard({
           }}
           className="mb-2 p-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-bold flex items-center justify-between gap-1 cursor-pointer hover:bg-amber-500/25 transition-all shadow-xs"
           title={
-            isBroker
+            isRentalLead
+              ? "Clique para fechar a reserva deste hóspede"
+              : isBroker
               ? "Aguardando lançamento e formalização do Financeiro"
               : "Clique para formalizar e precificar os dados da venda deste lead"
           }
         >
           <span className="flex items-center gap-1 truncate">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            {lead.financialApprovalStatus === "PENDENTE"
+            {isRentalLead
+              ? "🏖️ Reserva a Fechar"
+              : lead.financialApprovalStatus === "PENDENTE"
               ? "⏳ Aguardando Financeiro"
               : "Pendência Financeira"}
           </span>
           <span className="text-[10px] underline underline-offset-2 flex items-center gap-0.5 shrink-0 text-amber-600 dark:text-amber-300 font-semibold">
-            {isBroker ? "Ver Proposta" : "Formalizar Venda"} <ArrowRight className="w-3 h-3" />
+            {isRentalLead ? "Fechar Reserva" : isBroker ? "Ver Proposta" : "Formalizar Venda"} <ArrowRight className="w-3 h-3" />
           </span>
         </div>
       )}
 
-      {/* Venda Concluída Registrada */}
-      {isWinningStage && (lead.salesCount ?? 0) > 0 && (
+      {/* Venda Concluída ou Reserva Confirmada */}
+      {isWon && (
         <div className="mb-2 p-1.5 px-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold flex items-center justify-between gap-1 shadow-xs">
           <span className="flex items-center gap-1.5 truncate">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="truncate">Venda Concluída</span>
+            <span className="truncate">{isRentalLead ? "Reserva Confirmada" : "Venda Concluída"}</span>
           </span>
-          {lead.sales && lead.sales.length > 0 ? (
+          {isRentalLead ? (
+            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 shrink-0">
+              Conciliada no Caixa
+            </span>
+          ) : lead.sales && lead.sales.length > 0 ? (
             <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 shrink-0 font-mono">
               {hideValues ? "••••" : formatMoney(lead.sales[0].valorVendaVGV)}
             </span>

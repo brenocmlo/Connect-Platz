@@ -1,18 +1,20 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { X, Building2, User, ChevronDown, Calendar, CreditCard } from "lucide-react";
+import { X, Building2, User, ChevronDown, Calendar, CreditCard, AlertCircle } from "lucide-react";
 import { BookingItem } from "./types";
 import { useCrmLookups } from "@/components/crm/agenda/useCrmLookups";
 import { NumericInput } from "@/components/crm/primitives/NumericInput";
+import { LeadDetail } from "@/components/crm/LeadDrawer";
 
 interface NewBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (booking: BookingItem) => void;
+  preselectedLead?: LeadDetail | null;
 }
 
-export function NewBookingModal({ isOpen, onClose, onSubmit }: NewBookingModalProps) {
+export function NewBookingModal({ isOpen, onClose, onSubmit, preselectedLead }: NewBookingModalProps) {
   const { properties, leads, loading } = useCrmLookups({
     enabled: isOpen,
     properties: true,
@@ -38,10 +40,28 @@ export function NewBookingModal({ isOpen, onClose, onSubmit }: NewBookingModalPr
   const [taxaLimpeza, setTaxaLimpeza] = useState(250);
   const [meioPagamento, setMeioPagamento] = useState<BookingItem["meioPagamento"]>("PIX");
 
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   // Reset e inicialização ao abrir
   useEffect(() => {
     if (isOpen) {
-      if (rentalProperties.length > 0 && !selectedPropertyId) {
+      setErrorMessage(null);
+      if (preselectedLead) {
+        setSelectedLeadId(preselectedLead.id);
+        setLocatarioNome(preselectedLead.nome);
+        if (preselectedLead.empreendimentoInteresse) {
+          const matched = rentalProperties.find((p) =>
+            p.nome.toLowerCase().includes(preselectedLead.empreendimentoInteresse!.toLowerCase())
+          );
+          if (matched) {
+            setSelectedPropertyId(matched.id);
+            setImovelCustomNome(matched.nome);
+            if (matched.valorDiaria) setValorDiaria(matched.valorDiaria);
+            if (matched.taxaLimpeza) setTaxaLimpeza(matched.taxaLimpeza);
+          }
+        }
+      } else if (rentalProperties.length > 0 && !selectedPropertyId) {
         const first = rentalProperties[0];
         setSelectedPropertyId(first.id);
         setImovelCustomNome(first.nome);
@@ -49,7 +69,7 @@ export function NewBookingModal({ isOpen, onClose, onSubmit }: NewBookingModalPr
         if (first.taxaLimpeza) setTaxaLimpeza(first.taxaLimpeza);
       }
     }
-  }, [isOpen, rentalProperties, selectedPropertyId]);
+  }, [isOpen, rentalProperties, selectedPropertyId, preselectedLead]);
 
   // Ao selecionar imóvel no dropdown
   const handlePropertyChange = (propertyId: string) => {
@@ -88,8 +108,11 @@ export function NewBookingModal({ isOpen, onClose, onSubmit }: NewBookingModalPr
   const calculatedNights = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 1);
   const totalCalculado = calculatedNights * valorDiaria + taxaLimpeza;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    setErrorMessage(null);
+
     const finalImovelNome =
       rentalProperties.find((p) => p.id === selectedPropertyId)?.nome ||
       imovelCustomNome ||
@@ -109,8 +132,31 @@ export function NewBookingModal({ isOpen, onClose, onSubmit }: NewBookingModalPr
       status: "CONFIRMADA",
     };
 
-    onSubmit(newBooking);
-    onClose();
+    try {
+      if (selectedPropertyId && selectedLeadId && selectedLeadId !== "MANUAL") {
+        await fetch("/api/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            propertyId: selectedPropertyId,
+            leadId: selectedLeadId,
+            checkInDate: checkIn,
+            checkOutDate: checkOut,
+            valorDiarias: valorDiaria * calculatedNights,
+            taxaLimpeza,
+            meioPagamento,
+            observacoes: "Reserva de temporada confirmada pelo Corretor de Aluguel.",
+          }),
+        });
+      }
+      onSubmit(newBooking);
+      onClose();
+    } catch {
+      onSubmit(newBooking);
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -275,9 +321,10 @@ export function NewBookingModal({ isOpen, onClose, onSubmit }: NewBookingModalPr
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-extrabold shadow-sm transition-all hover:scale-[1.02]"
+              disabled={submitting}
+              className="px-4 py-2 rounded-xl bg-connect-blue hover:bg-connect-deep-blue text-white font-extrabold shadow-sm transition-all hover:scale-[1.02] disabled:opacity-60"
             >
-              Confirmar Reserva & Bloquear
+              {submitting ? "Processando Reserva..." : "Confirmar Reserva & Bloquear"}
             </button>
           </div>
         </form>

@@ -14,6 +14,7 @@ import { ToastFeedback } from "@/components/crm/primitives";
 import { ChangeBrokerModal } from "./ChangeBrokerModal";
 import { NewSaleModal } from "@/components/crm/vendas/NewSaleModal";
 import { RequestClosingModal } from "./RequestClosingModal";
+import { NewBookingModal } from "@/components/crm/temporada/NewBookingModal";
 import { LookupMember } from "@/components/crm/agenda/useCrmLookups";
 import { useCrm } from "@/components/crm/CrmContext";
 
@@ -140,6 +141,10 @@ export function LeadsModalsContainer({
     user?.role === "CORRETOR_VENDA" ||
     user?.role === "CORRETOR_ALUGUEL" ||
     user?.role === "CORRETOR";
+  const isRentalTarget =
+    user?.role === "CORRETOR_ALUGUEL" ||
+    user?.role === "FINANCEIRO_ALUGUEL" ||
+    saleModalTarget?.modalidade === "ALUGUEL";
 
   return (
     <>
@@ -209,7 +214,14 @@ export function LeadsModalsContainer({
       )}
 
       {saleModalTarget && onSubmitSale && onCloseSaleModal && (
-        isBroker ? (
+        isRentalTarget ? (
+          <NewBookingModal
+            isOpen={Boolean(saleModalTarget)}
+            preselectedLead={saleModalTarget}
+            onClose={onCloseSaleModal}
+            onSubmit={() => onSubmitSale(null)}
+          />
+        ) : isBroker ? (
           <RequestClosingModal
             isOpen={Boolean(saleModalTarget)}
             lead={saleModalTarget}

@@ -45,7 +45,10 @@ const mockBookings: BookingItem[] = [
 
 export default function TemporadaVeraneioPage() {
   const { user, setActionMessage, hideValues } = useCrm();
-  const canManageRental = user?.role === "ADMINISTRADOR" || user?.role === "FINANCEIRO_ALUGUEL";
+  const canManageRental =
+    user?.role === "ADMINISTRADOR" ||
+    user?.role === "FINANCEIRO_ALUGUEL" ||
+    user?.role === "CORRETOR_ALUGUEL";
   const [bookings, setBookings] = useState<BookingItem[]>(mockBookings);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
