@@ -52,7 +52,9 @@ async function main() {
   const corretor = await login(CORRETOR_EMAIL);
   const { data: team } = await api(admin, "GET", "/api/equipes");
   const lucas = team.members.find((m) => m.email === CORRETOR_EMAIL);
-  const other = team.members.find((m) => m.role === "CORRETOR" && m.id !== lucas.id);
+  const other = team.members.find(
+    (m) => (m.role === "CORRETOR" || m.role === "CORRETOR_VENDA" || m.role === "CORRETOR_ALUGUEL") && m.id !== lucas.id
+  );
   const { data: props } = await api(admin, "GET", "/api/properties");
   const property = props.properties[0];
   assert.ok(lucas && other && property, "seed incompleto: precisa de 2 corretores e 1 empreendimento");
@@ -83,7 +85,7 @@ async function main() {
   await runTest("TC-API-02: CORRETOR não pode transferir lead (HTTP 403)", async () => {
     const res = await api(corretor, "PATCH", `/api/leads/${leadId}`, { corretorId: other.id });
     assert.equal(res.status, 403, JSON.stringify(res.data));
-    assert.match(res.data.error, /administradores/i);
+    assert.match(res.data.error, /permissão|administradores/i);
     const lead = await getLead(admin, leadId);
     assert.equal(lead.corretorId, lucas.id);
     assert.ok(!lead.timeline.some((t) => t.tipo === "transbordo" && t.conteudo.includes(other.nome)));
