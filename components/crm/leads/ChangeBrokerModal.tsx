@@ -37,10 +37,16 @@ export function ChangeBrokerModal({
   }, [lead, isOpen]);
 
   const filteredMembers = useMemo(() => {
-    return members.filter((m) =>
-      m.nome.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [members, search]);
+    return members.filter((m) => {
+      if (lead?.modalidade === "VENDA" && m.role && m.role !== "CORRETOR_VENDA" && m.role !== "ADMINISTRADOR") {
+        return false;
+      }
+      if (lead?.modalidade === "ALUGUEL" && m.role && m.role !== "CORRETOR_ALUGUEL" && m.role !== "ADMINISTRADOR") {
+        return false;
+      }
+      return m.nome.toLowerCase().includes(search.toLowerCase());
+    });
+  }, [members, search, lead?.modalidade]);
 
   if (!isOpen || !lead) return null;
 

@@ -73,6 +73,8 @@ export interface LeadDetail {
   documentsCount?: number | null;
   salesCount?: number | null;
   sales?: LeadSale[];
+  modalidade?: "VENDA" | "ALUGUEL" | null;
+  financialApprovalStatus?: "PENDENTE" | "APROVADO" | "REJEITADO" | null;
 }
 
 interface LeadDrawerProps {

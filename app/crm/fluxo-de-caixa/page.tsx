@@ -26,9 +26,12 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 
 export default function FluxoCaixaDREPage() {
   const { user, setActionMessage, hideValues } = useCrm();
-  // Fluxo de Caixa e DRE: exclusivo do administrador (a API também bloqueia com 403)
-  const canAccess = !user || user.role === "ADMINISTRADOR";
+  const isFinanceiroVenda = user?.role === "FINANCEIRO_VENDA";
+  const isFinanceiroAluguel = user?.role === "FINANCEIRO_ALUGUEL";
+  const isAdmin = user?.role === "ADMINISTRADOR";
+  const canAccess = !user || isAdmin || isFinanceiroVenda || isFinanceiroAluguel;
 
+  const [adminModality, setAdminModality] = useState<"CONSOLIDADO" | "VENDA" | "ALUGUEL">("CONSOLIDADO");
   const [activeTab, setActiveTab] = useState<TabId>("contas");
   const [cashFlows, setCashFlows] = useState<CashFlowItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +52,11 @@ export default function FluxoCaixaDREPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch("/api/financeiro", { cache: "no-store" });
+      const url =
+        isAdmin && adminModality !== "CONSOLIDADO"
+          ? `/api/financeiro?modalidade=${adminModality}`
+          : "/api/financeiro";
+      const res = await fetch(url, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setLoadError(data?.error || "Não foi possível carregar o fluxo de caixa.");
@@ -61,7 +68,7 @@ export default function FluxoCaixaDREPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin, adminModality]);
 
   useEffect(() => {
     if (canAccess) loadFinanceiro();
@@ -171,20 +178,69 @@ export default function FluxoCaixaDREPage() {
     }
   };
 
-  if (!canAccess) {
+  if (user && !canAccess) {
     return <AccessDeniedCard moduleName="o Fluxo de Caixa e DRE corporativo" />;
   }
+
+  const teamBadge = isFinanceiroVenda
+    ? "Time de Vendas"
+    : isFinanceiroAluguel
+    ? "Time de Locação & Temporada"
+    : null;
+
+  const pageSubtitle = isFinanceiroVenda
+    ? "Conciliação de faturamento de vendas de imóveis, splits de comissões e custos operacionais de vendas."
+    : isFinanceiroAluguel
+    ? "Conciliação de estadias de temporada, diárias, taxas de limpeza e despesas operacionais de locação."
+    : "Conciliação consolidada de faturamento de vendas, estadias de temporada e custos operacionais.";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       <PageHeader
         title="Fluxo de Caixa & DRE"
-        subtitle="Conciliação de faturamento de vendas, estadias de temporada e custos operacionais."
+        subtitle={pageSubtitle}
         actionLabel="Novo Lançamento"
         onActionClick={() => setIsModalOpen(true)}
         showPeriodSelector={true}
         showExportButton={true}
       />
+
+      {isAdmin && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-card border border-border rounded-xl p-3 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-foreground">Visão Gerencial:</span>
+            <span className="text-xs text-muted-foreground">Filtre por unidade de negócio</span>
+          </div>
+          <div className="flex bg-muted p-1 rounded-lg gap-1 text-xs font-semibold">
+            {(
+              [
+                { id: "CONSOLIDADO", label: "Consolidado Geral" },
+                { id: "VENDA", label: "Vendas" },
+                { id: "ALUGUEL", label: "Locação & Temporada" },
+              ] as const
+            ).map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setAdminModality(m.id)}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  adminModality === m.id
+                    ? "bg-connect-blue text-white shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {teamBadge && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-connect-blue/10 border border-connect-blue/20 text-xs text-connect-blue font-bold w-fit">
+          <span>Escopo Ativo:</span>
+          <span className="bg-connect-blue text-white px-2 py-0.5 rounded-full text-[11px] font-extrabold">{teamBadge}</span>
+        </div>
+      )}
 
       <div className="space-y-4">
         <SectionTitle>Resumo de Caixa & Rentabilidade</SectionTitle>
@@ -245,7 +301,19 @@ export default function FluxoCaixaDREPage() {
         </>
       )}
 
-      <NewCashFlowModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleAddEntry} />
+      <NewCashFlowModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleAddEntry}
+        userRole={user?.role}
+        defaultModality={
+          isFinanceiroAluguel
+            ? "ALUGUEL"
+            : adminModality === "ALUGUEL"
+            ? "ALUGUEL"
+            : "VENDA"
+        }
+      />
     </div>
   );
 }

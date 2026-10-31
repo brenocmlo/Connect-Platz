@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { buildLeadRLSWhere } from "@/lib/db/rls";
-import { requireSession, isAdmin } from "@/lib/auth/session";
+import { requireSession, isAdmin, getUserModality } from "@/lib/auth/session";
+import { Role, BusinessModality } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-server";
 import { refreshLeadScore } from "@/lib/services/lead-score";
 import { resolveLeadSource, sourceLabel } from "@/components/crm/leads/leadSource";
@@ -22,10 +23,15 @@ export const dynamic = "force-dynamic";
 const NO_FUNNEL_MESSAGE =
   "Nenhum funil de vendas ativo com etapas configurado para a organização. Cadastre um funil antes de gerenciar leads.";
 
-/** Funil ativo da organização (o informado, senão o padrão, senão o mais antigo). */
-async function findActiveFunnel(organizationId: string, funnelId?: string | null) {
+/** Funil ativo da organização (o informado, senão o padrão da modalidade, senão o mais antigo). */
+async function findActiveFunnel(organizationId: string, funnelId?: string | null, modality?: BusinessModality) {
   return prisma.funnel.findFirst({
-    where: { organizationId, isActive: true, ...(funnelId && isUuid(funnelId) ? { id: funnelId } : {}) },
+    where: {
+      organizationId,
+      isActive: true,
+      ...(funnelId && isUuid(funnelId) ? { id: funnelId } : {}),
+      ...(modality ? { modalidade: modality } : {}),
+    },
     include: { stages: { orderBy: { posicao: "asc" } } },
     orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
   });
@@ -40,13 +46,15 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
   const { session } = auth;
   const ctx = toRlsContext(session);
+  const modality = getUserModality(session.role);
+  const reqModality = modality === "AMBOS" ? undefined : (modality as BusinessModality);
 
   try {
     const { searchParams } = new URL(req.url);
     const isBolsao = searchParams.get("bolsao") === "true";
     const isClosed = searchParams.get("closed") === "true";
 
-    const funnel = await findActiveFunnel(session.organizationId, searchParams.get("funnelId"));
+    const funnel = await findActiveFunnel(session.organizationId, searchParams.get("funnelId"), reqModality);
     if (!funnel || funnel.stages.length === 0) {
       return NextResponse.json({ error: NO_FUNNEL_MESSAGE, code: "NO_FUNNEL" }, { status: 500 });
     }
@@ -64,8 +72,12 @@ export async function GET(req: NextRequest) {
         take: 200, // Paginação até 200 por vez conforme especificação
       }),
       prisma.funnel.findMany({
-        where: { organizationId: session.organizationId, isActive: true },
-        select: { id: true, nome: true },
+        where: {
+          organizationId: session.organizationId,
+          isActive: true,
+          ...(reqModality ? { modalidade: reqModality } : {}),
+        },
+        select: { id: true, nome: true, modalidade: true },
         orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
       }),
     ]);
@@ -106,7 +118,9 @@ export async function POST(req: NextRequest) {
     const telefone = parsePhone(data.telefone);
     if (!telefone) return badRequest("Telefone inválido. Informe DDD + número (10 ou 11 dígitos).");
 
-    const funnel = await findActiveFunnel(session.organizationId, data.funnelId);
+    const modality = getUserModality(session.role);
+    const reqModality = modality === "AMBOS" ? undefined : (modality as BusinessModality);
+    const funnel = await findActiveFunnel(session.organizationId, data.funnelId, reqModality);
     if (!funnel || funnel.stages.length === 0) {
       return NextResponse.json({ error: NO_FUNNEL_MESSAGE, code: "NO_FUNNEL" }, { status: 500 });
     }
@@ -138,6 +152,7 @@ export async function POST(req: NextRequest) {
         funnelId: funnel.id,
         stageId: stage.id,
         corretorId,
+        modalidade: funnel.modalidade || (reqModality ?? "VENDA"),
         nome: data.nome,
         telefone,
         email: data.email || null,

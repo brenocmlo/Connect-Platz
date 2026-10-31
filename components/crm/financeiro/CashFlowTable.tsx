@@ -20,6 +20,7 @@ export interface CashFlowItem {
   foiAntecipado?: boolean;
   observacaoLiquidacao?: string;
   centroCusto?: string;
+  modalidade?: "VENDA" | "ALUGUEL";
   saleId?: string | null;
   bookingId?: string | null;
   isRecorrente?: boolean;
@@ -136,9 +137,22 @@ export function CashFlowTable({
                       className="hover:bg-connect-blue/5 transition-colors group"
                     >
                       <td className="py-3 px-4">
-                        <span className="font-bold text-foreground block">{cf.descricao}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-foreground">{cf.descricao}</span>
+                          {cf.modalidade && (
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ${
+                                cf.modalidade === "ALUGUEL"
+                                  ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                                  : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                              }`}
+                            >
+                              {cf.modalidade === "ALUGUEL" ? "Locação" : "Venda"}
+                            </span>
+                          )}
+                        </div>
                         {cf.observacaoLiquidacao && (
-                          <span className="text-[10px] text-muted-foreground italic">
+                          <span className="text-[10px] text-muted-foreground italic block">
                             Nota: {cf.observacaoLiquidacao}
                           </span>
                         )}

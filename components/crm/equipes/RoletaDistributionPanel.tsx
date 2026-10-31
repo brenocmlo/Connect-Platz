@@ -19,7 +19,12 @@ interface RoletaDistributionPanelProps {
 
 /** Fila real da roleta Round-Robin (mesmos critérios do servidor). Sem simulações locais. */
 export function RoletaDistributionPanel({ members, pendingId, onStatusChange }: RoletaDistributionPanelProps) {
-  const corretores = members.filter((m) => m.role === "CORRETOR");
+  const corretores = members.filter(
+    (m) =>
+      m.role === "CORRETOR_VENDA" ||
+      m.role === "CORRETOR_ALUGUEL" ||
+      m.role === "CORRETOR"
+  );
   const queue = sortRoletaQueue(corretores.filter(isRoletaEligible));
   const outOfQueue = corretores.filter((m) => !isRoletaEligible(m));
 

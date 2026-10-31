@@ -113,7 +113,7 @@ async function main() {
         nome: c.nome,
         email: c.email,
         passwordHash: defaultPasswordHash,
-        role: import_client.Role.CORRETOR,
+        role: import_client.Role.CORRETOR_VENDA,
         status: import_client.CorretorStatus.DISPONIVEL,
         telefone: c.telefone,
         creci: c.creci,

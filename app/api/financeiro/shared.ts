@@ -20,6 +20,8 @@ export function serializeCashFlow(c: CashFlow) {
     foiAntecipado: Boolean(c.dataPagamento && isoDate(c.dataPagamento) < isoDate(c.dataVencimento)),
     saleId: c.saleId,
     bookingId: c.bookingId,
+    rentalContractId: c.rentalContractId,
+    modalidade: c.modalidade,
     isRecorrente: c.isRecorrente,
     centroCusto: c.centroCusto,
     observacaoLiquidacao: c.observacaoLiquidacao,

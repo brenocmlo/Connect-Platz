@@ -1,6 +1,6 @@
 import { businessDay } from "@/lib/utils/businessDay";
 import { prisma } from "../db/prisma";
-import { User, CorretorStatus, Lead } from "@prisma/client";
+import { User, CorretorStatus, Lead, Role } from "@prisma/client";
 
 export interface RoletaDistributionResult {
   assignedCorretor: User | null;
@@ -48,7 +48,8 @@ export class RoletaService {
    * 4. Atualiza o timestamp do corretor selecionado de forma atômica.
    */
   static async distributeLead(
-    organizationId: string
+    organizationId: string,
+    modality: "VENDA" | "ALUGUEL" = "VENDA"
   ): Promise<RoletaDistributionResult> {
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
@@ -70,15 +71,16 @@ export class RoletaService {
 
     // Obter data de hoje (00:00:00) para validação do Check-in diário
     const today = businessDay();
+    const targetRole = modality === "ALUGUEL" ? Role.CORRETOR_ALUGUEL : Role.CORRETOR_VENDA;
 
     // Execução da Roleta dentro de transação atômica serializável (proteção contra race conditions em Load Balancer)
     const selectedCorretor = await prisma.$transaction(
       async (tx) => {
-        const eligibleCorretores = await tx.user.findMany({
+        let eligibleCorretores = await tx.user.findMany({
           where: {
             organizationId,
             isActive: true,
-            role: "CORRETOR",
+            role: targetRole,
             status: CorretorStatus.DISPONIVEL,
             checkIns: {
               some: {
@@ -92,6 +94,28 @@ export class RoletaService {
           ],
           take: 1,
         });
+
+        // Fallback para corretores ativos gerais se não houver corretor exclusivo online
+        if (eligibleCorretores.length === 0) {
+          eligibleCorretores = await tx.user.findMany({
+            where: {
+              organizationId,
+              isActive: true,
+              role: { in: [Role.CORRETOR_VENDA, Role.CORRETOR_ALUGUEL] },
+              status: CorretorStatus.DISPONIVEL,
+              checkIns: {
+                some: {
+                  date: today,
+                },
+              },
+            },
+            orderBy: [
+              { lastLeadAssignedAt: { sort: "asc", nulls: "first" } },
+              { createdAt: "asc" },
+            ],
+            take: 1,
+          });
+        }
 
         if (eligibleCorretores.length === 0) {
           return null;

@@ -1,22 +1,50 @@
 "use client";
 
 import React from "react";
-import { Users2, Trash2 } from "lucide-react";
-import { TeamMember, ROLE_LABEL, STATUS_META } from "./types";
+import { Users2, Trash2, Pencil } from "lucide-react";
+import { TeamMember, ROLE_LABEL, STATUS_META, MemberRole } from "./types";
 
 interface TeamMembersTableProps {
   team: TeamMember[];
   loading?: boolean;
   isAdmin?: boolean;
+  userRole?: string;
   onRequestRemove?: (member: TeamMember) => void;
+  onRequestEdit?: (member: TeamMember) => void;
+  onRoleChange?: (userId: string, newRole: MemberRole) => Promise<void> | void;
 }
 
 const ROLE_BADGE: Record<string, string> = {
   ADMINISTRADOR: "bg-platz-gold/20 text-amber-700 dark:text-platz-gold border border-platz-gold/40",
+  FINANCEIRO_VENDA: "bg-connect-blue/15 text-connect-blue border border-connect-blue/30",
+  FINANCEIRO_ALUGUEL: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30",
+  CORRETOR_VENDA: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+  CORRETOR_ALUGUEL: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
   CORRETOR: "bg-muted text-muted-foreground border border-border",
 };
 
-export function TeamMembersTable({ team, loading, isAdmin, onRequestRemove }: TeamMembersTableProps) {
+export function TeamMembersTable({
+  team,
+  loading,
+  isAdmin,
+  userRole,
+  onRequestRemove,
+  onRequestEdit,
+  onRoleChange,
+}: TeamMembersTableProps) {
+  const canUserEdit = (member: TeamMember): boolean => {
+    if (isAdmin) return true;
+    if (userRole === "FINANCEIRO_VENDA") {
+      return member.role === "CORRETOR_VENDA" || member.role === "CORRETOR";
+    }
+    if (userRole === "FINANCEIRO_ALUGUEL") {
+      return member.role === "CORRETOR_ALUGUEL" || member.role === "CORRETOR";
+    }
+    return false;
+  };
+
+  const showActionsColumn = Boolean(onRequestEdit || (isAdmin && onRequestRemove));
+
   if (loading && team.length === 0) {
     return (
       <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
@@ -53,7 +81,7 @@ export function TeamMembersTable({ team, loading, isAdmin, onRequestRemove }: Te
               <th className="py-3 px-4 text-center">Status Roleta</th>
               <th className="py-3 px-4 text-center">Check-in Hoje</th>
               <th className="py-3 px-4 text-right">E-mail</th>
-              {isAdmin && <th className="py-3 px-4 text-center">Ações</th>}
+              {showActionsColumn && <th className="py-3 px-4 text-center">Ações</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -68,9 +96,21 @@ export function TeamMembersTable({ team, loading, isAdmin, onRequestRemove }: Te
                   </div>
                 </td>
                 <td className="py-3.5 px-4">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ROLE_BADGE[member.role]}`}>
-                    {ROLE_LABEL[member.role]}
-                  </span>
+                  {isAdmin && onRoleChange && (member.role === "CORRETOR_VENDA" || member.role === "CORRETOR_ALUGUEL" || member.role === "CORRETOR") ? (
+                    <select
+                      value={member.role === "CORRETOR" ? "CORRETOR_VENDA" : member.role}
+                      onChange={(e) => onRoleChange(member.id, e.target.value as MemberRole)}
+                      className="text-[10px] font-bold px-2 py-1 rounded-lg border border-border bg-background text-foreground cursor-pointer focus:ring-1 focus:ring-connect-blue"
+                      title="Clique para alternar entre Corretor Vendas e Corretor Aluguéis"
+                    >
+                      <option value="CORRETOR_VENDA">Corretor Vendas</option>
+                      <option value="CORRETOR_ALUGUEL">Corretor Aluguéis</option>
+                    </select>
+                  ) : (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ROLE_BADGE[member.role] || "bg-muted text-muted-foreground"}`}>
+                      {ROLE_LABEL[member.role] || member.role}
+                    </span>
+                  )}
                 </td>
                 <td className="py-3.5 px-4 text-center font-bold text-foreground">{member.leadsAtivos}</td>
                 <td className="py-3.5 px-4 text-center">
@@ -79,23 +119,40 @@ export function TeamMembersTable({ team, loading, isAdmin, onRequestRemove }: Te
                   </span>
                 </td>
                 <td className="py-3.5 px-4 text-center text-muted-foreground">
-                  {member.role === "CORRETOR" ? (member.hasCheckedInToday ? "Sim" : "Não") : "—"}
+                  {member.role === "CORRETOR_VENDA" || member.role === "CORRETOR_ALUGUEL" || member.role === "CORRETOR"
+                    ? member.hasCheckedInToday
+                      ? "Sim"
+                      : "Não"
+                    : "—"}
                 </td>
                 <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">{member.email}</td>
-                {isAdmin && (
+                {showActionsColumn && (
                   <td className="py-3.5 px-4 text-center">
-                    {member.role === "CORRETOR" ? (
-                      <button
-                        type="button"
-                        onClick={() => onRequestRemove?.(member)}
-                        title={`Remover ${member.nome} da equipe`}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground/40">—</span>
-                    )}
+                    <div className="flex items-center justify-center gap-1.5">
+                      {canUserEdit(member) && onRequestEdit && (
+                        <button
+                          type="button"
+                          onClick={() => onRequestEdit(member)}
+                          title={`Editar dados de ${member.nome}`}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-connect-blue hover:bg-connect-blue/10 transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                      {isAdmin && member.role !== "ADMINISTRADOR" && onRequestRemove && (
+                        <button
+                          type="button"
+                          onClick={() => onRequestRemove(member)}
+                          title={`Remover ${member.nome} da equipe`}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {!canUserEdit(member) && (!isAdmin || member.role === "ADMINISTRADOR") && (
+                        <span className="text-[11px] text-muted-foreground/40">—</span>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

@@ -77,7 +77,7 @@ async function main() {
         nome: c.nome,
         email: c.email,
         passwordHash: defaultPasswordHash,
-        role: Role.CORRETOR,
+        role: Role.CORRETOR_VENDA,
         status: CorretorStatus.DISPONIVEL,
         telefone: c.telefone,
         creci: c.creci,

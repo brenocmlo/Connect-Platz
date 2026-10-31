@@ -23,8 +23,9 @@ import {
   UserCheck,
   Check,
   ExternalLink,
+  KeyRound,
 } from "lucide-react";
-import { useCrm } from "./CrmContext";
+import { useCrm, UserRole } from "./CrmContext";
 
 interface NavItem {
   label: string;
@@ -32,11 +33,10 @@ interface NavItem {
   icon: React.ElementType;
   badge?: string;
   isExternal?: boolean;
-  adminOnly?: boolean; // somente ADMINISTRADOR
-  managerOnly?: boolean; // somente ADMINISTRADOR (oculto para CORRETOR)
+  allowedRoles?: UserRole[];
 }
 
-// 5.2 Ordem dos itens oficiais da Sidebar Connect Platz
+// 5.2 Ordem dos itens oficiais da Sidebar Connect Platz com segregação de perfis
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/crm", icon: LayoutDashboard },
   { label: "Leads", href: "/crm/leads", icon: Kanban, badge: "SLA" },
@@ -47,14 +47,45 @@ const navItems: NavItem[] = [
     icon: MessageSquare,
     isExternal: true,
   },
-  { label: "Vendas e Comissões", href: "/crm/vendas", icon: BadgeDollarSign },
-  { label: "Fluxo de Caixa", href: "/crm/fluxo-de-caixa", icon: TrendingUp, adminOnly: true },
+  {
+    label: "Vendas e Comissões",
+    href: "/crm/vendas",
+    icon: BadgeDollarSign,
+    allowedRoles: ["ADMINISTRADOR", "FINANCEIRO_VENDA", "CORRETOR_VENDA"],
+  },
+  {
+    label: "Locações e Temporada",
+    href: "/crm/temporada",
+    icon: KeyRound,
+    allowedRoles: ["ADMINISTRADOR", "FINANCEIRO_ALUGUEL", "CORRETOR_ALUGUEL"],
+  },
+  {
+    label: "Fluxo de Caixa",
+    href: "/crm/fluxo-de-caixa",
+    icon: TrendingUp,
+    allowedRoles: ["ADMINISTRADOR", "FINANCEIRO_VENDA", "FINANCEIRO_ALUGUEL"],
+  },
   { label: "Empreendimentos", href: "/crm/empreendimentos", icon: Building2 },
   { label: "Ranking", href: "/crm/ranking", icon: Trophy, badge: "Top" },
   { label: "Relatórios BI", href: "/crm/relatorios", icon: BarChart3 },
-  { label: "Equipe", href: "/crm/equipes", icon: Users2, managerOnly: true },
-  { label: "Integrações", href: "/crm/integracoes", icon: Layers, managerOnly: true },
-  { label: "Log e Auditoria", href: "/crm/auditoria", icon: ShieldCheck, managerOnly: true },
+  {
+    label: "Equipe",
+    href: "/crm/equipes",
+    icon: Users2,
+    allowedRoles: ["ADMINISTRADOR", "FINANCEIRO_VENDA", "FINANCEIRO_ALUGUEL"],
+  },
+  {
+    label: "Integrações",
+    href: "/crm/integracoes",
+    icon: Layers,
+    allowedRoles: ["ADMINISTRADOR"],
+  },
+  {
+    label: "Log e Auditoria",
+    href: "/crm/auditoria",
+    icon: ShieldCheck,
+    allowedRoles: ["ADMINISTRADOR"],
+  },
   { label: "Configurações", href: "/crm/configuracoes", icon: Settings },
 ];
 
@@ -127,10 +158,7 @@ export function Sidebar() {
       {/* 2. LISTA DE NAVEGAÇÃO DOS 12 ITENS PADRÃO CONNECT PLATZ (5.2) */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
         {navItems.map((item) => {
-          if (item.adminOnly && user && user.role !== "ADMINISTRADOR") {
-            return null;
-          }
-          if (item.managerOnly && user && user.role === "CORRETOR") {
+          if (item.allowedRoles && user && !item.allowedRoles.includes(user.role)) {
             return null;
           }
 
@@ -238,7 +266,7 @@ export function Sidebar() {
                   {user?.nome || "Corretor"}
                 </span>
                 <span className="text-[9px] font-semibold text-[#D9BB4C] uppercase tracking-wide">
-                  {user?.role || "CORRETOR"}
+                  {user?.role ? user.role.replace(/_/g, " ") : "CORRETOR VENDA"}
                 </span>
               </div>
             )}

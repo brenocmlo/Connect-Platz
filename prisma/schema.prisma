@@ -17,7 +17,23 @@ datasource db {
 
 enum Role {
   ADMINISTRADOR
-  CORRETOR
+  FINANCEIRO_VENDA
+  FINANCEIRO_ALUGUEL
+  CORRETOR_VENDA
+  CORRETOR_ALUGUEL
+}
+
+enum BusinessModality {
+  VENDA
+  ALUGUEL
+}
+
+enum RentalContractStatus {
+  ATIVO
+  PENDENTE_APROVACAO
+  FINALIZADO
+  CANCELADO
+  INADIMPLENTE
 }
 
 enum CorretorStatus {
@@ -63,6 +79,7 @@ enum CreditAnalysisStatus {
 enum PropertyModality {
   VENDA
   VERANEIO_TEMPORADA
+  LOCACAO_ANUAL
   AMBOS
 }
 
@@ -162,8 +179,9 @@ model Organization {
   funnels      Funnel[]
   leads        Lead[]
   properties   Property[]
-  bookings     SeasonBooking[]
-  sales        Sale[]
+  bookings        SeasonBooking[]
+  rentalContracts RentalContract[]
+  sales           Sale[]
   cashFlows    CashFlow[]
   appointments Appointment[]
   auditLogs    AuditLog[]
@@ -182,7 +200,7 @@ model User {
   creci              String?
   bio                String?        @db.Text
   photoUrl           String?
-  role               Role           @default(CORRETOR)
+  role               Role           @default(CORRETOR_VENDA)
   status             CorretorStatus @default(OFFLINE)
   isActive           Boolean        @default(true)
   lastLeadAssignedAt DateTime? // Utilizado pelo algoritmo Round-Robin
@@ -196,6 +214,7 @@ model User {
   checkIns        CheckIn[]
   bookings        SeasonBooking[]   @relation("CorretorBookings")
   salesAsTitular  Sale[]            @relation("CorretorSales")
+  rentalContractsAsTitular RentalContract[] @relation("CorretorRentals")
   commissions     CommissionSplit[]
   appointments    Appointment[]
   auditLogs       AuditLog[]
@@ -221,12 +240,13 @@ model CheckIn {
 
 // Funis de Vendas
 model Funnel {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
   nome           String
-  isDefault      Boolean  @default(false)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
+  modalidade     BusinessModality @default(VENDA)
+  isDefault      Boolean          @default(false)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   stages       FunnelStage[]
@@ -285,7 +305,9 @@ model Lead {
   statusCredito           CreditAnalysisStatus  @default(NAO_INICIADA)
 
   // Metadados Comerciais & SLA
-  temperatura  LeadTemperature @default(FRIO)
+  modalidade              BusinessModality      @default(VENDA)
+  financialApprovalStatus String? // "PENDENTE", "APROVADO", "REJEITADO"
+  temperatura             LeadTemperature       @default(FRIO)
   source       LeadSource      @default(META_ADS)
   adId         String?
   formId       String?
@@ -316,11 +338,13 @@ model Lead {
 
   timeline     LeadTimeline[]
   documents    LeadDocument[]
-  sales        Sale[]
-  bookings     SeasonBooking[]
-  appointments Appointment[]
+  sales           Sale[]
+  bookings        SeasonBooking[]
+  rentalContracts RentalContract[]
+  appointments    Appointment[]
 
   @@index([organizationId, corretorId])
+  @@index([organizationId, modalidade])
   @@index([organizationId, isBolsao])
   @@index([organizationId, isClosed])
   @@index([organizationId, createdAt])
@@ -396,8 +420,9 @@ model Property {
 
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   units        PropertyUnit[]
-  bookings     SeasonBooking[]
-  sales        Sale[]
+  bookings        SeasonBooking[]
+  rentalContracts RentalContract[]
+  sales           Sale[]
   appointments Appointment[]
   materials    PropertyMaterial[]
 
@@ -458,6 +483,42 @@ model SeasonBooking {
   @@index([propertyId, checkInDate, checkOutDate])
   @@index([organizationId, status])
   @@map("season_bookings")
+}
+
+// Contratos de Locação Tradicional (Anual)
+model RentalContract {
+  id                    String               @id @default(uuid()) @db.Uuid
+  organizationId        String               @db.Uuid
+  codigoContrato        String               @unique
+  propertyId            String               @db.Uuid
+  leadId                String               @db.Uuid
+  corretorId            String               @db.Uuid
+
+  valorAluguelMensal    Decimal              @db.Decimal(12, 2)
+  taxaAdministracaoPerc Decimal              @default(10.0) @db.Decimal(5, 2) // % da imobiliária
+  taxaIntermediacao     Decimal?             @db.Decimal(12, 2) // Primeiro aluguel / captação
+  diaVencimento         Int                  @default(10)
+  duracaoMeses          Int                  @default(12)
+  dataInicio            DateTime             @db.Date
+  dataFim               DateTime             @db.Date
+  tipoGarantia          String               @default("CAUCAO") // CAUCAO, FIADOR, SEGURO_FIANCA, TITULO_CAPITALIZACAO
+  valorGarantia         Decimal?             @db.Decimal(12, 2)
+  status                RentalContractStatus @default(ATIVO)
+  contratoPdfUrl        String?
+  observacoes           String?              @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  property        Property     @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  lead            Lead         @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  corretorTitular User         @relation("CorretorRentals", fields: [corretorId], references: [id], onDelete: Restrict)
+  cashFlowEntries CashFlow[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, dataInicio])
+  @@map("rental_contracts")
 }
 
 // Fechamento de Vendas & Contratos
@@ -539,17 +600,21 @@ model CashFlow {
   centroCusto          String? // Derivado do plano de contas no momento do lançamento
   observacaoLiquidacao String?        @db.Text
   anexoUrl             String?
+  modalidade           BusinessModality @default(VENDA)
 
-  saleId    String?  @db.Uuid
-  bookingId String?  @db.Uuid
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  saleId           String?         @db.Uuid
+  bookingId        String?         @db.Uuid
+  rentalContractId String?         @db.Uuid
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
-  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  sale         Sale?          @relation(fields: [saleId], references: [id], onDelete: SetNull)
-  booking      SeasonBooking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sale           Sale?           @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  booking        SeasonBooking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  rentalContract RentalContract? @relation(fields: [rentalContractId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, tipo, dataVencimento])
+  @@index([organizationId, modalidade, dataVencimento])
   @@map("cash_flows")
 }
 

@@ -6,7 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { PaymentStatus, CashFlowType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
+import { requireSession, FINANCE_ROLES } from "@/lib/auth/session";
+import { Role } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-server";
 import { serializeCashFlow, parseDateOnly, paymentMethodValues } from "../shared";
 import { splitCashFlowDescription, computeStatusComissao } from "../../vendas/serialize";
@@ -28,7 +29,7 @@ async function findEntry(id: string, organizationId: string) {
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = requireSession(req, ADMIN_ROLES);
+  const auth = requireSession(req, FINANCE_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -43,6 +44,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!before) return NextResponse.json({ error: "Lançamento não encontrado." }, { status: 404 });
     if (before.status === PaymentStatus.CANCELADO) {
       return NextResponse.json({ error: "Lançamento cancelado não pode ser alterado." }, { status: 409 });
+    }
+
+    if (session.role === Role.FINANCEIRO_VENDA && before.modalidade !== "VENDA") {
+      return NextResponse.json({ error: "Acesso restrito ao financeiro de vendas." }, { status: 403 });
+    }
+    if (session.role === Role.FINANCEIRO_ALUGUEL && before.modalidade !== "ALUGUEL") {
+      return NextResponse.json({ error: "Acesso restrito ao financeiro de aluguel." }, { status: 403 });
     }
 
     const { status, dataPagamento, meioPagamento, observacao } = parsed.data;
@@ -105,13 +113,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = requireSession(req, ADMIN_ROLES);
+  const auth = requireSession(req, FINANCE_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
   try {
     const entry = await findEntry(params.id, session.organizationId);
     if (!entry) return NextResponse.json({ error: "Lançamento não encontrado." }, { status: 404 });
+
+    if (session.role === Role.FINANCEIRO_VENDA && entry.modalidade !== "VENDA") {
+      return NextResponse.json({ error: "Acesso restrito ao financeiro de vendas." }, { status: 403 });
+    }
+    if (session.role === Role.FINANCEIRO_ALUGUEL && entry.modalidade !== "ALUGUEL") {
+      return NextResponse.json({ error: "Acesso restrito ao financeiro de aluguel." }, { status: 403 });
+    }
     if (entry.saleId || entry.bookingId) {
       return NextResponse.json(
         { error: "Lançamento gerado por uma venda/reserva. Gerencie-o pela origem." },

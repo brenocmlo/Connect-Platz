@@ -6,7 +6,7 @@ import { Lead, FunnelStage, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { SessionPayload } from "@/lib/auth/jwt";
-import { isAdmin } from "@/lib/auth/session";
+import { isAdmin, isFinanceiro } from "@/lib/auth/session";
 import { resolveLeadSource, sourceLabel } from "@/components/crm/leads/leadSource";
 import { INTERESSE_PREFIX, isUuid } from "./leadAccess";
 import { leadDataFields, parsePhone, parseDate, mergeBairros } from "./leadPayload";
@@ -16,6 +16,7 @@ export const LEAD_ACTIONS = [
   "MOVER_BOLSAO",
   "REGISTRAR_CONTATO",
   "MUDAR_ETAPA",
+  "SOLICITAR_FECHAMENTO",
   "ATUALIZAR_CREDITO",
   "ATUALIZAR_TAGS",
   "EDITAR",
@@ -26,6 +27,7 @@ export const UpdateLeadSchema = z.object({
   stageId: z.string().optional().nullable(),
   etapaId: z.string().optional().nullable(),
   corretorId: z.string().optional().nullable(),
+  financialApprovalStatus: z.enum(["PENDENTE", "APROVADO", "REJEITADO"]).optional().nullable(),
   nome: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres.").optional(),
   telefone: z.string().optional(),
   canal: z.string().max(40).optional(),
@@ -124,18 +126,52 @@ export async function buildLeadUpdate(
       conteudo: `Etapa alterada de "${lead.stage.nome}" para "${nextStage.nome}".`,
       metadata: { de: lead.stage.nome, para: nextStage.nome },
     });
+
+    const isClosingStage = /vend|fechad|ganh/i.test(nextStage.nome);
+    if (isClosingStage && lead.financialApprovalStatus !== "APROVADO") {
+      set("financialApprovalStatus", "PENDENTE");
+      plan.events.push({
+        tipo: "fechamento_solicitado",
+        conteudo: `Fechamento comercial registrado por ${session.nome}. Enviado para precificação e formalização do Financeiro.`,
+      });
+    }
   }
 
-  // 4. Troca de corretor (somente administradores)
+  // 3.1 Ação explícita de solicitar fechamento
+  if (input.action === "SOLICITAR_FECHAMENTO") {
+    set("financialApprovalStatus", "PENDENTE");
+    plan.events.push({
+      tipo: "fechamento_solicitado",
+      conteudo: `Fechamento comercial solicitado por ${session.nome}. Aguardando lançamento de valores pelo Financeiro.`,
+    });
+  }
+
+  // 3.2 Atualização de status financeiro
+  if (input.financialApprovalStatus && input.financialApprovalStatus !== lead.financialApprovalStatus) {
+    set("financialApprovalStatus", input.financialApprovalStatus);
+    plan.events.push({
+      tipo: "aprovacao_financeira",
+      conteudo: `Status financeiro alterado para "${input.financialApprovalStatus}" por ${session.nome}.`,
+    });
+  }
+
+  // 4. Troca de corretor (administradores e gestores financeiros da modalidade)
   if (input.corretorId !== undefined && input.corretorId !== lead.corretorId && input.action !== "REGISTRAR_CONTATO") {
-    if (!isAdmin(session.role)) throw new LeadUpdateError("Somente administradores podem trocar o corretor do lead.", 403);
+    const canChangeBroker = isAdmin(session.role) || isFinanceiro(session.role);
+    if (!canChangeBroker) throw new LeadUpdateError("Você não tem permissão para trocar o corretor do lead.", 403);
     const target = input.corretorId && isUuid(input.corretorId)
       ? await prisma.user.findFirst({
           where: { id: input.corretorId, organizationId: session.organizationId, isActive: true },
-          select: { id: true, nome: true },
+          select: { id: true, nome: true, role: true },
         })
       : null;
     if (!target) throw new LeadUpdateError("Corretor informado não pertence à sua organização.");
+    if (session.role === "FINANCEIRO_VENDA" && target.role !== "CORRETOR_VENDA" && target.role !== "ADMINISTRADOR") {
+      throw new LeadUpdateError("Gestor de Venda só pode transferir leads para corretores de Venda.", 403);
+    }
+    if (session.role === "FINANCEIRO_ALUGUEL" && target.role !== "CORRETOR_ALUGUEL" && target.role !== "ADMINISTRADOR") {
+      throw new LeadUpdateError("Gestor de Aluguel só pode transferir leads para corretores de Aluguel.", 403);
+    }
     set("corretorId", target.id);
     set("isBolsao", false);
     const prevName = lead.corretor?.nome;

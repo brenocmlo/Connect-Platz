@@ -3,7 +3,8 @@
 // organização sem colaboradores/resultados ⇒ listas vazias e leader = null.
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth/session";
+import { Role } from "@prisma/client";
+import { requireSession, getUserModality } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { parsePeriod, resolvePeriod } from "@/app/api/dashboard/_lib/period";
 import { computeUserMetrics } from "@/app/api/dashboard/_lib/userMetrics";
@@ -20,9 +21,17 @@ export async function GET(req: NextRequest) {
   try {
     const period = resolvePeriod(parsePeriod(req.nextUrl.searchParams.get("period")));
 
+    const modality = getUserModality(session.role);
+    const roleFilter =
+      modality === "VENDA"
+        ? Role.CORRETOR_VENDA
+        : modality === "ALUGUEL"
+        ? Role.CORRETOR_ALUGUEL
+        : { in: [Role.CORRETOR_VENDA, Role.CORRETOR_ALUGUEL] };
+
     const [users, metrics] = await Promise.all([
       prisma.user.findMany({
-        where: { organizationId: session.organizationId, isActive: true, role: "CORRETOR" },
+        where: { organizationId: session.organizationId, isActive: true, role: roleFilter },
         select: { id: true, nome: true, role: true, photoUrl: true },
         orderBy: { nome: "asc" },
       }),

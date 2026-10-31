@@ -17,6 +17,7 @@ export interface NewCashFlowPayload {
   status: "PENDENTE" | "PAGO";
   dataPagamento?: string;
   meioPagamento: string;
+  modalidade?: "VENDA" | "ALUGUEL";
 }
 
 interface NewCashFlowModalProps {
@@ -24,20 +25,65 @@ interface NewCashFlowModalProps {
   onClose: () => void;
   /** Retorna true quando a API confirmou a criação. */
   onSubmit: (payload: NewCashFlowPayload) => Promise<boolean>;
+  userRole?: string;
+  defaultModality?: "VENDA" | "ALUGUEL";
 }
 
-export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModalProps) {
+export function NewCashFlowModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  userRole,
+  defaultModality,
+}: NewCashFlowModalProps) {
   const todayStr = localDateKey(new Date());
+
+  const initialModality =
+    userRole === "FINANCEIRO_ALUGUEL"
+      ? "ALUGUEL"
+      : userRole === "FINANCEIRO_VENDA"
+      ? "VENDA"
+      : defaultModality || "VENDA";
+
+  const [modalidade, setModalidade] = useState<"VENDA" | "ALUGUEL">(initialModality);
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState<number>(0);
   const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
-  const [categoria, setCategoria] = useState("Tráfego Pago Meta Ads");
+  const [categoria, setCategoria] = useState(
+    initialModality === "ALUGUEL" ? "Repasse Proprietário Temporada" : "Tráfego Pago Meta Ads"
+  );
   const [vencimento, setVencimento] = useState(todayStr);
   const [status, setStatus] = useState<"PENDENTE" | "PAGO">("PENDENTE");
   const [meio, setMeio] = useState<string>("PIX");
   const [submitting, setSubmitting] = useState(false);
 
+  // Sincroniza modalidade ao abrir modal caso role mude
+  React.useEffect(() => {
+    if (isOpen) {
+      const mod =
+        userRole === "FINANCEIRO_ALUGUEL"
+          ? "ALUGUEL"
+          : userRole === "FINANCEIRO_VENDA"
+          ? "VENDA"
+          : defaultModality || "VENDA";
+      setModalidade(mod);
+      setCategoria(
+        mod === "ALUGUEL"
+          ? tipo === "RECEITA"
+            ? "Aluguel Veraneio"
+            : "Repasse Proprietário Temporada"
+          : tipo === "RECEITA"
+          ? "Comissão Venda"
+          : "Tráfego Pago Meta Ads"
+      );
+    }
+  }, [isOpen, userRole, defaultModality, tipo]);
+
   if (!isOpen) return null;
+
+  const isAdmin = userRole === "ADMINISTRADOR";
+  const isFinanceiroVenda = userRole === "FINANCEIRO_VENDA";
+  const isFinanceiroAluguel = userRole === "FINANCEIRO_ALUGUEL";
 
   // Centro de custo derivado do plano de contas (usado no DRE)
   const centroCusto = getAccount(categoria, tipo).centroCustoPadrao;
@@ -55,6 +101,7 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
       status,
       dataPagamento: status === "PAGO" ? todayStr : undefined,
       meioPagamento: meio,
+      modalidade,
     });
     setSubmitting(false);
     // Só limpa e fecha após a API confirmar
@@ -69,6 +116,16 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
   const selectCls =
     "w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue font-semibold";
 
+  // Filtra plano de contas conforme a modalidade ativa
+  const filteredAccounts = accountsByType(tipo).filter((a) => {
+    if (modalidade === "ALUGUEL") {
+      // Exclui categorias específicas de comissão de venda
+      return !a.categoria.includes("Comissão Venda") && !a.categoria.includes("Comissão Revenda") && !a.categoria.includes("Split Comissão");
+    }
+    // Para Venda, exclui categorias exclusivas de aluguel/temporada
+    return !a.categoria.includes("Aluguel Veraneio") && !a.categoria.includes("Taxa de Limpeza") && !a.categoria.includes("Repasse Proprietário") && !a.categoria.includes("Manutenção & Limpeza");
+  });
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
@@ -81,6 +138,49 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {isAdmin ? (
+          <div className="flex items-center justify-between p-2 rounded-xl bg-muted/40 border border-border">
+            <span className="text-[11px] font-semibold text-muted-foreground">Modalidade:</span>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setModalidade("VENDA");
+                  setCategoria(tipo === "RECEITA" ? "Comissão Venda" : "Tráfego Pago Meta Ads");
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                  modalidade === "VENDA"
+                    ? "bg-connect-blue text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Venda
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setModalidade("ALUGUEL");
+                  setCategoria(tipo === "RECEITA" ? "Aluguel Veraneio" : "Repasse Proprietário Temporada");
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                  modalidade === "ALUGUEL"
+                    ? "bg-connect-blue text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Locação / Temporada
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-muted/40 border border-border text-[11px]">
+            <span className="text-muted-foreground font-semibold">Grupo Operacional:</span>
+            <span className="font-bold text-connect-blue">
+              {modalidade === "ALUGUEL" ? "Locação & Temporada" : "Vendas de Imóveis"}
+            </span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div className="grid grid-cols-2 gap-3">
@@ -116,7 +216,7 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
             <div>
               <label className="block text-muted-foreground font-semibold mb-1">Conta (Plano de Contas)</label>
               <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className={selectCls}>
-                {accountsByType(tipo).map((a) => (
+                {filteredAccounts.map((a) => (
                   <option key={a.categoria} value={a.categoria}>
                     {a.categoria}
                   </option>
@@ -136,7 +236,7 @@ export function NewCashFlowModal({ isOpen, onClose, onSubmit }: NewCashFlowModal
             <input
               type="text"
               required
-              placeholder="Ex: Comissão Venda Apartamento 302"
+              placeholder={modalidade === "ALUGUEL" ? "Ex: Diárias Veraneio Bangalô Coral" : "Ex: Comissão Venda Apartamento 302"}
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"

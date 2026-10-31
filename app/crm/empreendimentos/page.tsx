@@ -97,13 +97,16 @@ export default function EmpreendimentosPage() {
   };
 
   // Métricas reais do catálogo (Seção 5.6) — sem valores de exemplo
+  const isAluguel = user?.role === "FINANCEIRO_ALUGUEL" || user?.role === "CORRETOR_ALUGUEL";
   const empreendimentos = properties.filter((p) => p.tipoCadastro !== "AVULSO");
   const totalEmpreendimentos = empreendimentos.length;
   const totalAtivos = properties.filter((p) => p.exibirNaLandingPage !== false).length;
   const totalConstrutoras = new Set(
     properties.map((p) => (p.construtora || "").trim().toLowerCase()).filter(Boolean)
   ).size;
-  const totalVgv = properties.reduce((acc, p) => acc + (Number(p.valorVenda) || 0), 0);
+  const totalVgv = isAluguel
+    ? properties.reduce((acc, p) => acc + (Number(p.valorDiaria) || 0), 0)
+    : properties.reduce((acc, p) => acc + (Number(p.valorVenda) || 0), 0);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fadeIn">
@@ -170,6 +173,7 @@ export default function EmpreendimentosPage() {
         totalAtivos={totalAtivos}
         totalConstrutoras={totalConstrutoras}
         totalVgv={totalVgv}
+        isAluguel={isAluguel}
       />
 
       {/* 4. Conteúdo da Aba Ativa */}

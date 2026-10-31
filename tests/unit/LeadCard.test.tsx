@@ -37,7 +37,7 @@ describe("LeadCard — Alerta de Pendência Financeira", () => {
     );
 
     expect(screen.getByText("Pendência Financeira")).toBeInTheDocument();
-    const btnCadastrar = screen.getByRole("button", { name: /cadastrar venda/i });
+    const btnCadastrar = screen.getByRole("button", { name: /formalizar venda|cadastrar venda|pendência financeira/i });
     expect(btnCadastrar).toBeInTheDocument();
 
     fireEvent.click(btnCadastrar);

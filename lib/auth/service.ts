@@ -100,7 +100,7 @@ export class AuthService {
         nome: params.nome,
         email: params.email.toLowerCase().trim(),
         passwordHash, // Bcrypt hash seguro
-        role: params.role || Role.CORRETOR,
+        role: params.role || Role.CORRETOR_VENDA,
         telefone: params.telefone,
         creci: params.creci,
       },

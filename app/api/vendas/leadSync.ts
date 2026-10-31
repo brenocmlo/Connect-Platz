@@ -53,6 +53,14 @@ export async function syncLeadSaleCompletion({
       data: {
         stageId: winStage.id,
         slaBreached: false,
+        financialApprovalStatus: "APROVADO",
+      },
+    });
+  } else {
+    await tx.lead.update({
+      where: { id: leadId },
+      data: {
+        financialApprovalStatus: "APROVADO",
       },
     });
   }

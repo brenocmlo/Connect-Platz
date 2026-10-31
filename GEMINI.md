@@ -72,6 +72,7 @@
 - ❌ **Sem WhatsApp Integrado:** Manter botões e links diretos para WhatsApp Web / App (`https://wa.me/55...`), sem embutir cliente não oficial de mensagens.
 - ❌ **Sem Inteligência Artificial Externa:** Regras de negócio, cálculos de SLA, roleta e scores devem ser 100% determinísticos.
 - ❌ **Sem Treinamentos e Assinatura:** Não devem existir itens de menu, abas ou telas para "Treinamentos" e "Assinatura" no CRM.
+- 👥 **Perfis de acesso:** o sistema possui 5 perfis oficiais segregados por modalidade e responsabilidade — `ADMINISTRADOR` (gestão total), `FINANCEIRO_VENDA` (financeiro e ERP exclusivo de vendas), `FINANCEIRO_ALUGUEL` (financeiro e ERP exclusivo de locações/temporada), `CORRETOR_VENDA` (leads e vendas próprios; não lança valores de venda nem comissões, apenas solicita o fechamento comercial para o setor Financeiro formalizar) e `CORRETOR_ALUGUEL` (leads e locações próprios; pode fechar aluguéis e reservas de temporada diretamente, bloqueando o calendário, sem preencher nada relacionado a comissão). Corretores de venda não lançam valores contábeis/VGV/comissões.
 - 🔒 **Restrição Rígida de Acesso do Corretor (RBAC) & Menu Lateral:**
   - **Menu Lateral sem "Administração":** O item "Administração" NÃO deve constar no menu lateral (pois seus ajustes estão centralizados no painel de Configurações para gestores).
   - **Corretor sem Acesso à Gestão/Administração:** Corretores têm acesso estritamente à sua conta/perfil profissional em Configurações ("Minha Conta"). As abas de dados corporativos da imobiliária e parametrização de SLAs, bem como os módulos de Fluxo de Caixa, DRE, Equipes e Integrações, são 100% bloqueados para o cargo `CORRETOR`.
@@ -105,6 +106,15 @@
 >   1. **Sem setas duplicadas:** Nunca exibir simultaneamente um ícone visual (Lucide `<TrendingUp />` ou `<TrendingDown />`) e um caractere Unicode de seta (`↗` ou `↘`). Quando houver ícone, o texto não deve conter seta adicional.
 >   2. **Sem sinais matemáticos repetidos:** Nunca exibir `++` ou `--` (ex: `++12.5%` ou `--3%`). O sinal deve ser rigorosamente único: `+12.5%` ou `-3%`.
 >   3. **Sem sufixos duplicados:** Nunca exibir `%%` (ex: `12.5%%`). Componentes como `TrendBadge` devem sanitizar valores em string para evitar concatenação de sufixos já existentes.
+
+---
+
+### 7. Regra Permanente do Graphify
+
+> **MANDATÓRIO / NÃO NEGOCIÁVEL:**  
+> - **Atualização Sob Demanda Exclusiva:** O comando de atualização do grafo de conhecimento (`graphify update .`) **NUNCA deve ser executado de forma automática**.  
+> - Atualize o Graphify **SOMENTE** quando o usuário solicitar expressamente em sua mensagem.
+
 
 
 

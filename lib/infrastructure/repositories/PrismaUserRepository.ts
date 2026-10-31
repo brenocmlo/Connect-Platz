@@ -24,7 +24,7 @@ export class PrismaUserRepository implements IUserRepository {
         nome: data.nome,
         email: data.email.toLowerCase().trim(),
         passwordHash: data.passwordHash,
-        role: data.role || Role.CORRETOR,
+        role: data.role || Role.CORRETOR_VENDA,
         telefone: data.telefone,
         creci: data.creci,
       },
@@ -50,7 +50,7 @@ export class PrismaUserRepository implements IUserRepository {
       where: {
         organizationId,
         isActive: true,
-        role: Role.CORRETOR,
+        role: { in: [Role.CORRETOR_VENDA, Role.CORRETOR_ALUGUEL] },
         status: CorretorStatus.DISPONIVEL,
         checkIns: {
           some: {

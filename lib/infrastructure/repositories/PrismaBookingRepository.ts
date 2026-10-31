@@ -59,9 +59,45 @@ export class PrismaBookingRepository implements IBookingRepository {
           dataPagamento: new Date(),
           status: PaymentStatus.PAGO,
           meioPagamento: data.meioPagamento,
+          modalidade: "ALUGUEL",
           bookingId: booking.id,
         },
       });
+
+      // Se a reserva foi vinculada a um lead, atualiza o status do lead para fechado / ganho no funil de aluguel
+      if (data.leadId) {
+        const lead = await tx.lead.findUnique({
+          where: { id: data.leadId },
+          include: {
+            funnel: {
+              include: { stages: { orderBy: { posicao: "asc" } } },
+            },
+          },
+        });
+        if (lead) {
+          const winStage =
+            lead.funnel.stages.find((st) => /reserv|contrat|fechad|ganh/i.test(st.nome)) ||
+            lead.funnel.stages[lead.funnel.stages.length - 1];
+          if (winStage) {
+            await tx.lead.update({
+              where: { id: lead.id },
+              data: {
+                stageId: winStage.id,
+                slaBreached: false,
+                financialApprovalStatus: "APROVADO",
+              },
+            });
+            await tx.leadTimeline.create({
+              data: {
+                leadId: lead.id,
+                userId: data.corretorId || null,
+                tipo: "reserva_fechada",
+                conteudo: `Reserva de temporada confirmada (${data.totalNights} noites) no imóvel "${booking.property.nome}". Total: ${data.valorTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`,
+              },
+            });
+          }
+        }
+      }
 
       return booking;
     });

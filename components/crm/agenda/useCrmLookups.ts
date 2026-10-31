@@ -14,6 +14,7 @@ export interface LookupLead {
   email?: string | null;
   corretorId?: string | null;
   corretorNome?: string | null;
+  empreendimentoInteresse?: string | null;
 }
 
 export interface LookupProperty {
@@ -24,6 +25,9 @@ export interface LookupProperty {
   cidade?: string | null;
   endereco?: string | null;
   valorVenda?: number | null;
+  valorDiaria?: number | null;
+  taxaLimpeza?: number | null;
+  modalidade?: string;
 }
 
 export interface LookupMember {
@@ -71,6 +75,7 @@ export function useCrmLookups({ enabled, leads = true, properties = true, member
                 email: l.email,
                 corretorId: l.corretorId ?? l.corretor?.id ?? null,
                 corretorNome: l.corretor?.nome ?? null,
+                empreendimentoInteresse: l.empreendimentoInteresse ?? null,
               }))
           );
         }
@@ -88,6 +93,9 @@ export function useCrmLookups({ enabled, leads = true, properties = true, member
                 cidade: p.cidade,
                 endereco: p.endereco,
                 valorVenda: p.valorVenda != null ? Number(p.valorVenda) : null,
+                valorDiaria: p.valorDiaria != null ? Number(p.valorDiaria) : null,
+                taxaLimpeza: p.taxaLimpeza != null ? Number(p.taxaLimpeza) : null,
+                modalidade: p.modalidade,
               }))
           );
         }

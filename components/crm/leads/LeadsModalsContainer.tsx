@@ -13,7 +13,10 @@ import { WhatsAppTemplatesModal } from "@/components/crm/leads/WhatsAppTemplates
 import { ToastFeedback } from "@/components/crm/primitives";
 import { ChangeBrokerModal } from "./ChangeBrokerModal";
 import { NewSaleModal } from "@/components/crm/vendas/NewSaleModal";
+import { RequestClosingModal } from "./RequestClosingModal";
+import { NewBookingModal } from "@/components/crm/temporada/NewBookingModal";
 import { LookupMember } from "@/components/crm/agenda/useCrmLookups";
+import { useCrm } from "@/components/crm/CrmContext";
 
 interface LeadsModalsContainerProps {
   isNewLeadModalOpen: boolean;
@@ -133,6 +136,16 @@ export function LeadsModalsContainer({
   toastType = "success",
   onCloseToast,
 }: LeadsModalsContainerProps) {
+  const { user } = useCrm();
+  const isBroker =
+    user?.role === "CORRETOR_VENDA" ||
+    user?.role === "CORRETOR_ALUGUEL" ||
+    user?.role === "CORRETOR";
+  const isRentalTarget =
+    user?.role === "CORRETOR_ALUGUEL" ||
+    user?.role === "FINANCEIRO_ALUGUEL" ||
+    saleModalTarget?.modalidade === "ALUGUEL";
+
   return (
     <>
       <NewLeadModal
@@ -201,12 +214,28 @@ export function LeadsModalsContainer({
       )}
 
       {saleModalTarget && onSubmitSale && onCloseSaleModal && (
-        <NewSaleModal
-          isOpen={Boolean(saleModalTarget)}
-          preselectedLead={saleModalTarget}
-          onClose={onCloseSaleModal}
-          onSubmit={onSubmitSale}
-        />
+        isRentalTarget ? (
+          <NewBookingModal
+            isOpen={Boolean(saleModalTarget)}
+            preselectedLead={saleModalTarget}
+            onClose={onCloseSaleModal}
+            onSubmit={() => onSubmitSale(null)}
+          />
+        ) : isBroker ? (
+          <RequestClosingModal
+            isOpen={Boolean(saleModalTarget)}
+            lead={saleModalTarget}
+            onClose={onCloseSaleModal}
+            onSuccess={() => onSubmitSale(null)}
+          />
+        ) : (
+          <NewSaleModal
+            isOpen={Boolean(saleModalTarget)}
+            preselectedLead={saleModalTarget}
+            onClose={onCloseSaleModal}
+            onSubmit={onSubmitSale}
+          />
+        )
       )}
 
       <NewAppointmentModal

@@ -9,7 +9,7 @@ import { AccessDeniedCard } from "@/components/crm/AccessDeniedCard";
 export default function IntegracoesPage() {
   const { user } = useCrm();
 
-  if (user && user.role === "CORRETOR") {
+  if (user && user.role !== "ADMINISTRADOR") {
     return (
       <AccessDeniedCard
         moduleName="os Canais e Integrações de Portais"

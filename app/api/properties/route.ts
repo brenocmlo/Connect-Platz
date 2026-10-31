@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { PropertyModality, UnitStatus } from "@prisma/client";
-import { getRequestSession, requireSession, ADMIN_ROLES } from "@/lib/auth/session";
+import { getRequestSession, requireSession, ADMIN_ROLES, getUserModality } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import {
   auditSnapshot,
@@ -47,10 +47,25 @@ export async function GET(req: NextRequest) {
 
     const where: any = { ...baseWhere };
     if (tipoCadastro && tipoCadastro !== "TODOS") where.tipoCadastro = tipoCadastro;
-    if (modalidade === "VENDA") {
-      where.modalidade = { in: [PropertyModality.VENDA, PropertyModality.AMBOS] };
-    } else if (modalidade === "VERANEIO" || modalidade === "VERANEIO_TEMPORADA") {
-      where.modalidade = { in: [PropertyModality.VERANEIO_TEMPORADA, PropertyModality.AMBOS] };
+
+    // Segregação rígida por modalidade do usuário autenticado no CRM
+    if (!portal && session) {
+      const userModality = getUserModality(session.role);
+      if (userModality === "VENDA") {
+        where.modalidade = { in: [PropertyModality.VENDA, PropertyModality.AMBOS] };
+      } else if (userModality === "ALUGUEL") {
+        where.modalidade = {
+          in: [PropertyModality.VERANEIO_TEMPORADA, PropertyModality.LOCACAO_ANUAL, PropertyModality.AMBOS],
+        };
+      }
+    } else {
+      if (modalidade === "VENDA") {
+        where.modalidade = { in: [PropertyModality.VENDA, PropertyModality.AMBOS] };
+      } else if (modalidade === "VERANEIO" || modalidade === "VERANEIO_TEMPORADA" || modalidade === "ALUGUEL") {
+        where.modalidade = {
+          in: [PropertyModality.VERANEIO_TEMPORADA, PropertyModality.LOCACAO_ANUAL, PropertyModality.AMBOS],
+        };
+      }
     }
     if (localizacao) {
       where.OR = [

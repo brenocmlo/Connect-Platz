@@ -8,14 +8,17 @@ import { SectionTitle } from "@/components/crm/SectionTitle";
 import { AccessDeniedCard } from "@/components/crm/AccessDeniedCard";
 import { RoletaDistributionPanel } from "@/components/crm/equipes/RoletaDistributionPanel";
 import { InviteCollaboratorModal, InviteCollaboratorData } from "@/components/crm/equipes/InviteCollaboratorModal";
+import { EditCollaboratorModal, EditCollaboratorData } from "@/components/crm/equipes/EditCollaboratorModal";
 import { RemoveBrokerModal } from "@/components/crm/equipes/RemoveBrokerModal";
 import { TeamStatCards } from "@/components/crm/equipes/TeamStatCards";
 import { TeamMembersTable } from "@/components/crm/equipes/TeamMembersTable";
-import { TeamMember, MemberStatus, STATUS_META } from "@/components/crm/equipes/types";
+import { TeamMember, MemberStatus, STATUS_META, ROLE_LABEL, MemberRole } from "@/components/crm/equipes/types";
 
 export default function EquipesPage() {
   const { user, setActionMessage } = useCrm();
   const isAdmin = user?.role === "ADMINISTRADOR";
+  const isFinanceiro = user?.role === "FINANCEIRO_VENDA" || user?.role === "FINANCEIRO_ALUGUEL";
+  const canAccessEquipes = isAdmin || isFinanceiro;
 
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,7 @@ export default function EquipesPage() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [brokerToRemove, setBrokerToRemove] = useState<TeamMember | null>(null);
+  const [brokerToEdit, setBrokerToEdit] = useState<TeamMember | null>(null);
   const [activeTab, setActiveTab] = useState<"membros" | "roleta">("membros");
 
   const flash = (msg: string) => {
@@ -46,8 +50,8 @@ export default function EquipesPage() {
   }, []);
 
   useEffect(() => {
-    if (user && isAdmin) loadTeam();
-  }, [user, isAdmin, loadTeam]);
+    if (user && canAccessEquipes) loadTeam();
+  }, [user, canAccessEquipes, loadTeam]);
 
   const handleStatusChange = async (id: string, newStatus: MemberStatus) => {
     const previous = team;
@@ -91,11 +95,47 @@ export default function EquipesPage() {
     flash(data?.message || `${member.nome} foi removido(a) da equipe com sucesso.`);
   };
 
-  if (user && !isAdmin) {
+  const handleEditMember = async (data: EditCollaboratorData) => {
+    const res = await fetch("/api/equipes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body?.error || "Não foi possível atualizar o colaborador.");
+    const updated = body.member as TeamMember;
+    setTeam((prev) =>
+      prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
+    );
+    flash(`Colaborador ${data.nome} atualizado com sucesso.`);
+  };
+
+  const handleRoleChange = async (id: string, newRole: MemberRole) => {
+    const previous = team;
+    setPendingId(id);
+    setTeam((prev) => prev.map((m) => (m.id === id ? { ...m, role: newRole } : m)));
+    try {
+      const res = await fetch("/api/equipes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id, role: newRole }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Falha ao alterar o cargo.");
+      flash(`Cargo alterado para ${ROLE_LABEL[newRole] || newRole}.`);
+    } catch (err) {
+      setTeam(previous);
+      flash(err instanceof Error ? err.message : "Falha ao alterar o cargo.");
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  if (user && !canAccessEquipes) {
     return (
       <AccessDeniedCard
         moduleName="a Gestão de Equipes e Corretores"
-        allowedLabel="Administradores"
+        allowedLabel="Administradores e Gestores Financeiros"
       />
     );
   }
@@ -105,11 +145,18 @@ export default function EquipesPage() {
       active ? "bg-card text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
     }`;
 
+  const subtitle =
+    user?.role === "FINANCEIRO_VENDA"
+      ? "Gerencie os corretores do seu time de Vendas e acompanhe a disponibilidade."
+      : user?.role === "FINANCEIRO_ALUGUEL"
+      ? "Gerencie os corretores do seu time de Aluguel/Temporada e acompanhe a disponibilidade."
+      : "Corretores da equipe e disponibilidade de atendimento em tempo real.";
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       <PageHeader
         title="Equipe & Roleta Comercial"
-        subtitle="Corretores da equipe e disponibilidade de atendimento em tempo real."
+        subtitle={subtitle}
         actionLabel="Convidar Colaborador"
         onActionClick={() => setIsInviteModalOpen(true)}
         showPeriodSelector={false}
@@ -150,7 +197,10 @@ export default function EquipesPage() {
             team={team}
             loading={loading}
             isAdmin={isAdmin}
+            userRole={user?.role}
+            onRoleChange={isAdmin ? handleRoleChange : undefined}
             onRequestRemove={(m) => setBrokerToRemove(m)}
+            onRequestEdit={(m) => setBrokerToEdit(m)}
           />
         </div>
       )}
@@ -159,6 +209,15 @@ export default function EquipesPage() {
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
         onInvite={handleInvite}
+        userRole={user?.role}
+      />
+
+      <EditCollaboratorModal
+        isOpen={Boolean(brokerToEdit)}
+        member={brokerToEdit}
+        onClose={() => setBrokerToEdit(null)}
+        onSave={handleEditMember}
+        currentUserRole={user?.role}
       />
 
       <RemoveBrokerModal

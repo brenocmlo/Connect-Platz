@@ -4,11 +4,19 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCrmNotifications } from "./useCrmNotifications";
 
+export type UserRole =
+  | "ADMINISTRADOR"
+  | "FINANCEIRO_VENDA"
+  | "FINANCEIRO_ALUGUEL"
+  | "CORRETOR_VENDA"
+  | "CORRETOR_ALUGUEL"
+  | "CORRETOR";
+
 export interface UserSession {
   id: string;
   nome: string;
   email: string;
-  role: "ADMINISTRADOR" | "CORRETOR";
+  role: UserRole;
   status: "DISPONIVEL" | "EM_VISITA" | "PAUSA" | "OFFLINE";
   organizationId: string;
   hasCheckedInToday: boolean;

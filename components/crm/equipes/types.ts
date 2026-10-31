@@ -1,6 +1,12 @@
 // components/crm/equipes/types.ts
 
-export type MemberRole = "ADMINISTRADOR" | "CORRETOR";
+export type MemberRole =
+  | "ADMINISTRADOR"
+  | "FINANCEIRO_VENDA"
+  | "FINANCEIRO_ALUGUEL"
+  | "CORRETOR_VENDA"
+  | "CORRETOR_ALUGUEL"
+  | "CORRETOR";
 export type MemberStatus = "DISPONIVEL" | "EM_VISITA" | "PAUSA" | "OFFLINE";
 
 export interface TeamMember {
@@ -19,6 +25,10 @@ export interface TeamMember {
 
 export const ROLE_LABEL: Record<MemberRole, string> = {
   ADMINISTRADOR: "Administrador",
+  FINANCEIRO_VENDA: "Financeiro (Venda)",
+  FINANCEIRO_ALUGUEL: "Financeiro (Aluguel)",
+  CORRETOR_VENDA: "Corretor (Venda)",
+  CORRETOR_ALUGUEL: "Corretor (Aluguel)",
   CORRETOR: "Corretor",
 };
 
@@ -37,7 +47,11 @@ export const STATUS_META: Record<MemberStatus, { label: string; cls: string }> =
 
 /** Corretor apto à roleta: ativo, Disponível e com check-in feito hoje. */
 export function isRoletaEligible(m: TeamMember): boolean {
-  return m.role === "CORRETOR" && m.status === "DISPONIVEL" && m.hasCheckedInToday;
+  return (
+    (m.role === "CORRETOR_VENDA" || m.role === "CORRETOR_ALUGUEL" || m.role === "CORRETOR") &&
+    m.status === "DISPONIVEL" &&
+    m.hasCheckedInToday
+  );
 }
 
 /** Mesma ordenação da roleta do servidor: quem está há mais tempo sem receber lead primeiro. */

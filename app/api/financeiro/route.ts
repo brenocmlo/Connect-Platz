@@ -5,22 +5,36 @@
 import { getAccount } from "@/lib/services/dre";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { CashFlowType, PaymentStatus } from "@prisma/client";
+import { CashFlowType, PaymentStatus, Role, BusinessModality } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
+import { requireSession, FINANCE_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { serializeCashFlow, parseDateOnly, paymentMethodValues } from "./shared";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const auth = requireSession(req, ADMIN_ROLES);
+  const auth = requireSession(req, FINANCE_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
+  const queryModality = req.nextUrl.searchParams.get("modalidade");
+  const modalityFilter =
+    session.role === Role.FINANCEIRO_VENDA
+      ? "VENDA"
+      : session.role === Role.FINANCEIRO_ALUGUEL
+      ? "ALUGUEL"
+      : queryModality === "VENDA" || queryModality === "ALUGUEL"
+      ? queryModality
+      : undefined;
+
   try {
     const entries = await prisma.cashFlow.findMany({
-      where: { organizationId: session.organizationId, status: { not: PaymentStatus.CANCELADO } },
+      where: {
+        organizationId: session.organizationId,
+        status: { not: PaymentStatus.CANCELADO },
+        ...(modalityFilter ? { modalidade: modalityFilter as BusinessModality } : {}),
+      },
       orderBy: { dataVencimento: "desc" },
       take: 1000,
     });
@@ -71,10 +85,11 @@ const CreateSchema = z
     dataPagamento: dateOnly.optional(),
     meioPagamento: z.enum(paymentMethodValues).nullable().optional(),
     isRecorrente: z.boolean().optional().default(false),
+    modalidade: z.enum(["VENDA", "ALUGUEL"]).optional(),
   });
 
 export async function POST(req: NextRequest) {
-  const auth = requireSession(req, ADMIN_ROLES);
+  const auth = requireSession(req, FINANCE_ROLES);
   if (auth.error) return auth.error;
   const { session } = auth;
 
@@ -87,6 +102,13 @@ export async function POST(req: NextRequest) {
     );
   }
   const data = parsed.data;
+
+  const entryModality: BusinessModality =
+    session.role === Role.FINANCEIRO_ALUGUEL
+      ? "ALUGUEL"
+      : session.role === Role.FINANCEIRO_VENDA
+      ? "VENDA"
+      : data.modalidade || "VENDA";
 
   try {
     const pago = data.status === "PAGO";
@@ -103,6 +125,7 @@ export async function POST(req: NextRequest) {
         meioPagamento: data.meioPagamento ?? null,
         isRecorrente: data.isRecorrente,
         centroCusto: getAccount(data.categoria, data.tipo).centroCustoPadrao,
+        modalidade: entryModality,
       },
     });
 
