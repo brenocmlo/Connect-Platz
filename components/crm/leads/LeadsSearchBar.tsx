@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 
 interface LeadsSearchBarProps {
   searchQuery: string;
@@ -16,6 +16,22 @@ export function LeadsSearchBar({
   onOpenFilters,
   hasActiveFilters = false,
 }: LeadsSearchBarProps) {
+  const [localQuery, setLocalQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    setLocalQuery(searchQuery);
+  }, [searchQuery]);
+
+  // Debounce de 250ms para altíssimo desempenho ao digitar
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (localQuery !== searchQuery) {
+        setSearchQuery(localQuery);
+      }
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [localQuery, searchQuery, setSearchQuery]);
+
   return (
     <div className="flex items-center gap-2">
       <div className="relative flex-1">
@@ -23,10 +39,22 @@ export function LeadsSearchBar({
         <input
           type="text"
           placeholder="Busque por nome, e-mail ou telefone…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2 text-base sm:text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue shadow-xs transition-all"
+          value={localQuery}
+          onChange={(e) => setLocalQuery(e.target.value)}
+          className="w-full bg-card border border-border rounded-xl pl-10 pr-9 py-2 text-base sm:text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue shadow-xs transition-all"
         />
+        {localQuery && (
+          <button
+            onClick={() => {
+              setLocalQuery("");
+              setSearchQuery("");
+            }}
+            className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground p-0.5 rounded-full"
+            title="Limpar busca"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       <button

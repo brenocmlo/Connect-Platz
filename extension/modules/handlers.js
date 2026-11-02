@@ -53,6 +53,12 @@ window.PlatzHandlers = {
 
     form.onsubmit = async (e) => {
       e.preventDefault();
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Cadastrando...";
+      }
+
       const nome = shadowRoot.getElementById("platz-new-name")?.value;
       const telefone = shadowRoot.getElementById("platz-new-phone")?.value;
       const modalidade = shadowRoot.getElementById("platz-new-modality")?.value || "VENDA";
@@ -62,10 +68,15 @@ window.PlatzHandlers = {
 
       try {
         await window.PlatzApi.createLead({ nome, telefone, modalidade, propertyInteresse, corretorId, observacoes });
-        showToast("Lead cadastrado com sucesso no Connect Platz!");
+        showToast("Lead salvo no Connect Platz!");
         detectActiveChat(true);
       } catch (err) {
         showToast(`Erro: ${err.message}`);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "+ Cadastrar no Connect Platz";
+        }
       }
     };
   },
@@ -73,6 +84,16 @@ window.PlatzHandlers = {
   attachLeadEvents(ctx) {
     const { shadowRoot, showToast, currentLead, currentUser, detectActiveChat, onFilterChange } = ctx;
     if (!currentLead) return;
+
+    // 0. Abrir Lead diretamente no CRM
+    const openLeadCrmBtn = shadowRoot.getElementById("platz-open-lead-crm-btn");
+    if (openLeadCrmBtn) {
+      openLeadCrmBtn.onclick = async () => {
+        const apiUrl = await window.PlatzStorage.getApiUrl();
+        const funnelParam = currentLead.funil?.id ? `funnelId=${currentLead.funil.id}&` : "";
+        window.open(`${apiUrl}/crm/leads?${funnelParam}leadId=${currentLead.id}`, "_blank");
+      };
+    }
 
     // 1. Mudança de Etapa
     const stageSelect = shadowRoot.getElementById("platz-stage-select");

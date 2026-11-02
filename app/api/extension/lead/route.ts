@@ -205,6 +205,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Nenhum funil ativo encontrado para esta modalidade." }, { status: 400 });
     }
 
+    // Prevenção de duplicidade: verifica se já existe na organização pelo telefone
+    const existingLead = await prisma.lead.findFirst({
+      where: {
+        organizationId: session.organizationId,
+        isClosed: false,
+        OR: [{ telefone: normalizedPhone }, { telefone: { contains: normalizedPhone.slice(-8) } }],
+      },
+    });
+
+    if (existingLead) {
+      const updateData: Record<string, unknown> = {};
+      if (parsed.data.nome && parsed.data.nome.trim().length > existingLead.nome.trim().length) {
+        updateData.nome = parsed.data.nome.trim();
+      }
+      if (parsed.data.propertyInteresse) {
+        const curTags = Array.isArray(existingLead.tags) ? existingLead.tags : [];
+        const tag = `Imóvel: ${parsed.data.propertyInteresse}`;
+        if (!curTags.includes(tag)) updateData.tags = [...curTags, tag];
+      }
+      if (Object.keys(updateData).length > 0) {
+        await prisma.lead.update({ where: { id: existingLead.id }, data: updateData });
+      }
+      return NextResponse.json({
+        success: true,
+        leadId: existingLead.id,
+        nome: existingLead.nome,
+        telefone: existingLead.telefone,
+        isExisting: true,
+      });
+    }
+
     const tags: string[] = [];
     if (parsed.data.propertyInteresse) tags.push(`Imóvel: ${parsed.data.propertyInteresse}`);
 

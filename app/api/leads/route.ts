@@ -82,12 +82,49 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    // Busca cross-funnel: se houver parâmetro de busca, checa se há leads correspondentes em outros funis
+    const searchParam = searchParams.get("search");
+    let otherFunnelMatches: Array<{ id: string; nome: string; telefone: string; funilId: string; funilNome: string; stageNome: string }> = [];
+
+    if (searchParam && searchParam.trim().length >= 2) {
+      const cleanQ = searchParam.trim();
+      const rawMatches = await prisma.lead.findMany({
+        where: {
+          ...buildLeadRLSWhere(ctx),
+          funnelId: { not: funnel.id },
+          isClosed: false,
+          OR: [
+            { nome: { contains: cleanQ, mode: "insensitive" } },
+            { telefone: { contains: cleanQ.replace(/\D/g, "") } },
+          ],
+        },
+        select: {
+          id: true,
+          nome: true,
+          telefone: true,
+          funnel: { select: { id: true, nome: true } },
+          stage: { select: { nome: true } },
+        },
+        take: 3,
+      });
+
+      otherFunnelMatches = rawMatches.map((m) => ({
+        id: m.id,
+        nome: m.nome,
+        telefone: m.telefone,
+        funilId: m.funnel.id,
+        funilNome: m.funnel.nome,
+        stageNome: m.stage.nome,
+      }));
+    }
+
     return NextResponse.json(
       {
         leads: leads.map((lead) => serializeLead(lead, ctx)),
         stages: funnel.stages,
         funnel: { id: funnel.id, nome: funnel.nome },
         funnels,
+        otherFunnelMatches,
       },
       { status: 200 }
     );
@@ -145,6 +182,28 @@ export async function POST(req: NextRequest) {
     const { source, utmSource } = resolveLeadSource(data.origem || data.source);
     const renda = data.rendaDeclarada ?? data.renda;
     const observacoes = data.observacoes?.trim() || null;
+
+    // Prevenção de duplicidade: se já existe um lead com o mesmo telefone na organização, atualiza
+    const existing = await prisma.lead.findFirst({
+      where: {
+        organizationId: session.organizationId,
+        isClosed: false,
+        OR: [{ telefone }, { telefone: { contains: telefone.slice(-8) } }],
+      },
+    });
+
+    if (existing) {
+      const updated = await prisma.lead.update({
+        where: { id: existing.id },
+        data: {
+          nome: data.nome.trim().length > existing.nome.trim().length ? data.nome.trim() : existing.nome,
+          email: data.email || existing.email,
+          observacoes: observacoes ? `${existing.observacoes || ""}\n${observacoes}`.trim() : existing.observacoes,
+        },
+        include: leadInclude,
+      });
+      return NextResponse.json({ lead: serializeLead(updated, ctx), isExisting: true }, { status: 200 });
+    }
 
     const created = await prisma.lead.create({
       data: {

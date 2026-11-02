@@ -155,7 +155,12 @@ window.PlatzUI = {
               <div class="platz-lead-name">${lead.nome}</div>
               <div class="platz-lead-phone">📱 ${lead.telefone}</div>
             </div>
-            <span class="platz-pill ${tempClass}">${tempEmoji} ${lead.score}/100</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <span class="platz-pill ${tempClass}">${tempEmoji} ${lead.score}/100</span>
+              <button class="platz-icon-btn" id="platz-open-lead-crm-btn" style="padding: 2px 5px; font-size: 9px;" title="Ver Lead no CRM">
+                CRM ↗
+              </button>
+            </div>
           </div>
           <div class="platz-badge-row">
             ${slaHtml}
