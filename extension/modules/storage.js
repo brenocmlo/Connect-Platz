@@ -1,5 +1,5 @@
 // extension/modules/storage.js
-// Gerenciamento de armazenamento local da extensão via chrome.storage.local com proteção anti-invalidação
+// Gerenciamento de armazenamento local com proteção contra invalidação de contexto
 
 window.PlatzStorage = {
   DEFAULT_API_URL: "http://localhost:3001",
@@ -7,26 +7,38 @@ window.PlatzStorage = {
 
   isContextValid() {
     try {
-      return typeof chrome !== "undefined" && !!chrome.runtime && !!chrome.runtime.id;
+      if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.id) {
+        return false;
+      }
+      return !!chrome.runtime.getManifest();
     } catch {
       return false;
     }
   },
 
   async get(key, defaultValue = null) {
+    // 1. Se contexto foi invalidado, tenta ler do localStorage
     if (!this.isContextValid()) {
+      try {
+        const localVal = window.localStorage.getItem("platz_" + key);
+        if (localVal !== null) return JSON.parse(localVal);
+      } catch {}
       return this._memoryCache[key] !== undefined ? this._memoryCache[key] : defaultValue;
     }
 
+    // 2. Leitura com chrome.storage.local
     return new Promise((resolve) => {
       try {
         chrome.storage.local.get([key], (result) => {
-          if (chrome.runtime.lastError) {
+          if (chrome.runtime?.lastError) {
             resolve(this._memoryCache[key] !== undefined ? this._memoryCache[key] : defaultValue);
             return;
           }
           const val = result?.[key] !== undefined ? result[key] : defaultValue;
           this._memoryCache[key] = val;
+          try {
+            window.localStorage.setItem("platz_" + key, JSON.stringify(val));
+          } catch {}
           resolve(val);
         });
       } catch {
@@ -37,16 +49,15 @@ window.PlatzStorage = {
 
   async set(key, value) {
     this._memoryCache[key] = value;
+    try {
+      window.localStorage.setItem("platz_" + key, JSON.stringify(value));
+    } catch {}
+
     if (!this.isContextValid()) return true;
 
     return new Promise((resolve) => {
       try {
-        chrome.storage.local.set({ [key]: value }, () => {
-          if (chrome.runtime.lastError) {
-            // Silencioso se o contexto foi invalidado
-          }
-          resolve(true);
-        });
+        chrome.storage.local.set({ [key]: value }, () => resolve(true));
       } catch {
         resolve(true);
       }
@@ -54,8 +65,13 @@ window.PlatzStorage = {
   },
 
   async getApiUrl() {
-    const url = await this.get("platz_api_url", this.DEFAULT_API_URL);
-    return String(url || this.DEFAULT_API_URL).trim().replace(/\/+$/, "");
+    let url = await this.get("platz_api_url", this.DEFAULT_API_URL);
+    // Se estiver vazio ou apontando para a porta 3000 antiga, atualiza para 3001
+    if (!url || String(url).includes(":3000")) {
+      url = this.DEFAULT_API_URL;
+      await this.set("platz_api_url", url);
+    }
+    return String(url).trim().replace(/\/+$/, "");
   },
 
   async setApiUrl(url) {
@@ -90,6 +106,11 @@ window.PlatzStorage = {
   async clearAuth() {
     delete this._memoryCache["platz_token"];
     delete this._memoryCache["platz_user"];
+    try {
+      window.localStorage.removeItem("platz_platz_token");
+      window.localStorage.removeItem("platz_platz_user");
+    } catch {}
+
     if (!this.isContextValid()) return true;
 
     return new Promise((resolve) => {

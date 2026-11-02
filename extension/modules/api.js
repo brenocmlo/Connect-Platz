@@ -1,27 +1,7 @@
 // extension/modules/api.js
-// Cliente HTTP para os endpoints da API Connect Platz via Background Service Worker ou Fetch direto
+// Cliente HTTP para os endpoints da API Connect Platz via Background Service Worker
 
 window.PlatzApi = {
-  async directFetch(fullUrl, options) {
-    try {
-      const response = await fetch(fullUrl, options);
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || `Erro ${response.status}: Falha na requisição.`);
-      }
-      return data;
-    } catch (err) {
-      if (err instanceof TypeError && err.message.includes("Failed to fetch")) {
-        throw new Error(
-          "Não foi possível conectar ao servidor CRM em " +
-            fullUrl +
-            ". Verifique se o backend está rodando no terminal (porta 3001)."
-        );
-      }
-      throw err;
-    }
-  },
-
   async request(endpoint, options = {}) {
     const baseUrl = await window.PlatzStorage.getApiUrl();
     const token = await window.PlatzStorage.getToken();
@@ -41,39 +21,44 @@ window.PlatzApi = {
       headers,
     };
 
-    // 1. Tenta usar o service worker se o contexto da extensão estiver ativo
-    const hasValidContext =
-      typeof chrome !== "undefined" &&
-      chrome.runtime &&
-      !!chrome.runtime.id &&
-      typeof chrome.runtime.sendMessage === "function";
-
-    if (hasValidContext) {
-      return new Promise((resolve, reject) => {
-        try {
-          chrome.runtime.sendMessage(
-            { action: "api_fetch", url: fullUrl, options: fetchOptions },
-            (response) => {
-              if (chrome.runtime.lastError) {
-                // Se o service worker estiver dormente ou invalidado, faz fallback para fetch direto
-                this.directFetch(fullUrl, fetchOptions).then(resolve).catch(reject);
-                return;
-              }
-              if (!response || !response.ok) {
-                reject(new Error(response?.error || "Falha na resposta do servidor."));
-              } else {
-                resolve(response.data);
-              }
-            }
-          );
-        } catch {
-          this.directFetch(fullUrl, fetchOptions).then(resolve).catch(reject);
-        }
-      });
+    // 1. Se a extensão foi recarregada no Chrome sem refresh da aba
+    if (!window.PlatzStorage.isContextValid()) {
+      throw new Error(
+        "A extensão foi atualizada no Chrome. Por favor, recarregue a aba do WhatsApp (F5 ou Cmd+R) para continuar."
+      );
     }
 
-    // 2. Fallback direto se contexto da extensão estiver reiniciando
-    return this.directFetch(fullUrl, fetchOptions);
+    // 2. Envia a requisição para o background service worker (evita CORS e CSP)
+    return new Promise((resolve, reject) => {
+      try {
+        chrome.runtime.sendMessage(
+          { action: "api_fetch", url: fullUrl, options: fetchOptions },
+          (response) => {
+            if (chrome.runtime?.lastError) {
+              const errMsg = chrome.runtime.lastError.message || "";
+              if (errMsg.toLowerCase().includes("invalidated")) {
+                reject(
+                  new Error("A extensão foi atualizada. Pressione F5 para recarregar o WhatsApp Web.")
+                );
+              } else {
+                reject(new Error(errMsg || "Falha na comunicação com o serviço da extensão."));
+              }
+              return;
+            }
+
+            if (!response || !response.ok) {
+              reject(new Error(response?.error || "Falha na resposta do servidor CRM."));
+            } else {
+              resolve(response.data);
+            }
+          }
+        );
+      } catch {
+        reject(
+          new Error("A extensão foi atualizada. Pressione F5 para recarregar o WhatsApp Web.")
+        );
+      }
+    });
   },
 
   async login(email, password) {

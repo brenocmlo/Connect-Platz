@@ -162,6 +162,24 @@
   function renderLogin(error = null) {
     const container = resetContainer();
     container.insertAdjacentHTML("beforeend", window.PlatzUI.renderHeader(null));
+
+    if (!window.PlatzStorage.isContextValid()) {
+      container.insertAdjacentHTML(
+        "beforeend",
+        `<div style="padding: 10px 10px 0 10px;">
+          <div class="platz-alert-banner">
+            <span>⚠️ Extensão atualizada no Chrome.</span>
+            <button class="platz-btn-secondary" id="platz-reload-page-btn" style="padding: 2px 6px; font-size: 9px; cursor: pointer;">
+              Recarregar (F5)
+            </button>
+          </div>
+        </div>`
+      );
+      shadowRoot.getElementById("platz-reload-page-btn")?.addEventListener("click", () => {
+        window.location.reload();
+      });
+    }
+
     window.PlatzStorage.getApiUrl().then((apiUrl) => {
       container.insertAdjacentHTML("beforeend", window.PlatzUI.renderLoginView(error, apiUrl));
       window.PlatzHandlers.attachLoginEvents(getHandlerContext());
