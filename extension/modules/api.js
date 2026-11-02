@@ -1,10 +1,20 @@
 // extension/modules/api.js
-// Cliente HTTP para os endpoints da API Connect Platz
+// Cliente HTTP para os endpoints da API Connect Platz via Background Service Worker (anti-CORS)
 
 window.PlatzApi = {
+  async directFetch(fullUrl, options) {
+    const response = await fetch(fullUrl, options);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || `Erro ${response.status}: Falha na requisição.`);
+    }
+    return data;
+  },
+
   async request(endpoint, options = {}) {
     const baseUrl = await window.PlatzStorage.getApiUrl();
     const token = await window.PlatzStorage.getToken();
+    const fullUrl = `${baseUrl}${endpoint}`;
 
     const headers = {
       "Content-Type": "application/json",
@@ -15,18 +25,38 @@ window.PlatzApi = {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${baseUrl}${endpoint}`, {
+    const fetchOptions = {
       ...options,
       headers,
-    });
+    };
 
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(data.error || `Erro ${response.status}: Falha na requisição.`);
+    // 1. Prioriza o background service worker para contornar restrições de CORS e CSP do WhatsApp Web
+    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+      return new Promise((resolve, reject) => {
+        try {
+          chrome.runtime.sendMessage(
+            { action: "api_fetch", url: fullUrl, options: fetchOptions },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                // Caso o service worker esteja inativo ou ocorra erro de mensagem, tenta fetch direto
+                this.directFetch(fullUrl, fetchOptions).then(resolve).catch(reject);
+                return;
+              }
+              if (!response || !response.ok) {
+                reject(new Error(response?.error || "Falha na resposta do servidor."));
+              } else {
+                resolve(response.data);
+              }
+            }
+          );
+        } catch {
+          this.directFetch(fullUrl, fetchOptions).then(resolve).catch(reject);
+        }
+      });
     }
 
-    return data;
+    // 2. Fallback para fetch direto
+    return this.directFetch(fullUrl, fetchOptions);
   },
 
   async login(email, password) {

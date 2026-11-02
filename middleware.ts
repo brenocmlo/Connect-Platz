@@ -84,6 +84,28 @@ export async function middleware(request: NextRequest) {
   const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
   const token = request.cookies.get("connect_platz_token")?.value || bearerToken;
 
+  // 0. Preflight CORS e headers para a extensão do WhatsApp Web
+  if (pathname.startsWith("/api/extension")) {
+    if (request.method === "OPTIONS") {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+          "Access-Control-Allow-Private-Network": "true",
+        },
+      });
+    }
+
+    const response = NextResponse.next();
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+    response.headers.set("Access-Control-Allow-Private-Network", "true");
+    return response;
+  }
+
   // 1. Rota de Login: se já tiver sessão válida, redireciona para o CRM
   if (pathname === "/login") {
     if (token) {
@@ -172,5 +194,6 @@ export const config = {
   matcher: [
     "/crm/:path*",
     "/login",
+    "/api/extension/:path*",
   ],
 };
