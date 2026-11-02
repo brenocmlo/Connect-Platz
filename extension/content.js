@@ -4,6 +4,7 @@
 (function () {
   let shadowRoot = null;
   let currentPhone = null;
+  let currentName = null;
   let currentUser = null;
   let currentLead = null;
   let currentTemplates = [];
@@ -112,7 +113,7 @@
 
   function renderCurrentState() {
     if (!currentUser) return renderLogin();
-    if (!currentPhone) return renderEmptyChat();
+    if (!currentPhone && !currentName) return renderEmptyChat();
     if (!currentLead) return renderNotFound();
     renderLead();
   }
@@ -157,7 +158,7 @@
   function renderNotFound() {
     const container = resetContainer();
     container.insertAdjacentHTML("beforeend", window.PlatzUI.renderHeader(currentUser));
-    container.insertAdjacentHTML("beforeend", window.PlatzUI.renderNotFoundView(currentPhone, availableBrokers, currentUser.role));
+    container.insertAdjacentHTML("beforeend", window.PlatzUI.renderNotFoundView(currentPhone, availableBrokers, currentUser.role, currentName));
     window.PlatzHandlers.attachHeaderEvents(getHandlerContext());
     window.PlatzHandlers.attachNotFoundEvents(getHandlerContext());
   }
@@ -170,40 +171,82 @@
     window.PlatzHandlers.attachLeadEvents(getHandlerContext());
   }
 
-  function extractPhoneFromHeader() {
-    const titleElements = document.querySelectorAll(
-      'header span[title], header div[role="button"] span[dir="auto"], [data-testid="conversation-info-header"] span'
-    );
+  function extractActiveContact() {
+    const headerEl = document.querySelector('header');
+    if (!headerEl) return null;
 
+    let name = "";
+    let phone = null;
+
+    // 1. Extrai o nome do contato exibido no cabeçalho
+    const titleElements = headerEl.querySelectorAll(
+      'span[title], div[role="button"] span[dir="auto"], [data-testid="conversation-info-header"] span'
+    );
     for (const el of titleElements) {
-      const text = el.getAttribute("title") || el.textContent || "";
-      const digits = text.replace(/\D/g, "");
-      if (digits.length >= 10 && digits.length <= 13) {
-        return digits;
+      const text = (el.getAttribute("title") || el.textContent || "").trim();
+      if (text && text !== "online" && !text.startsWith("visto") && !text.startsWith("clique")) {
+        name = text;
+        break;
       }
     }
-    return null;
+
+    // Se o nome contiver telefone puro
+    if (name) {
+      const digits = name.replace(/\D/g, "");
+      if (digits.length >= 10 && digits.length <= 13) {
+        phone = digits;
+      }
+    }
+
+    // 2. Extrai JID das mensagens ativas no chat (div[data-id])
+    if (!phone) {
+      const msgElements = document.querySelectorAll('div[data-id*="@c.us"], div[data-id*="@s.whatsapp.net"]');
+      for (const el of msgElements) {
+        const dataId = el.getAttribute("data-id") || "";
+        const match = dataId.match(/^(?:true|false)_(\d{10,14})@/);
+        if (match && match[1]) {
+          phone = match[1];
+          break;
+        }
+      }
+    }
+
+    // 3. Extrai telefone do avatar no cabeçalho
+    if (!phone) {
+      const avatarImg = headerEl.querySelector('img[src*="u="]');
+      if (avatarImg) {
+        const match = avatarImg.src.match(/u=(\d{10,14})/);
+        if (match && match[1]) phone = match[1];
+      }
+    }
+
+    if (!name && !phone) return null;
+    return { name, phone };
   }
 
   async function detectActiveChat(forceReload = false) {
     if (!currentUser) return;
 
-    const phone = extractPhoneFromHeader();
-    if (!phone) {
-      if (currentPhone !== null) {
+    const contact = extractActiveContact();
+    if (!contact) {
+      if (currentPhone !== null || currentName !== null) {
         currentPhone = null;
+        currentName = null;
         currentLead = null;
         renderEmptyChat();
       }
       return;
     }
 
-    if (phone === currentPhone && !forceReload) return;
+    const { phone, name } = contact;
+    const sameContact = phone === currentPhone && name === currentName;
+    if (sameContact && !forceReload) return;
 
     currentPhone = phone;
+    currentName = name;
 
     try {
-      const data = await window.PlatzApi.getLeadByPhone(phone);
+      const data = await window.PlatzApi.getLead(phone, name);
       if (data.found && data.lead) {
         currentLead = data.lead;
         availableBrokers = data.availableBrokers || [];

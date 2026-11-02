@@ -76,10 +76,17 @@ window.PlatzApi = {
     return this.request("/api/extension/auth", { method: "GET" });
   },
 
-  async getLeadByPhone(phone) {
-    return this.request(`/api/extension/lead?phone=${encodeURIComponent(phone)}`, {
+  async getLead(phone, name = "") {
+    const params = new URLSearchParams();
+    if (phone) params.set("phone", phone);
+    if (name) params.set("name", name);
+    return this.request(`/api/extension/lead?${params.toString()}`, {
       method: "GET",
     });
+  },
+
+  async getLeadByPhone(phone) {
+    return this.getLead(phone);
   },
 
   async createLead(leadData) {

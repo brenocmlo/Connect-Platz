@@ -33,12 +33,29 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const rawPhone = searchParams.get("phone");
-  if (!rawPhone) {
-    return NextResponse.json({ error: "Parâmetro phone é obrigatório." }, { status: 400 });
+  const rawName = searchParams.get("name");
+
+  if (!rawPhone && !rawName) {
+    return NextResponse.json({ error: "Informe phone ou name para busca." }, { status: 400 });
   }
 
-  const normalized = normalizeBrPhone(rawPhone);
-  const last8 = normalized.slice(-8);
+  const normalized = rawPhone ? normalizeBrPhone(rawPhone) : "";
+  const last8 = normalized ? normalized.slice(-8) : "";
+
+  const searchOr: Array<Record<string, unknown>> = [];
+  if (normalized && normalized.length >= 8) {
+    searchOr.push({ telefone: normalized });
+    searchOr.push({ telefone: { contains: last8 } });
+  }
+
+  if (rawName && rawName.trim().length >= 2) {
+    const cleanName = rawName.trim();
+    searchOr.push({ nome: { contains: cleanName, mode: "insensitive" } });
+    const firstName = cleanName.split(/\s+/)[0];
+    if (firstName.length >= 3 && firstName !== cleanName) {
+      searchOr.push({ nome: { contains: firstName, mode: "insensitive" } });
+    }
+  }
 
   const rlsWhere = buildLeadRLSWhere({
     userId: session.userId,
@@ -46,15 +63,12 @@ export async function GET(req: NextRequest) {
     role: session.role,
   });
 
-  // Busca por telefone exato ou correspondência de final do número
+  // Busca por telefone ou nome respeitando RLS
   const lead = await prisma.lead.findFirst({
     where: {
       ...rlsWhere,
       isClosed: false,
-      OR: [
-        { telefone: normalized },
-        { telefone: { contains: last8 } },
-      ],
+      OR: searchOr.length > 0 ? (searchOr as any) : undefined,
     },
     include: {
       funnel: {
@@ -106,32 +120,22 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  // Se não encontrar o lead
-  if (!lead) {
-    let brokersList: Array<{ id: string; nome: string }> = [];
-    if (isAdmin(session.role)) {
-      brokersList = await prisma.user.findMany({
+  const brokersList = isAdmin(session.role)
+    ? await prisma.user.findMany({
         where: { organizationId: session.organizationId, isActive: true },
         select: { id: true, nome: true },
         orderBy: { nome: "asc" },
-      });
-    }
+      })
+    : [];
 
+  // Se não encontrar o lead
+  if (!lead) {
     return NextResponse.json({
       found: false,
-      phone: normalized,
+      phone: normalized || null,
+      name: rawName || null,
       userRole: session.role,
       availableBrokers: brokersList,
-    });
-  }
-
-  // Lista de corretores disponíveis para reatribuição se o usuário for ADMINISTRADOR
-  let brokersList: Array<{ id: string; nome: string }> = [];
-  if (isAdmin(session.role)) {
-    brokersList = await prisma.user.findMany({
-      where: { organizationId: session.organizationId, isActive: true },
-      select: { id: true, nome: true },
-      orderBy: { nome: "asc" },
     });
   }
 

@@ -93,25 +93,29 @@ window.PlatzUI = {
     `;
   },
 
-  renderNotFoundView(phone, brokersList = [], userRole = "") {
+  renderNotFoundView(phone, brokersList = [], userRole = "", name = "") {
     const isAdmin = userRole === "ADMINISTRADOR";
+    const displayName = name || (phone ? `+${phone}` : "Novo Contato");
     return `
       <div class="platz-body">
         <div class="platz-card" style="border-left: 3px solid #D97706;">
           <div class="platz-card-title">Novo Contato Identificado</div>
-          <div style="font-size: 12px; font-weight: 700; color: #0F172A;">+${phone}</div>
+          <div style="font-size: 13px; font-weight: 700; color: #0F172A;">${displayName}</div>
           <p style="font-size: 11px; color: #64748B; margin-top: 4px;">
-            Este número de telefone ainda não está cadastrado na sua base do CRM.
+            Este contato ainda não está cadastrado na sua base do CRM.
           </p>
         </div>
 
         <div class="platz-card">
           <div class="platz-card-title">Cadastrar Lead no Funil</div>
           <form id="platz-create-lead-form" style="display: flex; flex-direction: column; gap: 8px;">
-            <input type="hidden" id="platz-new-phone" value="${phone}" />
             <div>
               <label style="font-size: 10px; font-weight: 700; color: #64748B;">NOME DO LEAD *</label>
-              <input type="text" id="platz-new-name" class="platz-input" placeholder="Ex: Roberto Carlos" required />
+              <input type="text" id="platz-new-name" class="platz-input" value="${name || ""}" placeholder="Ex: Roberto Carlos" required />
+            </div>
+            <div>
+              <label style="font-size: 10px; font-weight: 700; color: #64748B;">TELEFONE / WHATSAPP *</label>
+              <input type="text" id="platz-new-phone" class="platz-input" value="${phone || ""}" placeholder="DDD + Número (ex: 85991234567)" required />
             </div>
             ${isAdmin ? `
               <div>
