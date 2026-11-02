@@ -31,9 +31,9 @@ window.PlatzHandlers = {
 
     form.onsubmit = async (e) => {
       e.preventDefault();
-      const url = shadowRoot.getElementById("platz-input-url").value;
-      const email = shadowRoot.getElementById("platz-input-email").value;
-      const password = shadowRoot.getElementById("platz-input-password").value;
+      const url = shadowRoot.getElementById("platz-input-url")?.value || "http://localhost:3001";
+      const email = shadowRoot.getElementById("platz-input-email")?.value;
+      const password = shadowRoot.getElementById("platz-input-password")?.value;
 
       try {
         await window.PlatzStorage.setApiUrl(url);
@@ -53,14 +53,15 @@ window.PlatzHandlers = {
 
     form.onsubmit = async (e) => {
       e.preventDefault();
-      const nome = shadowRoot.getElementById("platz-new-name").value;
-      const telefone = shadowRoot.getElementById("platz-new-phone").value;
-      const modalidade = shadowRoot.getElementById("platz-new-modality")?.value;
+      const nome = shadowRoot.getElementById("platz-new-name")?.value;
+      const telefone = shadowRoot.getElementById("platz-new-phone")?.value;
+      const modalidade = shadowRoot.getElementById("platz-new-modality")?.value || "VENDA";
+      const propertyInteresse = shadowRoot.getElementById("platz-new-property")?.value || "";
       const corretorId = shadowRoot.getElementById("platz-new-corretor")?.value;
       const observacoes = shadowRoot.getElementById("platz-new-obs")?.value;
 
       try {
-        await window.PlatzApi.createLead({ nome, telefone, modalidade, corretorId, observacoes });
+        await window.PlatzApi.createLead({ nome, telefone, modalidade, propertyInteresse, corretorId, observacoes });
         showToast("Lead cadastrado com sucesso no Connect Platz!");
         detectActiveChat(true);
       } catch (err) {
@@ -70,10 +71,10 @@ window.PlatzHandlers = {
   },
 
   attachLeadEvents(ctx) {
-    const { shadowRoot, showToast, currentLead, currentUser, detectActiveChat } = ctx;
+    const { shadowRoot, showToast, currentLead, currentUser, detectActiveChat, onFilterChange } = ctx;
     if (!currentLead) return;
 
-    // 1. Mudança de Etapa no Funil
+    // 1. Mudança de Etapa
     const stageSelect = shadowRoot.getElementById("platz-stage-select");
     if (stageSelect) {
       stageSelect.onchange = async () => {
@@ -86,7 +87,52 @@ window.PlatzHandlers = {
       };
     }
 
-    // 2. Reatribuição de Corretor (Admin)
+    // 2. Mudança de Modalidade (Venda vs Locação)
+    const btnVenda = shadowRoot.getElementById("platz-modality-venda-btn");
+    const btnAluguel = shadowRoot.getElementById("platz-modality-aluguel-btn");
+
+    if (btnVenda) {
+      btnVenda.onclick = async () => {
+        if (currentLead.modalidade === "VENDA") return;
+        try {
+          await window.PlatzApi.updateLead({ leadId: currentLead.id, modalidade: "VENDA" });
+          showToast("Lead migrado para o Funil de Vendas!");
+          detectActiveChat(true);
+        } catch (err) {
+          showToast(`Erro: ${err.message}`);
+        }
+      };
+    }
+
+    if (btnAluguel) {
+      btnAluguel.onclick = async () => {
+        if (currentLead.modalidade === "ALUGUEL") return;
+        try {
+          await window.PlatzApi.updateLead({ leadId: currentLead.id, modalidade: "ALUGUEL" });
+          showToast("Lead migrado para o Funil de Locação!");
+          detectActiveChat(true);
+        } catch (err) {
+          showToast(`Erro: ${err.message}`);
+        }
+      };
+    }
+
+    // 3. Empreendimento de Interesse
+    const propSelect = shadowRoot.getElementById("platz-property-select");
+    if (propSelect) {
+      propSelect.onchange = async () => {
+        if (!propSelect.value) return;
+        try {
+          await window.PlatzApi.updateLead({ leadId: currentLead.id, propertyInteresse: propSelect.value });
+          showToast("Empreendimento vinculado ao lead!");
+          detectActiveChat(true);
+        } catch (err) {
+          showToast(`Erro: ${err.message}`);
+        }
+      };
+    }
+
+    // 4. Reatribuição de Corretor
     const brokerSelect = shadowRoot.getElementById("platz-reassign-broker-select");
     if (brokerSelect) {
       brokerSelect.onchange = async () => {
@@ -100,7 +146,16 @@ window.PlatzHandlers = {
       };
     }
 
-    // 3. Templates Rápidos
+    // 5. Categorias de Templates
+    const catTabs = shadowRoot.querySelectorAll(".platz-category-tab");
+    catTabs.forEach((tab) => {
+      tab.onclick = () => {
+        const cat = tab.getAttribute("data-cat");
+        if (onFilterChange) onFilterChange(cat);
+      };
+    });
+
+    // 6. Templates Rápidos
     const templateItems = shadowRoot.querySelectorAll(".platz-template-item");
     templateItems.forEach((item) => {
       item.onclick = async () => {
@@ -110,23 +165,28 @@ window.PlatzHandlers = {
         const result = window.PlatzTemplates.injectIntoWhatsApp(formatted);
         showToast(result.message);
 
-        // Se ainda não registrou primeiro contato, registrar abordagem
         if (!currentLead.firstContactAt) {
-          window.PlatzApi.addTimeline(currentLead.id, `Envio de template: "${item.querySelector('.platz-template-title').textContent}"`, "whatsapp", true)
-            .then(() => detectActiveChat(true));
+          window.PlatzApi.addTimeline(
+            currentLead.id,
+            `Envio de template: "${item.querySelector('.platz-template-title')?.textContent || 'Template'}"`,
+            "whatsapp",
+            true
+          ).then(() => detectActiveChat(true));
         }
       };
     });
 
-    // 4. Salvar Nota na Timeline
+    // 7. Salvar Nota na Timeline
     const timelineForm = shadowRoot.getElementById("platz-add-timeline-form");
     if (timelineForm) {
       timelineForm.onsubmit = async (e) => {
         e.preventDefault();
-        const text = shadowRoot.getElementById("platz-timeline-text").value;
+        const textEl = shadowRoot.getElementById("platz-timeline-text");
+        const text = textEl?.value;
+        if (!text) return;
         try {
           await window.PlatzApi.addTimeline(currentLead.id, text, "whatsapp");
-          shadowRoot.getElementById("platz-timeline-text").value = "";
+          if (textEl) textEl.value = "";
           showToast("Anotação salva no CRM!");
           detectActiveChat(true);
         } catch (err) {
@@ -135,14 +195,14 @@ window.PlatzHandlers = {
       };
     }
 
-    // 5. Ações por Perfil
+    // 8. Ações por Perfil
     this.attachRoleActions(ctx);
   },
 
   attachRoleActions(ctx) {
     const { shadowRoot, showToast, currentLead, detectActiveChat } = ctx;
 
-    // Ação: Solicitar Fechamento (Corretor Venda)
+    // Ação: Solicitar Fechamento (Corretor Venda / Admin)
     const btnFechamento = shadowRoot.getElementById("platz-btn-solicitar-fechamento");
     if (btnFechamento) {
       btnFechamento.onclick = async () => {
@@ -159,7 +219,7 @@ window.PlatzHandlers = {
       };
     }
 
-    // Ação: Validar Crédito (Financeiro Venda)
+    // Ação: Validar Crédito (Financeiro Venda / Admin)
     const btnCredito = shadowRoot.getElementById("platz-btn-validar-credito");
     if (btnCredito) {
       btnCredito.onclick = async () => {
@@ -174,7 +234,7 @@ window.PlatzHandlers = {
       };
     }
 
-    // Ação: Confirmar Pagamento de Reserva (Financeiro Aluguel)
+    // Ação: Confirmar Caução (Financeiro Aluguel / Admin)
     const btnReservaFin = shadowRoot.getElementById("platz-btn-confirmar-pagamento-reserva");
     if (btnReservaFin) {
       btnReservaFin.onclick = async () => {
@@ -188,7 +248,7 @@ window.PlatzHandlers = {
       };
     }
 
-    // Ação: Fechar Reserva Direta (Corretor Aluguel)
+    // Ação: Fechar Reserva Direta (Corretor Aluguel / Admin)
     const btnReservaCorretor = shadowRoot.getElementById("platz-btn-reserva-direta");
     if (btnReservaCorretor) {
       btnReservaCorretor.onclick = async () => {
@@ -199,7 +259,7 @@ window.PlatzHandlers = {
         const valor = prompt("Valor total das diárias (R$):", "1500");
         try {
           const res = await window.PlatzApi.executeAction("FECHAR_RESERVA_DIRETA", currentLead.id, {
-            propertyId: currentLead.reservaRecente?.imovelNome || "default",
+            propertyId: currentLead.propertyInteresse || "Imóvel Selecionado",
             checkInDate: checkIn,
             checkOutDate: checkOut,
             valorDiarias: valor,

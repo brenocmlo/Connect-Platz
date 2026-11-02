@@ -1,14 +1,25 @@
 // extension/modules/api.js
-// Cliente HTTP para os endpoints da API Connect Platz via Background Service Worker (anti-CORS)
+// Cliente HTTP para os endpoints da API Connect Platz via Background Service Worker ou Fetch direto
 
 window.PlatzApi = {
   async directFetch(fullUrl, options) {
-    const response = await fetch(fullUrl, options);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data.error || `Erro ${response.status}: Falha na requisição.`);
+    try {
+      const response = await fetch(fullUrl, options);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || `Erro ${response.status}: Falha na requisição.`);
+      }
+      return data;
+    } catch (err) {
+      if (err instanceof TypeError && err.message.includes("Failed to fetch")) {
+        throw new Error(
+          "Não foi possível conectar ao servidor CRM em " +
+            fullUrl +
+            ". Verifique se o backend está rodando no terminal (porta 3001)."
+        );
+      }
+      throw err;
     }
-    return data;
   },
 
   async request(endpoint, options = {}) {
@@ -30,15 +41,21 @@ window.PlatzApi = {
       headers,
     };
 
-    // 1. Prioriza o background service worker para contornar restrições de CORS e CSP do WhatsApp Web
-    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+    // 1. Tenta usar o service worker se o contexto da extensão estiver ativo
+    const hasValidContext =
+      typeof chrome !== "undefined" &&
+      chrome.runtime &&
+      !!chrome.runtime.id &&
+      typeof chrome.runtime.sendMessage === "function";
+
+    if (hasValidContext) {
       return new Promise((resolve, reject) => {
         try {
           chrome.runtime.sendMessage(
             { action: "api_fetch", url: fullUrl, options: fetchOptions },
             (response) => {
               if (chrome.runtime.lastError) {
-                // Caso o service worker esteja inativo ou ocorra erro de mensagem, tenta fetch direto
+                // Se o service worker estiver dormente ou invalidado, faz fallback para fetch direto
                 this.directFetch(fullUrl, fetchOptions).then(resolve).catch(reject);
                 return;
               }
@@ -55,7 +72,7 @@ window.PlatzApi = {
       });
     }
 
-    // 2. Fallback para fetch direto
+    // 2. Fallback direto se contexto da extensão estiver reiniciando
     return this.directFetch(fullUrl, fetchOptions);
   },
 
@@ -83,10 +100,6 @@ window.PlatzApi = {
     return this.request(`/api/extension/lead?${params.toString()}`, {
       method: "GET",
     });
-  },
-
-  async getLeadByPhone(phone) {
-    return this.getLead(phone);
   },
 
   async createLead(leadData) {

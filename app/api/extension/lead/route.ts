@@ -5,6 +5,7 @@ import { getRequestSession, requireSession, isAdmin } from "@/lib/auth/session";
 import { buildLeadRLSWhere } from "@/lib/db/rls";
 import { normalizeBrPhone } from "@/lib/utils/phone";
 import { BusinessModality, Role } from "@prisma/client";
+import { getExtensionLeadAuxData } from "@/lib/extension/lead-service";
 
 const CreateLeadExtensionSchema = z.object({
   nome: z.string().min(2, "Nome é obrigatório."),
@@ -12,24 +13,21 @@ const CreateLeadExtensionSchema = z.object({
   modalidade: z.enum(["VENDA", "ALUGUEL"]).optional(),
   observacoes: z.string().optional(),
   corretorId: z.string().optional(),
+  propertyInteresse: z.string().optional(),
 });
 
 const UpdateLeadExtensionSchema = z.object({
   leadId: z.string().uuid("ID de lead inválido."),
   stageId: z.string().uuid("ID de etapa inválido.").optional(),
+  modalidade: z.enum(["VENDA", "ALUGUEL"]).optional(),
   corretorId: z.string().uuid("ID de corretor inválido.").optional(),
+  propertyInteresse: z.string().optional(),
   observacoes: z.string().optional(),
 });
 
-/**
- * GET /api/extension/lead?phone=...
- * Busca o lead pelo telefone com base no perfil do usuário e no RLS do sistema.
- */
 export async function GET(req: NextRequest) {
   const session = getRequestSession(req);
-  if (!session) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const rawPhone = searchParams.get("phone");
@@ -44,16 +42,15 @@ export async function GET(req: NextRequest) {
 
   const searchOr: Array<Record<string, unknown>> = [];
   if (normalized && normalized.length >= 8) {
-    searchOr.push({ telefone: normalized });
-    searchOr.push({ telefone: { contains: last8 } });
+    searchOr.push({ telefone: normalized }, { telefone: { contains: last8 } });
   }
 
   if (rawName && rawName.trim().length >= 2) {
-    const cleanName = rawName.trim();
-    searchOr.push({ nome: { contains: cleanName, mode: "insensitive" } });
-    const firstName = cleanName.split(/\s+/)[0];
-    if (firstName.length >= 3 && firstName !== cleanName) {
-      searchOr.push({ nome: { contains: firstName, mode: "insensitive" } });
+    const clean = rawName.trim();
+    searchOr.push({ nome: { contains: clean, mode: "insensitive" } });
+    const first = clean.split(/\s+/)[0];
+    if (first.length >= 3 && first !== clean) {
+      searchOr.push({ nome: { contains: first, mode: "insensitive" } });
     }
   }
 
@@ -63,79 +60,44 @@ export async function GET(req: NextRequest) {
     role: session.role,
   });
 
-  // Busca por telefone ou nome respeitando RLS
-  const lead = await prisma.lead.findFirst({
-    where: {
-      ...rlsWhere,
-      isClosed: false,
-      OR: searchOr.length > 0 ? (searchOr as any) : undefined,
-    },
-    include: {
-      funnel: {
-        include: {
-          stages: {
-            orderBy: { posicao: "asc" },
-            select: { id: true, nome: true, cor: true, posicao: true },
-          },
+  const [lead, auxData] = await Promise.all([
+    prisma.lead.findFirst({
+      where: { ...rlsWhere, isClosed: false, OR: searchOr.length > 0 ? (searchOr as any) : undefined },
+      include: {
+        funnel: {
+          include: { stages: { orderBy: { posicao: "asc" }, select: { id: true, nome: true, cor: true, posicao: true } } },
+        },
+        stage: { select: { id: true, nome: true, cor: true } },
+        corretor: { select: { id: true, nome: true, email: true } },
+        timeline: {
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: { id: true, tipo: true, conteudo: true, createdAt: true, metadata: true, user: { select: { nome: true } } },
+        },
+        sales: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { id: true, codigoVenda: true, valorVendaVGV: true, status: true, property: { select: { nome: true } } },
+        },
+        bookings: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { id: true, checkInDate: true, checkOutDate: true, valorTotal: true, status: true, property: { select: { nome: true } } },
         },
       },
-      stage: { select: { id: true, nome: true, cor: true } },
-      corretor: { select: { id: true, nome: true, email: true } },
-      timeline: {
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        select: {
-          id: true,
-          tipo: true,
-          conteudo: true,
-          createdAt: true,
-          metadata: true,
-          user: { select: { nome: true } },
-        },
-      },
-      sales: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: {
-          id: true,
-          codigoVenda: true,
-          valorVendaVGV: true,
-          status: true,
-          statusComissao: true,
-          property: { select: { nome: true } },
-        },
-      },
-      bookings: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: {
-          id: true,
-          checkInDate: true,
-          checkOutDate: true,
-          valorTotal: true,
-          status: true,
-          property: { select: { nome: true } },
-        },
-      },
-    },
-  });
+    }),
+    getExtensionLeadAuxData(session.organizationId, session.role),
+  ]);
 
-  const brokersList = isAdmin(session.role)
-    ? await prisma.user.findMany({
-        where: { organizationId: session.organizationId, isActive: true },
-        select: { id: true, nome: true },
-        orderBy: { nome: "asc" },
-      })
-    : [];
-
-  // Se não encontrar o lead
   if (!lead) {
     return NextResponse.json({
       found: false,
       phone: normalized || null,
       name: rawName || null,
       userRole: session.role,
-      availableBrokers: brokersList,
+      availableBrokers: auxData.brokersList,
+      availableFunnels: auxData.funnelsList,
+      availableProperties: auxData.propertiesList,
     });
   }
 
@@ -147,9 +109,14 @@ export async function GET(req: NextRequest) {
     autorNome: item.user?.nome || (item.metadata as any)?.autorNome || "Sistema",
   }));
 
+  const propertyTag = lead.tags.find((t) => t.startsWith("Imóvel: "))?.replace("Imóvel: ", "") || null;
+
   return NextResponse.json({
     found: true,
     userRole: session.role,
+    availableBrokers: auxData.brokersList,
+    availableFunnels: auxData.funnelsList,
+    availableProperties: auxData.propertiesList,
     lead: {
       id: lead.id,
       nome: lead.nome,
@@ -162,6 +129,7 @@ export async function GET(req: NextRequest) {
       statusCredito: lead.statusCredito,
       financialApprovalStatus: lead.financialApprovalStatus,
       tags: lead.tags,
+      propertyInteresse: propertyTag,
       observacoes: lead.observacoes,
       slaDueAt: lead.slaDueAt,
       firstContactAt: lead.firstContactAt,
@@ -171,6 +139,7 @@ export async function GET(req: NextRequest) {
       funil: {
         id: lead.funnel.id,
         nome: lead.funnel.nome,
+        modalidade: lead.funnel.modalidade,
         stages: lead.funnel.stages,
       },
       corretor: lead.corretor,
@@ -195,14 +164,9 @@ export async function GET(req: NextRequest) {
         : null,
       historicoRecente: historicoMapeado,
     },
-    availableBrokers: brokersList,
   });
 }
 
-/**
- * POST /api/extension/lead
- * Cadastra um novo lead a partir do contato do WhatsApp Web.
- */
 export async function POST(req: NextRequest) {
   const auth = requireSession(req);
   if (auth.error) return auth.error;
@@ -212,10 +176,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = CreateLeadExtensionSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.errors[0]?.message || "Dados inválidos." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: parsed.error.errors[0]?.message || "Dados inválidos." }, { status: 400 });
     }
 
     const normalizedPhone = normalizeBrPhone(parsed.data.telefone);
@@ -223,7 +184,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Telefone inválido (mínimo DDD + número)." }, { status: 400 });
     }
 
-    // Modalidade e Corretor conforme o perfil do usuário
     let modalidade: BusinessModality = "VENDA";
     let corretorId: string | null = session.userId;
 
@@ -233,53 +193,40 @@ export async function POST(req: NextRequest) {
       modalidade = "VENDA";
     } else if (isAdmin(session.role)) {
       modalidade = parsed.data.modalidade || "VENDA";
-      if (parsed.data.corretorId) {
-        corretorId = parsed.data.corretorId;
-      }
+      if (parsed.data.corretorId) corretorId = parsed.data.corretorId;
     }
 
-    // Busca o funil ativo compatível com a modalidade
     const funnel = await prisma.funnel.findFirst({
-      where: {
-        organizationId: session.organizationId,
-        isActive: true,
-        modalidade,
-      },
-      include: {
-        stages: { orderBy: { posicao: "asc" } },
-      },
+      where: { organizationId: session.organizationId, isActive: true, modalidade },
+      include: { stages: { orderBy: { posicao: "asc" } } },
     });
 
     if (!funnel || funnel.stages.length === 0) {
-      return NextResponse.json(
-        { error: "Nenhum funil ativo encontrado para esta modalidade." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Nenhum funil ativo encontrado para esta modalidade." }, { status: 400 });
     }
 
-    const firstStage = funnel.stages[0];
-
-    // SLA inicial de 1º contato (30 minutos a partir de agora)
-    const slaDueAt = new Date(Date.now() + 30 * 60 * 1000);
+    const tags: string[] = [];
+    if (parsed.data.propertyInteresse) tags.push(`Imóvel: ${parsed.data.propertyInteresse}`);
 
     const created = await prisma.lead.create({
       data: {
         organizationId: session.organizationId,
         funnelId: funnel.id,
-        stageId: firstStage.id,
+        stageId: funnel.stages[0].id,
         corretorId,
         nome: parsed.data.nome,
         telefone: normalizedPhone,
         modalidade,
+        tags,
         source: "MANUAL_CORRETOR",
         score: 60,
         temperatura: "MORNO",
-        slaDueAt,
+        slaDueAt: new Date(Date.now() + 30 * 60 * 1000),
         observacoes: parsed.data.observacoes || "Criado via Extensão WhatsApp Web Connect Platz",
         timeline: {
           create: {
             tipo: "nota",
-            conteudo: `Lead cadastrado diretamente via Extensão WhatsApp Web por ${session.nome}.`,
+            conteudo: `Lead cadastrado via WhatsApp Web por ${session.nome}.`,
             userId: session.userId,
             metadata: { autorNome: session.nome },
           },
@@ -287,22 +234,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      leadId: created.id,
-      nome: created.nome,
-      telefone: created.telefone,
-    });
+    return NextResponse.json({ success: true, leadId: created.id, nome: created.nome, telefone: created.telefone });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro ao cadastrar lead.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-/**
- * PATCH /api/extension/lead
- * Atualiza etapa do funil ou corretor responsável.
- */
 export async function PATCH(req: NextRequest) {
   const auth = requireSession(req);
   if (auth.error) return auth.error;
@@ -312,40 +250,48 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const parsed = UpdateLeadExtensionSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.errors[0]?.message || "Dados inválidos." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: parsed.error.errors[0]?.message || "Dados inválidos." }, { status: 400 });
     }
 
-    const rlsWhere = buildLeadRLSWhere({
-      userId: session.userId,
-      organizationId: session.organizationId,
-      role: session.role,
-    });
-
-    const lead = await prisma.lead.findFirst({
-      where: { id: parsed.data.leadId, ...rlsWhere },
-    });
-
-    if (!lead) {
-      return NextResponse.json({ error: "Lead não encontrado ou acesso restrito." }, { status: 404 });
-    }
+    const rlsWhere = buildLeadRLSWhere({ userId: session.userId, organizationId: session.organizationId, role: session.role });
+    const lead = await prisma.lead.findFirst({ where: { id: parsed.data.leadId, ...rlsWhere } });
+    if (!lead) return NextResponse.json({ error: "Lead não encontrado ou acesso restrito." }, { status: 404 });
 
     const updateData: Record<string, unknown> = {};
 
-    // Alteração de Etapa do Funil
-    if (parsed.data.stageId && parsed.data.stageId !== lead.stageId) {
-      const stage = await prisma.funnelStage.findUnique({
-        where: { id: parsed.data.stageId },
+    // 1. Mudança de Modalidade (Venda vs Locação)
+    if (parsed.data.modalidade && parsed.data.modalidade !== lead.modalidade) {
+      const targetFunnel = await prisma.funnel.findFirst({
+        where: { organizationId: session.organizationId, modalidade: parsed.data.modalidade, isActive: true },
+        include: { stages: { orderBy: { posicao: "asc" } } },
       });
+
+      if (targetFunnel && targetFunnel.stages.length > 0) {
+        updateData.modalidade = parsed.data.modalidade;
+        updateData.funnelId = targetFunnel.id;
+        updateData.stageId = targetFunnel.stages[0].id;
+        await prisma.leadTimeline.create({
+          data: {
+            leadId: lead.id,
+            tipo: "status_change",
+            conteudo: `Modalidade alterada para ${parsed.data.modalidade === "VENDA" ? "Vendas" : "Locação / Temporada"} por ${session.nome}.`,
+            userId: session.userId,
+            metadata: { autorNome: session.nome },
+          },
+        });
+      }
+    }
+
+    // 2. Mudança de Etapa
+    if (parsed.data.stageId && parsed.data.stageId !== lead.stageId) {
+      const stage = await prisma.funnelStage.findUnique({ where: { id: parsed.data.stageId } });
       if (stage) {
         updateData.stageId = stage.id;
         await prisma.leadTimeline.create({
           data: {
             leadId: lead.id,
             tipo: "status_change",
-            conteudo: `Etapa alterada para "${stage.nome}" via WhatsApp Web por ${session.nome}.`,
+            conteudo: `Etapa alterada para "${stage.nome}" por ${session.nome}.`,
             userId: session.userId,
             metadata: { autorNome: session.nome },
           },
@@ -353,18 +299,16 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // Reatribuição de Corretor (apenas para ADMINISTRADOR)
+    // 3. Reatribuição de Corretor
     if (parsed.data.corretorId && parsed.data.corretorId !== lead.corretorId && isAdmin(session.role)) {
-      const newBroker = await prisma.user.findFirst({
-        where: { id: parsed.data.corretorId, organizationId: session.organizationId, isActive: true },
-      });
-      if (newBroker) {
-        updateData.corretorId = newBroker.id;
+      const broker = await prisma.user.findFirst({ where: { id: parsed.data.corretorId, organizationId: session.organizationId, isActive: true } });
+      if (broker) {
+        updateData.corretorId = broker.id;
         await prisma.leadTimeline.create({
           data: {
             leadId: lead.id,
             tipo: "transbordo",
-            conteudo: `Lead reatribuído para "${newBroker.nome}" por ${session.nome}.`,
+            conteudo: `Lead reatribuído para "${broker.nome}" por ${session.nome}.`,
             userId: session.userId,
             metadata: { autorNome: session.nome },
           },
@@ -372,11 +316,24 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    if (Object.keys(updateData).length > 0) {
-      await prisma.lead.update({
-        where: { id: lead.id },
-        data: updateData,
+    // 4. Imóvel de Interesse
+    if (parsed.data.propertyInteresse) {
+      const currentTags = Array.isArray(lead.tags) ? [...lead.tags] : [];
+      const newTag = `Imóvel: ${parsed.data.propertyInteresse}`;
+      updateData.tags = [...currentTags.filter((t) => !t.startsWith("Imóvel:")), newTag];
+      await prisma.leadTimeline.create({
+        data: {
+          leadId: lead.id,
+          tipo: "nota",
+          conteudo: `Interesse registrado no empreendimento: "${parsed.data.propertyInteresse}" por ${session.nome}.`,
+          userId: session.userId,
+          metadata: { autorNome: session.nome },
+        },
       });
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await prisma.lead.update({ where: { id: lead.id }, data: updateData });
     }
 
     return NextResponse.json({ success: true });

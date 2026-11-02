@@ -9,7 +9,22 @@
   let currentLead = null;
   let currentTemplates = [];
   let availableBrokers = [];
+  let availableFunnels = [];
+  let availableProperties = [];
+  let activeTemplateCategory = "Todos";
   let isCollapsed = false;
+
+  function updateWhatsAppLayout(collapsed) {
+    let styleEl = document.getElementById("platz-wa-page-style");
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "platz-wa-page-style";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = collapsed
+      ? "#app { width: 100% !important; margin-right: 0 !important; }"
+      : "#app { width: calc(100% - 320px) !important; margin-right: 320px !important; transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), margin-right 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important; }";
+  }
 
   function init() {
     if (document.getElementById("connect-platz-extension-root")) return;
@@ -20,18 +35,15 @@
 
     shadowRoot = host.attachShadow({ mode: "open" });
 
-    // Injetar estilos isolados
     const styleTag = document.createElement("style");
     styleTag.textContent = window.PlatzStyles;
     shadowRoot.appendChild(styleTag);
 
-    // Contêiner principal da Sidebar
     const sidebarEl = document.createElement("div");
     sidebarEl.className = "platz-sidebar";
     sidebarEl.id = "platz-sidebar-container";
     shadowRoot.appendChild(sidebarEl);
 
-    // Botão de Recolher/Expandir
     const toggleBtn = document.createElement("button");
     toggleBtn.className = "platz-toggle-btn";
     toggleBtn.id = "platz-toggle-btn";
@@ -40,7 +52,6 @@
     toggleBtn.onclick = toggleSidebar;
     sidebarEl.appendChild(toggleBtn);
 
-    // Toast feedback
     const toast = document.createElement("div");
     toast.className = "platz-toast";
     toast.id = "platz-toast";
@@ -51,7 +62,7 @@
   }
 
   function showToast(message) {
-    const toast = shadowRoot.getElementById("platz-toast");
+    const toast = shadowRoot?.getElementById("platz-toast");
     if (!toast) return;
     toast.textContent = message;
     toast.classList.add("visible");
@@ -60,15 +71,16 @@
 
   async function toggleSidebar() {
     isCollapsed = !isCollapsed;
-    const sidebar = shadowRoot.getElementById("platz-sidebar-container");
-    const toggle = shadowRoot.getElementById("platz-toggle-btn");
+    const sidebar = shadowRoot?.getElementById("platz-sidebar-container");
+    const toggle = shadowRoot?.getElementById("platz-toggle-btn");
     if (isCollapsed) {
-      sidebar.classList.add("collapsed");
-      toggle.innerHTML = "‹";
+      sidebar?.classList.add("collapsed");
+      if (toggle) toggle.innerHTML = "‹";
     } else {
-      sidebar.classList.remove("collapsed");
-      toggle.innerHTML = "›";
+      sidebar?.classList.remove("collapsed");
+      if (toggle) toggle.innerHTML = "›";
     }
+    updateWhatsAppLayout(isCollapsed);
     await window.PlatzStorage.setCollapsed(isCollapsed);
   }
 
@@ -77,12 +89,16 @@
     currentUser = await window.PlatzStorage.getUser();
     isCollapsed = await window.PlatzStorage.isCollapsed();
 
+    const sidebar = shadowRoot?.getElementById("platz-sidebar-container");
+    const toggle = shadowRoot?.getElementById("platz-toggle-btn");
     if (isCollapsed) {
-      const sidebar = shadowRoot.getElementById("platz-sidebar-container");
-      const toggle = shadowRoot.getElementById("platz-toggle-btn");
       sidebar?.classList.add("collapsed");
       if (toggle) toggle.innerHTML = "‹";
+    } else {
+      sidebar?.classList.remove("collapsed");
+      if (toggle) toggle.innerHTML = "›";
     }
+    updateWhatsAppLayout(isCollapsed);
 
     if (!token || !currentUser) {
       renderLogin();
@@ -136,6 +152,10 @@
       checkAuthAndRender,
       renderLogin,
       onLogout: () => { currentUser = null; },
+      onFilterChange: (cat) => {
+        activeTemplateCategory = cat;
+        renderLead();
+      },
     };
   }
 
@@ -158,7 +178,10 @@
   function renderNotFound() {
     const container = resetContainer();
     container.insertAdjacentHTML("beforeend", window.PlatzUI.renderHeader(currentUser));
-    container.insertAdjacentHTML("beforeend", window.PlatzUI.renderNotFoundView(currentPhone, availableBrokers, currentUser.role, currentName));
+    container.insertAdjacentHTML(
+      "beforeend",
+      window.PlatzUI.renderNotFoundView(currentPhone, availableBrokers, currentUser.role, currentName, availableProperties)
+    );
     window.PlatzHandlers.attachHeaderEvents(getHandlerContext());
     window.PlatzHandlers.attachNotFoundEvents(getHandlerContext());
   }
@@ -166,23 +189,30 @@
   function renderLead() {
     const container = resetContainer();
     container.insertAdjacentHTML("beforeend", window.PlatzUI.renderHeader(currentUser));
-    container.insertAdjacentHTML("beforeend", window.PlatzUI.renderLeadView(currentLead, currentUser, currentTemplates, availableBrokers));
+    container.insertAdjacentHTML(
+      "beforeend",
+      window.PlatzUI.renderLeadView(
+        currentLead,
+        currentUser,
+        currentTemplates,
+        availableBrokers,
+        availableFunnels,
+        availableProperties,
+        activeTemplateCategory
+      )
+    );
     window.PlatzHandlers.attachHeaderEvents(getHandlerContext());
     window.PlatzHandlers.attachLeadEvents(getHandlerContext());
   }
 
   function extractActiveContact() {
-    // No WhatsApp Web, a área de conversa aberta é SEMPRE o contêiner #main
     const mainEl = document.getElementById("main") || document.querySelector('[data-testid="conversation-panel-wrapper"]');
-    
-    // Se #main não existe, tenta verificar se há conversa selecionada na lista lateral
     const activeSideItem = document.querySelector('#pane-side div[aria-selected="true"]');
     if (!mainEl && !activeSideItem) return null;
 
     let name = "";
     let phone = null;
 
-    // 1. Extração do Nome: Inspeciona o cabeçalho de #main
     if (mainEl) {
       const headerEl = mainEl.querySelector("header") || mainEl;
       const titleSelectors = [
@@ -211,7 +241,6 @@
       }
     }
 
-    // Fallback do nome na lista lateral ativa
     if (!name && activeSideItem) {
       const sideTitleEl = activeSideItem.querySelector('span[title], span[dir="auto"]');
       if (sideTitleEl) {
@@ -219,7 +248,6 @@
       }
     }
 
-    // 2. Se o próprio nome já for um número de telefone (ex: "+55 85 9670-1350")
     if (name) {
       const digits = name.replace(/\D/g, "");
       if (digits.length >= 10 && digits.length <= 13) {
@@ -227,10 +255,8 @@
       }
     }
 
-    // 3. Extração do telefone via data-id das mensagens dentro de #main
-    // Ex: data-id="false_558596701350@c.us_..." ou "true_5585..."
     if (!phone && mainEl) {
-      const msgElements = mainEl.querySelectorAll('div[data-id]');
+      const msgElements = mainEl.querySelectorAll("div[data-id]");
       for (const el of msgElements) {
         const dataId = el.getAttribute("data-id") || "";
         const match =
@@ -244,7 +270,6 @@
       }
     }
 
-    // 4. Extração via Avatar dentro de #main
     if (!phone && mainEl) {
       const avatarImg = mainEl.querySelector('header img[src*="u="]');
       if (avatarImg) {
@@ -280,13 +305,15 @@
 
     try {
       const data = await window.PlatzApi.getLead(phone, name);
+      availableBrokers = data.availableBrokers || [];
+      availableFunnels = data.availableFunnels || [];
+      availableProperties = data.availableProperties || [];
+
       if (data.found && data.lead) {
         currentLead = data.lead;
-        availableBrokers = data.availableBrokers || [];
         renderLead();
       } else {
         currentLead = null;
-        availableBrokers = data.availableBrokers || [];
         renderNotFound();
       }
     } catch {
@@ -298,8 +325,7 @@
   function startWhatsAppObserver() {
     const observer = new MutationObserver(() => detectActiveChat());
     observer.observe(document.body, { childList: true, subtree: true });
-    
-    // Dispara também ao clicar em conversas da lista
+
     document.addEventListener("click", () => {
       setTimeout(() => detectActiveChat(), 300);
     });
