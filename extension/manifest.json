@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Connect Platz CRM — WhatsApp Web",
+  "version": "1.0.0",
+  "description": "Painel lateral oficial do Connect Platz CRM integrado ao WhatsApp Web para Corretores, Financeiro e Gestão.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Configurações Connect Platz CRM",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://web.whatsapp.com/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*",
+    "https://*.connectplatz.com.br/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ],
+      "js": [
+        "modules/styles.js",
+        "modules/storage.js",
+        "modules/api.js",
+        "modules/templates.js",
+        "modules/ui.js",
+        "modules/handlers.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

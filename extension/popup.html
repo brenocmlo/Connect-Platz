@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Connect Platz CRM</title>
+  <style>
+    body {
+      width: 300px;
+      margin: 0;
+      padding: 16px;
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      box-sizing: border-box;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    .badge {
+      background: #1266C7;
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10B981;
+      margin-right: 4px;
+    }
+    .status-text {
+      font-size: 11px;
+      font-weight: 600;
+      color: #059669;
+    }
+    .card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748B;
+      margin-bottom: 4px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .btn {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      box-sizing: border-box;
+      margin-bottom: 6px;
+    }
+    .btn-primary { background: #1266C7; color: #FFFFFF; }
+    .btn-primary:hover { background: #0D478F; }
+    .btn-secondary { background: #FFFFFF; border: 1px solid #CBD5E1; color: #334155; }
+    .btn-secondary:hover { background: #F1F5F9; }
+    .btn-danger { background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5; }
+    .btn-danger:hover { background: #FEE2E2; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="badge">CONNECT PLATZ</span>
+    <div id="status-container">
+      <span class="status-dot"></span>
+      <span class="status-text" id="status-text">Verificando...</span>
+    </div>
+  </div>
+
+  <div class="card" id="user-card" style="display: none;">
+    <div class="label">Sessão Ativa</div>
+    <div style="font-weight: 700; font-size: 13px;" id="user-name">-</div>
+    <div style="font-size: 11px; color: #1266C7; font-weight: 600;" id="user-role">-</div>
+    <div style="font-size: 10px; color: #64748B;" id="user-org">-</div>
+  </div>
+
+  <div class="card">
+    <div class="label">URL do Sistema Connect Platz</div>
+    <input type="text" id="api-url" placeholder="http://localhost:3000" />
+    <button class="btn btn-secondary" id="save-url-btn">Salvar URL</button>
+  </div>
+
+  <a href="https://web.whatsapp.com" target="_blank" class="btn btn-primary">
+    Abrir WhatsApp Web ↗
+  </a>
+
+  <button class="btn btn-secondary" id="open-crm-btn">
+    Abrir Connect Platz CRM ↗
+  </button>
+
+  <button class="btn btn-danger" id="logout-btn" style="display: none;">
+    Desconectar Conta
+  </button>
+
+  <script src="modules/storage.js"></script>
+  <script src="modules/api.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
