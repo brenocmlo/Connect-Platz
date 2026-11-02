@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, RefreshCw, Tv } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
@@ -47,7 +48,16 @@ export default function RankingGamificacaoPage() {
         title="Ranking & Gamificação"
         subtitle="Desempenho da equipe, metas de incentivo e reconhecimento dos campeões de vendas."
         showPeriodSelector={true}
-      />
+      >
+        <Link
+          href="/crm/ranking/tv"
+          target="_blank"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-[#1266C7] to-[#0D478F] hover:from-[#0D478F] hover:to-[#0A376E] text-white text-xs font-bold shadow-md shadow-[#1266C7]/20 transition-all hover:scale-[1.02]"
+        >
+          <Tv className="w-4 h-4 text-white" />
+          <span>Modo TV (War Room)</span>
+        </Link>
+      </PageHeader>
 
       {error && (
         <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300">

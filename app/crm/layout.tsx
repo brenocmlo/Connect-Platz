@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
 import { CrmProvider, useCrm } from "@/components/crm/CrmContext";
 import { Sidebar } from "@/components/crm/Sidebar";
 import { Topbar } from "@/components/crm/Topbar";
@@ -9,7 +10,12 @@ import { FloatingSupport } from "@/components/crm/FloatingSupport";
 import { PwaInstallPrompt } from "@/components/crm/PwaInstallPrompt";
 
 function CrmShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { isSidebarCollapsed, loading } = useCrm();
+
+  if (pathname?.startsWith("/crm/ranking/tv")) {
+    return <main className="min-h-screen bg-[#070B14]">{children}</main>;
+  }
 
   if (loading) {
     return (

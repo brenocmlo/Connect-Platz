@@ -23,10 +23,19 @@ export interface EmpresaConfig {
   site?: string;
 }
 
+export interface TvSettingsConfig {
+  fraseMotivacional?: string;
+  autorFrase?: string;
+  slogan?: string;
+  etapasAnaliseIds?: string[];
+  etapasAprovacaoIds?: string[];
+}
+
 export interface OrgSettings {
   scoreRules?: Partial<ScoreRulesConfig>;
   goals?: GoalConfig[];
   empresa?: EmpresaConfig;
+  tvSettings?: TvSettingsConfig;
 }
 
 export async function getOrgSettings(organizationId: string): Promise<OrgSettings> {
