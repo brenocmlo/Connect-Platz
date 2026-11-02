@@ -172,25 +172,54 @@
   }
 
   function extractActiveContact() {
-    const headerEl = document.querySelector('header');
-    if (!headerEl) return null;
+    // No WhatsApp Web, a área de conversa aberta é SEMPRE o contêiner #main
+    const mainEl = document.getElementById("main") || document.querySelector('[data-testid="conversation-panel-wrapper"]');
+    
+    // Se #main não existe, tenta verificar se há conversa selecionada na lista lateral
+    const activeSideItem = document.querySelector('#pane-side div[aria-selected="true"]');
+    if (!mainEl && !activeSideItem) return null;
 
     let name = "";
     let phone = null;
 
-    // 1. Extrai o nome do contato exibido no cabeçalho
-    const titleElements = headerEl.querySelectorAll(
-      'span[title], div[role="button"] span[dir="auto"], [data-testid="conversation-info-header"] span'
-    );
-    for (const el of titleElements) {
-      const text = (el.getAttribute("title") || el.textContent || "").trim();
-      if (text && text !== "online" && !text.startsWith("visto") && !text.startsWith("clique")) {
-        name = text;
-        break;
+    // 1. Extração do Nome: Inspeciona o cabeçalho de #main
+    if (mainEl) {
+      const headerEl = mainEl.querySelector("header") || mainEl;
+      const titleSelectors = [
+        '[data-testid="conversation-info-header"] span[dir="auto"]',
+        '[data-testid="conversation-info-header"] span',
+        'header span[title]',
+        'header div[role="button"] span[dir="auto"]',
+        'header span[dir="auto"]',
+      ];
+
+      for (const sel of titleSelectors) {
+        const el = headerEl.querySelector(sel);
+        if (el) {
+          const val = (el.getAttribute("title") || el.textContent || "").trim();
+          if (
+            val &&
+            val.toLowerCase() !== "online" &&
+            !val.toLowerCase().startsWith("visto") &&
+            !val.toLowerCase().startsWith("digitando") &&
+            !val.toLowerCase().startsWith("clique")
+          ) {
+            name = val;
+            break;
+          }
+        }
       }
     }
 
-    // Se o nome contiver telefone puro
+    // Fallback do nome na lista lateral ativa
+    if (!name && activeSideItem) {
+      const sideTitleEl = activeSideItem.querySelector('span[title], span[dir="auto"]');
+      if (sideTitleEl) {
+        name = (sideTitleEl.getAttribute("title") || sideTitleEl.textContent || "").trim();
+      }
+    }
+
+    // 2. Se o próprio nome já for um número de telefone (ex: "+55 85 9670-1350")
     if (name) {
       const digits = name.replace(/\D/g, "");
       if (digits.length >= 10 && digits.length <= 13) {
@@ -198,12 +227,16 @@
       }
     }
 
-    // 2. Extrai JID das mensagens ativas no chat (div[data-id])
-    if (!phone) {
-      const msgElements = document.querySelectorAll('div[data-id*="@c.us"], div[data-id*="@s.whatsapp.net"]');
+    // 3. Extração do telefone via data-id das mensagens dentro de #main
+    // Ex: data-id="false_558596701350@c.us_..." ou "true_5585..."
+    if (!phone && mainEl) {
+      const msgElements = mainEl.querySelectorAll('div[data-id]');
       for (const el of msgElements) {
         const dataId = el.getAttribute("data-id") || "";
-        const match = dataId.match(/^(?:true|false)_(\d{10,14})@/);
+        const match =
+          dataId.match(/(\d{10,14})@c\.us/) ||
+          dataId.match(/(\d{10,14})@s\.whatsapp\.net/) ||
+          dataId.match(/^(?:true|false)_(\d{10,14})@/);
         if (match && match[1]) {
           phone = match[1];
           break;
@@ -211,9 +244,9 @@
       }
     }
 
-    // 3. Extrai telefone do avatar no cabeçalho
-    if (!phone) {
-      const avatarImg = headerEl.querySelector('img[src*="u="]');
+    // 4. Extração via Avatar dentro de #main
+    if (!phone && mainEl) {
+      const avatarImg = mainEl.querySelector('header img[src*="u="]');
       if (avatarImg) {
         const match = avatarImg.src.match(/u=(\d{10,14})/);
         if (match && match[1]) phone = match[1];
@@ -240,7 +273,7 @@
 
     const { phone, name } = contact;
     const sameContact = phone === currentPhone && name === currentName;
-    if (sameContact && !forceReload) return;
+    if (sameContact && !forceReload && currentLead !== undefined) return;
 
     currentPhone = phone;
     currentName = name;
@@ -265,7 +298,13 @@
   function startWhatsAppObserver() {
     const observer = new MutationObserver(() => detectActiveChat());
     observer.observe(document.body, { childList: true, subtree: true });
-    setInterval(() => detectActiveChat(), 2000);
+    
+    // Dispara também ao clicar em conversas da lista
+    document.addEventListener("click", () => {
+      setTimeout(() => detectActiveChat(), 300);
+    });
+
+    setInterval(() => detectActiveChat(), 1500);
   }
 
   if (document.readyState === "loading") {
