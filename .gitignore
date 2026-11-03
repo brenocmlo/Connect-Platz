@@ -34,4 +34,6 @@ yarn-error.log*
 next-env.d.ts
 
 # documents
-/doc/
+/doc/*.pdf
+/doc/*.jpg
+!/doc/*.md
