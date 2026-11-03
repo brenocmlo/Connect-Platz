@@ -68,12 +68,22 @@ export function PortalFooter({ onNavigateVitrine }: PortalFooterProps) {
           </FooterColumn>
 
           <FooterColumn title="Atendimento">
-            <span className="flex items-start gap-2 text-sm text-white/75">
+            <a
+              href="https://www.google.com/maps/dir/?api=1&destination=-3.734236,-38.584945"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-start gap-2 text-sm text-white/75 transition-colors hover:text-white"
+              title="Abrir rota no Google Maps"
+            >
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-platz-gold" />
-              Fortaleza e Aquiraz, Ceará
-              <br />
-              Seg. a sáb., das 8h às 20h
-            </span>
+              <span>
+                Av. Sargento Hermínio Sampaio, 5107
+                <br />
+                Antônio Bezerra, Fortaleza - CE
+                <br />
+                <span className="text-xs text-white/50">CEP 60356-640 • Seg. a sáb., 8h às 20h</span>
+              </span>
+            </a>
             {contato.email && (
             <a href={`mailto:${contato.email}`} className={`${linkClass} flex items-center gap-2`}>
               <Mail className="h-4 w-4 text-platz-gold" />

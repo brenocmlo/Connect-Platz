@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
+import { SITE_CONFIG, getBaseUrl } from "@/lib/seo/siteConfig";
+import { OrganizationJsonLd } from "@/components/seo/OrganizationJsonLd";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -15,11 +17,69 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+const baseUrl = getBaseUrl();
+
 export const metadata: Metadata = {
-  title: "Robson Carvalho CRM CONNECT PLATZ — Vendas & Veraneio",
-  description:
-    "Plataforma Integrada de CRM e ERP Imobiliário com Roleta de Leads, Análise de Crédito e Bloqueio de Reservas.",
+  metadataBase: new URL(baseUrl),
+  title: {
+    default: "Connect Platz Imobiliária | Imóveis de Alto Padrão e Temporada em Fortaleza e Ceará",
+    template: "%s | Connect Platz",
+  },
+  description: SITE_CONFIG.description,
+  applicationName: SITE_CONFIG.name,
+  authors: [{ name: SITE_CONFIG.founder, url: baseUrl }],
+  generator: "Next.js",
+  keywords: [
+    "imobiliária fortaleza",
+    "imóveis à venda fortaleza",
+    "casas em condomínio eusébio",
+    "aluguel temporada porto das dunas",
+    "apartamentos meireles aldeota",
+    "imóveis de alto padrão ceará",
+    "robson carvalho corretor",
+    "connect platz imobiliária",
+    "beach park imóveis aquiraz",
+  ],
   manifest: "/manifest.json",
+  alternates: {
+    canonical: "./",
+  },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: baseUrl,
+    siteName: SITE_CONFIG.name,
+    title: "Connect Platz Imobiliária | Imóveis de Alto Padrão e Temporada em Fortaleza",
+    description: SITE_CONFIG.description,
+    images: [
+      {
+        url: "/icons/icon-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "Connect Platz Imobiliária — Alto Padrão & Temporada",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Connect Platz Imobiliária | Imóveis de Alto Padrão no Ceará",
+    description: SITE_CONFIG.description,
+    images: ["/icons/icon-512x512.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -28,6 +88,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icons/icon-192x192.png",
     apple: "/icons/icon-192x192.png",
+  },
+  other: {
+    "geo.region": SITE_CONFIG.geo.region,
+    "geo.placename": SITE_CONFIG.geo.placename,
+    "geo.position": `${SITE_CONFIG.geo.latitude};${SITE_CONFIG.geo.longitude}`,
+    ICBM: SITE_CONFIG.geo.icbm,
   },
 };
 
@@ -51,6 +117,7 @@ export default function RootLayout({
           }}
         />
         <meta name="mobile-web-app-capable" content="yes" />
+        <OrganizationJsonLd />
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-connect-blue selection:text-white">
         {children}
