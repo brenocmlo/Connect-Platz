@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { OrgSettings } from "@/lib/domain/settings/orgSettings";
 import { resolveTvPeriod } from "./tvPeriodHelper";
 import { computeTvDashboard } from "./tvMetricsCalculator";
+import { CacheService } from "@/lib/cache/cacheService";
 
 export const dynamic = "force-dynamic";
 
@@ -19,27 +20,30 @@ export async function GET(req: NextRequest) {
     const rawPeriod = req.nextUrl.searchParams.get("period");
     const period = resolveTvPeriod(rawPeriod);
 
-    const org = await prisma.organization.findUnique({
-      where: { id: session.organizationId },
-      select: {
-        nome: true,
-        logoUrl: true,
-        logoDarkUrl: true,
-        settings: true,
-      },
+    const cacheKey = `tv_ranking_${session.organizationId}_${period}`;
+    const data = await CacheService.getOrSet(cacheKey, 15, async () => {
+      const org = await prisma.organization.findUnique({
+        where: { id: session.organizationId },
+        select: {
+          nome: true,
+          logoUrl: true,
+          logoDarkUrl: true,
+          settings: true,
+        },
+      });
+
+      const settings = ((org?.settings as OrgSettings | null) || {}) as OrgSettings;
+      const orgName = org?.nome || "Connect Platz";
+      const orgLogoUrl = org?.logoDarkUrl || org?.logoUrl || null;
+
+      return computeTvDashboard(
+        session.organizationId,
+        period,
+        settings.tvSettings,
+        orgName,
+        orgLogoUrl
+      );
     });
-
-    const settings = ((org?.settings as OrgSettings | null) || {}) as OrgSettings;
-    const orgName = org?.nome || "Connect Platz";
-    const orgLogoUrl = org?.logoDarkUrl || org?.logoUrl || null;
-
-    const data = await computeTvDashboard(
-      session.organizationId,
-      period,
-      settings.tvSettings,
-      orgName,
-      orgLogoUrl
-    );
 
     return NextResponse.json(data, { status: 200 });
   } catch (error: any) {
