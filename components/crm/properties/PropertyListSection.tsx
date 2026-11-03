@@ -13,6 +13,7 @@ import {
 import { PropertyProductCard, PropertyCardData } from "./PropertyProductCard";
 import { EmptyState } from "@/components/crm/primitives/EmptyState";
 import { useCrm } from "@/components/crm/CrmContext";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface PropertyListSectionProps {
   properties: PropertyCardData[];
@@ -43,6 +44,7 @@ export function PropertyListSection({
   const isAluguelOnly = user?.role === "FINANCEIRO_ALUGUEL" || user?.role === "CORRETOR_ALUGUEL";
 
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 250);
   const [selectedFilter, setSelectedFilter] = useState<
     "TODOS" | "TEMPORADA" | "VENDA" | "EMPREENDIMENTO" | "AVULSO" | "LANDING" | "LANCAMENTO" | "PRONTO"
   >("TODOS");
@@ -106,8 +108,8 @@ export function PropertyListSection({
         return false;
 
       // 2. Busca por texto
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase();
+      if (debouncedSearch) {
+        const term = debouncedSearch.toLowerCase();
         const matchName = (p.nome || "").toLowerCase().includes(term);
         const matchBairro = (p.bairro || "").toLowerCase().includes(term);
         const matchCidade = (p.cidade || "").toLowerCase().includes(term);
@@ -118,7 +120,7 @@ export function PropertyListSection({
 
       return true;
     });
-  }, [baseProperties, selectedFilter, searchTerm]);
+  }, [baseProperties, selectedFilter, debouncedSearch]);
 
   return (
     <div className="space-y-5">

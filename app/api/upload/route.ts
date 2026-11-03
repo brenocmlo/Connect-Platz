@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { requireSession } from "@/lib/auth/session";
+import { isR2Configured, uploadToR2 } from "@/lib/storage/r2Client";
 import {
   MAX_FILES_PER_REQUEST,
   MAX_UPLOAD_BYTES,
@@ -77,15 +78,30 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const isCloudflare = isR2Configured();
     const uploadDir = join(UPLOAD_ROOT, folder);
-    await mkdir(uploadDir, { recursive: true });
+    if (!isCloudflare) {
+      await mkdir(uploadDir, { recursive: true });
+    }
 
     const savedFiles = [];
     for (const item of prepared) {
       const filename = buildSafeFilename(item.file.name, item.ext);
-      await writeFile(join(uploadDir, filename), item.buffer);
+      const relativeKey = `${folder}/${filename}`;
+      let url = `/uploads/${relativeKey}`;
+
+      if (isCloudflare) {
+        url = await uploadToR2({
+          key: relativeKey,
+          buffer: item.buffer,
+          mimeType: item.mime,
+        });
+      } else {
+        await writeFile(join(uploadDir, filename), item.buffer);
+      }
+
       savedFiles.push({
-        url: `/uploads/${folder}/${filename}`,
+        url,
         name: item.file.name,
         size: item.buffer.length,
         formattedSize: formatFileSize(item.buffer.length),

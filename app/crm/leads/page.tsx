@@ -5,6 +5,7 @@ import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { KanbanBoard } from "@/components/crm/leads/KanbanBoard";
+import { KanbanSkeleton } from "@/components/crm/leads/KanbanSkeleton";
 import { LeadsTable } from "@/components/crm/leads/LeadsTable";
 import { BolsaoSection } from "@/components/crm/leads/BolsaoSection";
 import { NightQueueSection } from "@/components/crm/leads/NightQueueSection";
@@ -172,6 +173,7 @@ export default function LeadsPage() {
 
   const renderMainView = () => {
     if (isLoading) {
+      if (viewMode === "kanban") return <KanbanSkeleton />;
       return (
         <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">
           <Loader2 className="w-6 h-6 animate-spin text-connect-blue" />

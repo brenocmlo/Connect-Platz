@@ -115,6 +115,16 @@
 > - **Atualização Sob Demanda Exclusiva:** O comando de atualização do grafo de conhecimento (`graphify update .`) **NUNCA deve ser executado de forma automática**.  
 > - Atualize o Graphify **SOMENTE** quando o usuário solicitar expressamente em sua mensagem.
 
+---
+
+### 8. Regra Permanente de Armazenamento e Infraestrutura em Nuvem (Cloudflare R2 & CDN)
+
+> **MANDATÓRIO / NÃO NEGOCIÁVEL:**  
+> - **Provedor de Object Storage:** Para o armazenamento externo de uploads (fotos de empreendimentos, avatares, anexos e documentos), utilizaremos o **Cloudflare R2** (Object Storage compatível com a API S3 com **taxa de tráfego de saída/egress zero**), distribuído com **Cloudflare CDN**.
+> - **Padrão de Código:** A integração no backend deve utilizar o SDK padrão S3 (`@aws-sdk/client-s3`) parametrizado exclusivamente via variáveis de ambiente (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`).
+> - **Arquitetura Stateless para VPS com Coolify:** O backend deve ser mantido 100% desacoplado do disco local da VPS, permitindo que a aplicação seja escalada, reiniciada ou recriada no Coolify sem risco de perda de arquivos e sem sobrecarregar o SSD da VPS.
+
+
 
 
 

@@ -348,6 +348,9 @@ model Lead {
   @@index([organizationId, isBolsao])
   @@index([organizationId, isClosed])
   @@index([organizationId, createdAt])
+  @@index([organizationId, funnelId, isClosed])
+  @@index([funnelId, stageId])
+  @@index([organizationId, telefone])
   @@map("leads")
 }
 
@@ -554,6 +557,8 @@ model Sale {
   cashFlowEntries  CashFlow[]
 
   @@index([organizationId, dataVenda])
+  @@index([leadId])
+  @@index([propertyId])
   @@map("sales")
 }
 
@@ -641,6 +646,7 @@ model Appointment {
   property     Property?    @relation(fields: [propertyId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, userId, dataInicio])
+  @@index([leadId])
   @@map("appointments")
 }
 

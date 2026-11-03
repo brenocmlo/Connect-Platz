@@ -33,18 +33,26 @@ export async function GET(req: NextRequest) {
           orderBy: { createdAt: "asc" },
         });
 
-        for (const nLead of nightLeads) {
-          const roleta = await container.distributeLeadUseCase.execute(org.id);
-          if (roleta.assignedCorretor) {
-            await prisma.lead.update({
-              where: { id: nLead.id },
-              data: {
-                isNightQueue: false,
-                corretorId: roleta.assignedCorretor.id,
-                slaDueAt: new Date(Date.now() + 20 * 60 * 1000),
-              },
-            });
-            nightQueueReleased++;
+        if (nightLeads.length > 0) {
+          const updates = [];
+          for (const nLead of nightLeads) {
+            const roleta = await container.distributeLeadUseCase.execute(org.id);
+            if (roleta.assignedCorretor) {
+              updates.push(
+                prisma.lead.update({
+                  where: { id: nLead.id },
+                  data: {
+                    isNightQueue: false,
+                    corretorId: roleta.assignedCorretor.id,
+                    slaDueAt: new Date(Date.now() + 20 * 60 * 1000),
+                  },
+                })
+              );
+              nightQueueReleased++;
+            }
+          }
+          if (updates.length > 0) {
+            await prisma.$transaction(updates);
           }
         }
       }
