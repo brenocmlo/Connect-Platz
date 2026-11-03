@@ -106,8 +106,21 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // 1. Rota de Login: se já tiver sessão válida, redireciona para o CRM
+  // 1. Rota de Login: se já tiver sessão válida, redireciona para o CRM (exceto se vier com ?logout)
   if (pathname === "/login") {
+    if (request.nextUrl.searchParams.has("logout")) {
+      const response = NextResponse.next();
+      response.cookies.delete("connect_platz_token");
+      response.cookies.set({
+        name: "connect_platz_token",
+        value: "",
+        path: "/",
+        maxAge: 0,
+        expires: new Date(0),
+      });
+      return response;
+    }
+
     if (token) {
       const session = await verifyJwtInEdge(token);
       if (session) {

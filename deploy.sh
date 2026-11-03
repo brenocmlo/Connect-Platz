@@ -49,8 +49,9 @@ done
 echo -e "\n${GREEN}✓ PostgreSQL pronto e respondendo!${NC}"
 
 # 5. Sincronizar schema Prisma
-echo -e "${BLUE}Sincronizando tabelas com Prisma (db push)...${NC}"
-docker compose exec app npx prisma db execute --file prisma/migrate-perfis.sql --schema prisma/schema.prisma
+echo -e "${BLUE}Garantindo enums e sincronizando tabelas com Prisma (db push)...${NC}"
+docker compose exec app npx prisma db execute --file prisma/01-ensure-enums.sql --schema prisma/schema.prisma || true
+docker compose exec app npx prisma db execute --file prisma/02-migrate-data.sql --schema prisma/schema.prisma || true
 docker compose exec app npx prisma db push --accept-data-loss
 
 # 6. Popular dados iniciais (Seed)
