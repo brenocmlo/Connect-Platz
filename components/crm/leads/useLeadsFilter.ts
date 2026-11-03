@@ -65,7 +65,11 @@ export function useLeadsFilter({
     const now = new Date();
     const q = normalize(searchQuery.trim());
     const qDigits = searchQuery.replace(/\D/g, "");
+    const seenIds = new Set<string>();
     return leads.filter((lead) => {
+      if (!lead?.id || seenIds.has(lead.id)) return false;
+      seenIds.add(lead.id);
+
       const matchesSearch =
         !q ||
         normalize(lead.nome).includes(q) ||

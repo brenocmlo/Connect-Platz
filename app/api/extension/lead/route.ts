@@ -212,6 +212,7 @@ export async function POST(req: NextRequest) {
         isClosed: false,
         OR: [{ telefone: normalizedPhone }, { telefone: { contains: normalizedPhone.slice(-8) } }],
       },
+      include: { funnel: { select: { nome: true } } },
     });
 
     if (existingLead) {
@@ -232,6 +233,7 @@ export async function POST(req: NextRequest) {
         leadId: existingLead.id,
         nome: existingLead.nome,
         telefone: existingLead.telefone,
+        funnelNome: existingLead.funnel?.nome || "CRM",
         isExisting: true,
       });
     }
@@ -265,7 +267,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, leadId: created.id, nome: created.nome, telefone: created.telefone });
+    return NextResponse.json({
+      success: true,
+      leadId: created.id,
+      nome: created.nome,
+      telefone: created.telefone,
+      funnelNome: funnel.nome,
+      modalidade,
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro ao cadastrar lead.";
     return NextResponse.json({ error: message }, { status: 500 });
