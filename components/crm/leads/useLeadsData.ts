@@ -46,7 +46,8 @@ export function useLeadsData(isLoggedIn: boolean) {
     setLoadError(null);
     try {
       const data = await fetchLeads(targetFunnelId, search);
-      setLeads(data.leads);
+      const uniqueLeads = Array.from(new Map((data.leads || []).map((l) => [l.id, l])).values());
+      setLeads(uniqueLeads);
       setStages(data.stages);
       setFunnels(data.funnels);
       setFunnelId(data.funnel?.id || null);
@@ -54,7 +55,7 @@ export function useLeadsData(isLoggedIn: boolean) {
 
       if (data.funnel?.id) {
         cacheRef.current[data.funnel.id] = {
-          leads: data.leads,
+          leads: uniqueLeads,
           stages: data.stages,
           funnels: data.funnels,
           funnelId: data.funnel.id,

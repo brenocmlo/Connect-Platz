@@ -3,8 +3,11 @@ set -e
 
 # Executa sincronização do schema Prisma se DATABASE_URL estiver presente
 if [ -n "$DATABASE_URL" ]; then
+  echo "🔁 Garantindo enums do PostgreSQL (Role, CommissionBeneficiaryType)..."
+  prisma db execute --file prisma/01-ensure-enums.sql --schema prisma/schema.prisma || echo "⚠️ Enums já atualizados ou ignorados."
+
   echo "🔁 Migrando perfis legados (Diretor/Gerente) para Administrador/Corretor..."
-  prisma db execute --file prisma/migrate-perfis.sql --schema prisma/schema.prisma || echo "⚠️ Migração de perfis não aplicada. Continuando..."
+  prisma db execute --file prisma/02-migrate-data.sql --schema prisma/schema.prisma || echo "⚠️ Migração de dados de perfis não aplicada. Continuando..."
 
   echo "📦 Sincronizando schema do banco de dados via Prisma..."
   prisma db push --skip-generate --accept-data-loss || echo "⚠️ Banco ainda não acessível ou sincronizado. Continuando inicialização..."

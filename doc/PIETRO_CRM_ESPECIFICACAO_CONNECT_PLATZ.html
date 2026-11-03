@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robson Carvalho CRM CONNECT PLATZ — Especificação Oficial v2.0 (CRM & ERP Imobiliário)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    
+    :root {
+      --connect-blue: #1266C7;
+      --connect-deep-blue: #0D478F;
+      --platz-gold: #D9BB4C;
+      --platz-gold-light: #F8DA56;
+      --midnight-black: #080C14;
+      --midnight-surface: #111827;
+      --midnight-card: #1E293B;
+      --midnight-border: #1F2937;
+      --text-white: #FFFFFF;
+      --text-muted: #94A3B8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #080C14;
+      color: #E2E8F0;
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #0D131F;
+      border: 1px solid #1F2937;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .hero-banner {
+      background: linear-gradient(135deg, #080C14 0%, #0F172A 60%, #10243E 100%);
+      padding: 48px;
+      border-bottom: 2px solid transparent;
+      border-image: linear-gradient(to right, #1266C7 65%, #D9BB4C 35%) 1;
+      text-align: center;
+    }
+
+    .logo-img {
+      max-width: 320px;
+      height: auto;
+      margin-bottom: 24px;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(18, 102, 199, 0.15);
+      border: 1px solid #1266C7;
+      color: #60A5FA;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      font-size: 32px;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: #94A3B8;
+      max-width: 750px;
+      margin: 0 auto 24px auto;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      background: #111827;
+      border: 1px solid #1F2937;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .meta-item label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #D9BB4C;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .meta-item span {
+      font-size: 13px;
+      color: #F1F5F9;
+      font-weight: 500;
+    }
+
+    .content {
+      padding: 48px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-top: 40px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #1F2937;
+      padding-bottom: 10px;
+    }
+
+    h2::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(to bottom, #1266C7, #D9BB4C);
+      border-radius: 2px;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #D9BB4C;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: #CBD5E1;
+      font-size: 14px;
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    .color-palette {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .color-card {
+      background: #111827;
+      border: 1px solid #1F2937;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .color-swatch {
+      height: 60px;
+      width: 100%;
+    }
+
+    .color-info {
+      padding: 12px;
+    }
+
+    .color-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+
+    .color-hex {
+      font-size: 12px;
+      color: #94A3B8;
+      margin-bottom: 4px;
+    }
+
+    .color-role {
+      font-size: 11px;
+      color: #64748B;
+      line-height: 1.3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13px;
+      background: #111827;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #1F2937;
+    }
+
+    th {
+      background: #080C14;
+      color: #D9BB4C;
+      text-align: left;
+      padding: 12px 16px;
+      font-weight: 700;
+      border-bottom: 2px solid #1F2937;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #1F2937;
+      color: #CBD5E1;
+    }
+
+    tr:nth-child(even) td {
+      background: #0D1424;
+    }
+
+    .callout {
+      background: rgba(217, 187, 76, 0.08);
+      border-left: 4px solid #D9BB4C;
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 24px 0;
+    }
+
+    .callout.blue {
+      background: rgba(18, 102, 199, 0.08);
+      border-left-color: #1266C7;
+    }
+
+    .callout-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #F8DA56;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .callout.blue .callout-title {
+      color: #60A5FA;
+    }
+
+    .callout-body {
+      font-size: 13px;
+      color: #F1F5F9;
+      margin: 0;
+    }
+
+    ul {
+      margin: 16px 0;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 10px;
+      color: #CBD5E1;
+      font-size: 14px;
+    }
+
+    li strong {
+      color: #FFFFFF;
+    }
+
+    .highlight-box {
+      background: #111827;
+      border: 1px solid #1F2937;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 24px;
+      border-top: 1px solid #1F2937;
+      font-size: 12px;
+      color: #64748B;
+    }
+
+    @media print {
+      body { background: #FFFFFF; color: #000000; padding: 0; }
+      .container { border: none; box-shadow: none; max-width: 100%; }
+      .hero-banner { background: #FFFFFF; color: #000000; }
+      .title { color: #000000; }
+      th { background: #EEEEEE; color: #000000; }
+      td { color: #222222; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="hero-banner">
+      <img src="logo_connect_platz.jpg" alt="Logo Connect Platz" class="logo-img" />
+      <div class="badge">SISTEMA INTEGRADO CRM + ERP • V2.0</div>
+      <h1 class="title">ROBSON CARVALHO CRM CONNECT PLATZ</h1>
+      <p class="subtitle">Documento Oficial de Especificação: Captação Digital, Análise de Crédito, Vendas e Aluguel de Veraneio</p>
+      
+      <div class="meta-grid">
+        <div class="meta-item">
+          <label>Cliente</label>
+          <span>Connect Platz Imobiliária</span>
+        </div>
+        <div class="meta-item">
+          <label>Versão</label>
+          <span>2.0.0 (Pós-Reunião Estratégica)</span>
+        </div>
+        <div class="meta-item">
+          <label>Segmentos</label>
+          <span>Vendas & Aluguel de Veraneio</span>
+        </div>
+        <div class="meta-item">
+          <label>SLA Primeiro Contato</label>
+          <span>Transbordo Automático por Inatividade</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <h2>1. Visão Geral do Sistema e Solução a Desenvolver</h2>
+      <p>O <strong>Robson Carvalho CRM CONNECT PLATZ</strong> é uma plataforma proprietária projetada sob medida para a Connect Platz Imobiliária. O sistema automatiza o funil de atendimento em tempo real a partir de anúncios do Meta Ads, distribui leads de forma equitativa a corretores ativos, gerencia a esteira de análise de crédito, organiza a locação de imóveis de temporada (veraneio) com bloqueio automático de datas e meios de pagamento, e consolida todas as movimentações financeiras no módulo ERP (Fluxo de Caixa).</p>
+
+      <div class="callout">
+        <div class="callout-title">SLA de Alta Conversão (< 3 Segundos)</div>
+        <p class="callout-body">Todo lead vindo do tráfego pago é entregue no painel do corretor online em menos de 3 segundos, garantindo primeiro contato no momento exato do interesse do comprador.</p>
+      </div>
+
+      <h2>2. Sistema de Cores & Design System Oficial</h2>
+      <p>A identidade visual é baseada na marca oficial da Connect Platz, transmitindo tecnologia e prestígio imobiliário:</p>
+
+      <div class="color-palette">
+        <div class="color-card">
+          <div class="color-swatch" style="background: #1266C7;"></div>
+          <div class="color-info">
+            <div class="color-name">Connect Blue</div>
+            <div class="color-hex">#1266C7</div>
+            <div class="color-role">Botão Check-in, Leads Novos, Ações</div>
+          </div>
+        </div>
+
+        <div class="color-card">
+          <div class="color-swatch" style="background: #D9BB4C;"></div>
+          <div class="color-info">
+            <div class="color-name">Platz Gold</div>
+            <div class="color-hex">#D9BB4C</div>
+            <div class="color-role">VGV, Avaliação, Ranking, Fechados</div>
+          </div>
+        </div>
+
+        <div class="color-card">
+          <div class="color-swatch" style="background: #080C14;"></div>
+          <div class="color-info">
+            <div class="color-name">Midnight Black</div>
+            <div class="color-hex">#080C14</div>
+            <div class="color-role">Fundo Dark Mode Oficial da Marca</div>
+          </div>
+        </div>
+
+        <div class="color-card">
+          <div class="color-swatch" style="background: #F8DA56;"></div>
+          <div class="color-info">
+            <div class="color-name">Champagne Gold</div>
+            <div class="color-hex">#F8DA56</div>
+            <div class="color-role">Pódio 1º Lugar, Badges de Alta Renda</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>3. Perfis de Usuário & Governança de Contatos</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Perfil</th>
+            <th>Usuários Estimados</th>
+            <th>Visão</th>
+            <th>Principais Atribuições</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ADMINISTRADOR</strong></td>
+            <td>Até 4 usuários</td>
+            <td>Global (360°)</td>
+            <td>Gestão total da equipe, reatribuição manual de leads, auditoria por filtros avançados, módulo ERP de Fluxo de Caixa e acesso à planilha de contatos de leads encerrados para remarketing.</td>
+          </tr>
+          <tr>
+            <td><strong>CORRETOR</strong></td>
+            <td>~46 usuários</td>
+            <td>Individual (Própria)</td>
+            <td>Obrigatoriedade de Check-in diário para participar da roleta, controle de status (Disponível / Em Visita / Pausa), cadastro manual de leads próprios, ficha completa com anexos e visualização do Ranking.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout blue">
+        <div class="callout-title">Privacidade de Contatos (Regra de Ouro)</div>
+        <p class="callout-body">Em leads ativos na carteira, apenas o corretor responsável vê o número de telefone completo e WhatsApp. Na aba de "Encerrados", os administradores têm acesso a uma planilha exportável com todos os contatos para campanhas de remarketing da imobiliária.</p>
+      </div>
+
+      <h2>4. Ficha Completa do Lead & Esteira de Análise de Crédito</h2>
+      <ul>
+        <li><strong>Anexo de Mensagens & Conversas:</strong> O corretor pode anexar prints ou transcrições de conversas no WhatsApp/Instagram para mapear todo o histórico de alinhamento com o cliente.</li>
+        <li><strong>Central de Documentos:</strong> Upload organizado de RG, CNH, CPF e comprovante de residência.</li>
+        <li><strong>Qualificação para Análise de Crédito Bancário:</strong>
+          <ul>
+            <li><strong>Carteira Assinada (CLT):</strong> Anexo obrigatório dos últimos contracheques (holerites).</li>
+            <li><strong>Autônomo:</strong> Anexo de extratos bancários dos últimos 3 meses ou declaração de IRPF, com <strong>campo de preenchimento de valor específico de renda mensal em R$</strong>.</li>
+            <li><strong>Faixa de Renda:</strong> Seleção em opções pré-definidas (Até 3 SM, 3 a 5 SM, 5 a 10 SM, 10 a 20 SM, Acima de 20 SM).</li>
+            <li><strong>Estado Civil (Tag):</strong> Classificação em tags (Solteiro, Casado, União Estável, Divorciado, Viúvo).</li>
+            <li><strong>Profissão:</strong> Campo com o cargo/ocupação formal ou informal.</li>
+            <li><strong>Localização Desejada:</strong> Registro dos bairros e regiões de interesse do cliente.</li>
+          </ul>
+        </li>
+        <li><strong>Regra de Caducidade (Leads Encerrados):</strong> Leads que ficarem de 1 a 2 semanas sem retorno do cliente são movidos automaticamente para a coluna de <em>Encerrados</em>.</li>
+        <li><strong>Cadastro Manual pelo Corretor:</strong> Possibilidade de cadastrar leads próprios captados em plantões ou rede pessoal com indicação de autoria (<code>source: MANUAL_CORRETOR</code>), atribuindo-os automaticamente a si mesmo.</li>
+      </ul>
+
+      <h2>5. Motor de Roleta, SLAs & Presença</h2>
+      <ul>
+        <li><strong>Janela Horária (09:00 às 22:00):</strong> Leads que chegam no horário comercial entram imediatamente na roleta.</li>
+        <li><strong>Fila de Espera Noturna (22:01 às 08:59):</strong> Leads são retidos e distribuídos pontualmente às 09:00 da manhã em ordem de chegada (FIFO).</li>
+        <li><strong>SLA de Primeiro Atendimento (Transbordo Automático):</strong> Se o corretor sorteado não registrar o primeiro contato dentro do tempo limite (ex: 20 minutos), o lead sofre transbordo imediato para o próximo corretor da roleta.</li>
+        <li><strong>Status do Corretor ("Em Visita"):</strong> O corretor pode alternar seu status para <em>"Em Visita"</em> ao levar um cliente presencialmente a um empreendimento. O sistema pausa o envio de novos leads da roleta temporariamente, sem que ele perca o check-in do dia.</li>
+        <li><strong>Algoritmo Round-Robin:</strong> Seleciona o próximo corretor ativo com menor timestamp de último lead recebido, garantindo equilíbrio absoluto.</li>
+        <li><strong>Rastreamento de Anúncios (Meta Ads):</strong> Captura precisa do <code>ad_id</code>, nome do anúncio/criativo, campanha e parâmetros UTM.</li>
+      </ul>
+
+      <h2>6. Dupla Modalidade: Vendas vs Aluguel de Veraneio (Temporada)</h2>
+      <div class="highlight-box">
+        <h3 style="margin-top: 0;">Gestão Integrada de Aluguel de Veraneio</h3>
+        <p>A Connect Platz atua tanto na venda de imóveis quanto na locação de imóveis de temporada (veraneio). A plataforma oferece:</p>
+        <ul>
+          <li><strong>Catálogo de Imóveis por Faixas:</strong> Cadastro de imóveis com faixas de valor (Econômico, Médio, Alto Padrão e Luxo/Frente Mar).</li>
+          <li><strong>Bloqueio Automático de Disponibilidade:</strong> Ao fechar a locação de uma casa de veraneio, o imóvel fica <strong>automaticamente indisponível</strong> no período reservado (Check-in até Check-out), impedindo choque de datas (overbooking).</li>
+          <li><strong>Inserção do Meio de Pagamento:</strong> Registro obrigatório do meio de pagamento do aluguel (<code>PIX</code>, <code>Cartão de Crédito</code>, <code>Cartão de Débito</code>, <code>Boleto</code> ou <code>TED</code>), alimentando instantaneamente o Fluxo de Caixa.</li>
+        </ul>
+      </div>
+
+      <h2>7. Módulo ERP (Fluxo de Caixa) & Ranking de Vendas</h2>
+      <ul>
+        <li><strong>Conciliação CRM-ERP:</strong> Geração de receitas a partir de Vendas Concluídas (utilizando VGV e Valor de Avaliação) e Aluguéis de Veraneio.</li>
+        <li><strong>Controle de Custos:</strong> Registro de despesas de tráfego pago (Meta Ads), operacional de stands e infraestrutura para apuração de ROI.</li>
+        <li><strong>Painel de Ranking & Gamificação:</strong>
+          <ul>
+            <li>Pódio visual (1º, 2º e 3º lugares) com filtros semanais, mensais e anuais.</li>
+            <li>Critérios: VGV vendido, locações de veraneio, visitas realizadas e atendimentos no prazo de SLA.</li>
+            <li>Histórico completo de performance de cada corretor ao longo do tempo.</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h2>8. Cronograma de Desenvolvimento (5 Etapas)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Etapa</th>
+            <th>Módulo</th>
+            <th>Entregáveis Consolidados</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ETAPA 1</strong></td>
+            <td>Modelagem & Regras</td>
+            <td>Estrutura do banco de dados (Vendas, Veraneio, Crédito, ERP), Color System e especificação completa</td>
+            <td><strong style="color: #10B981;">CONCLUÍDO</strong></td>
+          </tr>
+          <tr>
+            <td><strong>ETAPA 2</strong></td>
+            <td>Infra & Webhook</td>
+            <td>Servidor backend Node.js, validação Zod e recepção de leads com rastreamento UTM / Meta Ads</td>
+            <td><strong style="color: #D9BB4C;">PRÓXIMA</strong></td>
+          </tr>
+          <tr>
+            <td><strong>ETAPA 3</strong></td>
+            <td>Motor de Roleta & SLAs</td>
+            <td>Round-Robin, janela 09h-22h, fila noturna, SLA de transbordo e status "Em Visita"</td>
+            <td>A INICIAR</td>
+          </tr>
+          <tr>
+            <td><strong>ETAPA 4</strong></td>
+            <td>Painel do Corretor</td>
+            <td>Check-in Diário, Kanban, ficha de crédito (CLT/Autônomo) e anexos de conversas</td>
+            <td>A INICIAR</td>
+          </tr>
+          <tr>
+            <td><strong>ETAPA 5</strong></td>
+            <td>Admin, Veraneio & ERP</td>
+            <td>Dashboard global, bloqueio de datas de veraneio, meios de pagamento, Ranking e Fluxo de Caixa</td>
+            <td>A INICIAR</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      Connect Platz Imobiliária • Robson Carvalho CRM • Especificação Oficial v2.0 © 2026
+    </div>
+  </div>
+
+</body>
+</html>

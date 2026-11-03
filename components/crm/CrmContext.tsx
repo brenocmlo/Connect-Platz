@@ -282,7 +282,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("connect_platz_user");
     setUser(null);
     setToken(null);
-    window.location.href = "/login";
+    window.location.href = "/login?logout=1";
   };
 
   return (

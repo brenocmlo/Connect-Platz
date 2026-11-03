@@ -53,6 +53,9 @@ window.PlatzHandlers = {
 
     form.onsubmit = async (e) => {
       e.preventDefault();
+      if (form.dataset.submitting === "true") return;
+      form.dataset.submitting = "true";
+
       const submitBtn = form.querySelector('button[type="submit"]');
       if (submitBtn) {
         submitBtn.disabled = true;
@@ -67,12 +70,17 @@ window.PlatzHandlers = {
       const observacoes = shadowRoot.getElementById("platz-new-obs")?.value;
 
       try {
-        await window.PlatzApi.createLead({ nome, telefone, modalidade, propertyInteresse, corretorId, observacoes });
-        showToast("Lead salvo no Connect Platz!");
+        const res = await window.PlatzApi.createLead({ nome, telefone, modalidade, propertyInteresse, corretorId, observacoes });
+        if (res.isExisting) {
+          showToast(`Lead já cadastrado no ${res.funnelNome || "CRM"}! Dados atualizados.`);
+        } else {
+          showToast(`Lead salvo no ${res.funnelNome || "Connect Platz"}!`);
+        }
         detectActiveChat(true);
       } catch (err) {
         showToast(`Erro: ${err.message}`);
       } finally {
+        form.dataset.submitting = "false";
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = "+ Cadastrar no Connect Platz";
