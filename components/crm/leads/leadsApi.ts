@@ -5,11 +5,21 @@
 import { LeadDetail } from "@/components/crm/LeadDrawer";
 import { FunnelColumn } from "./KanbanBoard";
 
+export interface OtherFunnelMatch {
+  id: string;
+  nome: string;
+  telefone: string;
+  funilId: string;
+  funilNome: string;
+  stageNome: string;
+}
+
 export interface LeadsResponse {
   leads: LeadDetail[];
   stages: FunnelColumn[];
   funnel: { id: string; nome: string } | null;
   funnels: { id: string; nome: string }[];
+  otherFunnelMatches?: OtherFunnelMatch[];
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -36,14 +46,18 @@ export function normalizeLead(raw: any): LeadDetail {
   };
 }
 
-export async function fetchLeads(funnelId?: string | null): Promise<LeadsResponse> {
-  const qs = funnelId ? `?funnelId=${encodeURIComponent(funnelId)}` : "";
+export async function fetchLeads(funnelId?: string | null, search?: string | null): Promise<LeadsResponse> {
+  const params = new URLSearchParams();
+  if (funnelId) params.set("funnelId", funnelId);
+  if (search) params.set("search", search);
+  const qs = params.toString() ? `?${params.toString()}` : "";
   const data = await request<any>(`/api/leads${qs}`);
   return {
     leads: (data.leads || []).map(normalizeLead),
     stages: data.stages || [],
     funnel: data.funnel || null,
     funnels: data.funnels || [],
+    otherFunnelMatches: data.otherFunnelMatches || [],
   };
 }
 

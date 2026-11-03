@@ -12,6 +12,8 @@ import { LeadStatCards } from "@/components/crm/leads/LeadStatCards";
 import { LeadsHeader } from "@/components/crm/leads/LeadsHeader";
 import { LeadsSubBar } from "@/components/crm/leads/LeadsSubBar";
 import { LeadsSearchBar } from "@/components/crm/leads/LeadsSearchBar";
+import { CrossFunnelBanner } from "@/components/crm/leads/CrossFunnelBanner";
+import { useCrossFunnelSearch } from "@/components/crm/leads/useCrossFunnelSearch";
 import { LeadsModalsContainer } from "@/components/crm/leads/LeadsModalsContainer";
 import { useLeadsFilter } from "@/components/crm/leads/useLeadsFilter";
 import { useLeadsActions, NotifyFn } from "@/components/crm/leads/useLeadsActions";
@@ -93,6 +95,35 @@ export default function LeadsPage() {
     setSaleTarget(null);
     reload();
     notify("Venda registrada com sucesso! Lead atualizado no funil.", "success");
+  };
+
+  const { matches: crossFunnelMatches, clearMatches: clearCrossFunnelMatches } = useCrossFunnelSearch(
+    funnelId,
+    searchQuery
+  );
+
+  const handleMigrateLeadToCurrentFunnel = async (leadId: string, targetFunnelId: string) => {
+    try {
+      await patchLead(leadId, { funnelId: targetFunnelId });
+      clearCrossFunnelMatches();
+      reload(targetFunnelId);
+      notify("Lead transferido com sucesso para este funil!", "success");
+    } catch (err: any) {
+      notify(err?.message || "Erro ao mover lead para este funil.", "error");
+    }
+  };
+
+  const handleGoToFunnel = (targetFunnelId: string, leadId?: string) => {
+    clearCrossFunnelMatches();
+    reload(targetFunnelId).then(() => {
+      if (leadId) {
+        setLeads((currentLeads) => {
+          const match = currentLeads.find((l) => l.id === leadId);
+          if (match) setSelectedLead(match);
+          return currentLeads;
+        });
+      }
+    });
   };
 
   const { filteredLeads, bolsaoCount, totalLeadsCount, activeLeadsCount, wonCount, convRate, newLeadsCount, hasActiveFilters } =
@@ -234,6 +265,14 @@ export default function LeadsPage() {
         setSearchQuery={setSearchQuery}
         onOpenFilters={() => setIsFilterSheetOpen(true)}
         hasActiveFilters={hasActiveFilters}
+      />
+
+      {/* 4.1 BANNER DE DESCOBERTA ENTRE FUNIS (CROSS-FUNNEL) */}
+      <CrossFunnelBanner
+        matches={crossFunnelMatches}
+        currentFunnelId={funnelId}
+        onGoToFunnel={handleGoToFunnel}
+        onMigrateLead={handleMigrateLeadToCurrentFunnel}
       />
 
       {/* 5. VISUALIZAÇÃO PRINCIPAL (KANBAN / TABELA / BOLSÃO / FILA NOTURNA) */}

@@ -28,7 +28,7 @@ interface KanbanColumnProps {
   onRegisterSale?: (lead: LeadDetail) => void;
 }
 
-export function KanbanColumn({
+function KanbanColumnComponent({
   stage,
   stages = [],
   leads,
@@ -177,3 +177,5 @@ export function KanbanColumn({
     </div>
   );
 }
+
+export const KanbanColumn = React.memo(KanbanColumnComponent);

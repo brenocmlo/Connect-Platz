@@ -46,7 +46,7 @@ interface LeadCardProps {
   onRegisterSale?: (lead: LeadDetail) => void;
 }
 
-export function LeadCard({
+function LeadCardComponent({
   lead, stages = [], isDragging = false, isGhost = false, onSelectLead, onDragStart, onDragEnd,
   onAdvanceStage, onChangeStage, onMoveToBolsao, onDeleteLead, onUpdateTags, onEditLead,
   onScheduleVisit, onOpenWhatsApp, isAdmin = false, onChangeBroker, onRegisterSale,
@@ -377,3 +377,5 @@ export function LeadCard({
     </div>
   );
 }
+
+export const LeadCard = React.memo(LeadCardComponent);

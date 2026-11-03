@@ -24,6 +24,7 @@ export const LEAD_ACTIONS = [
 
 export const UpdateLeadSchema = z.object({
   action: z.enum(LEAD_ACTIONS).optional(),
+  funnelId: z.string().optional().nullable(),
   stageId: z.string().optional().nullable(),
   etapaId: z.string().optional().nullable(),
   corretorId: z.string().optional().nullable(),
@@ -108,32 +109,58 @@ export async function buildLeadUpdate(
     plan.events.push({ tipo: "contato", conteudo: `Primeiro contato registrado${canal} por ${session.nome}.` });
   }
 
-  // 3. Mudança de etapa (somente etapas do mesmo funil)
-  const targetStageId = input.stageId || input.etapaId;
-  if (targetStageId && targetStageId !== lead.stageId) {
-    const nextStage = isUuid(targetStageId)
-      ? await prisma.funnelStage.findUnique({ where: { id: targetStageId } })
+  // 2.5 Troca de funil (migração entre funis da organização)
+  if (input.funnelId && input.funnelId !== lead.funnelId) {
+    const targetFunnel = isUuid(input.funnelId)
+      ? await prisma.funnel.findFirst({
+          where: { id: input.funnelId, organizationId: session.organizationId, isActive: true },
+          include: { stages: { orderBy: { posicao: "asc" } } },
+        })
       : null;
-    if (!nextStage || nextStage.funnelId !== lead.funnelId) {
-      throw new LeadUpdateError("A etapa informada não pertence ao funil deste lead.");
+    if (!targetFunnel || targetFunnel.stages.length === 0) {
+      throw new LeadUpdateError("Funil de destino não encontrado ou sem etapas ativas.");
     }
-    set("stageId", nextStage.id);
+    const targetStage =
+      (input.stageId && targetFunnel.stages.find((s) => s.id === input.stageId)) || targetFunnel.stages[0];
+
+    set("funnelId", targetFunnel.id);
+    set("stageId", targetStage.id);
     set("slaBreached", false);
-    set("slaDueAt", nextStage.slaMinutes ? new Date(Date.now() + nextStage.slaMinutes * 60 * 1000) : null);
+    set("slaDueAt", targetStage.slaMinutes ? new Date(Date.now() + targetStage.slaMinutes * 60 * 1000) : null);
     plan.isStageChange = true;
     plan.events.push({
-      tipo: "status_change",
-      conteudo: `Etapa alterada de "${lead.stage.nome}" para "${nextStage.nome}".`,
-      metadata: { de: lead.stage.nome, para: nextStage.nome },
+      tipo: "transbordo",
+      conteudo: `Lead transferido para o funil "${targetFunnel.nome}" (etapa "${targetStage.nome}") por ${session.nome}.`,
+      metadata: { deFunilId: lead.funnelId, paraFunilId: targetFunnel.id },
     });
-
-    const isClosingStage = /vend|fechad|ganh/i.test(nextStage.nome);
-    if (isClosingStage && lead.financialApprovalStatus !== "APROVADO") {
-      set("financialApprovalStatus", "PENDENTE");
+  } else {
+    // 3. Mudança de etapa (somente etapas do mesmo funil)
+    const targetStageId = input.stageId || input.etapaId;
+    if (targetStageId && targetStageId !== lead.stageId) {
+      const nextStage = isUuid(targetStageId)
+        ? await prisma.funnelStage.findUnique({ where: { id: targetStageId } })
+        : null;
+      if (!nextStage || nextStage.funnelId !== lead.funnelId) {
+        throw new LeadUpdateError("A etapa informada não pertence ao funil deste lead.");
+      }
+      set("stageId", nextStage.id);
+      set("slaBreached", false);
+      set("slaDueAt", nextStage.slaMinutes ? new Date(Date.now() + nextStage.slaMinutes * 60 * 1000) : null);
+      plan.isStageChange = true;
       plan.events.push({
-        tipo: "fechamento_solicitado",
-        conteudo: `Fechamento comercial registrado por ${session.nome}. Enviado para precificação e formalização do Financeiro.`,
+        tipo: "status_change",
+        conteudo: `Etapa alterada de "${lead.stage.nome}" para "${nextStage.nome}".`,
+        metadata: { de: lead.stage.nome, para: nextStage.nome },
       });
+
+      const isClosingStage = /vend|fechad|ganh/i.test(nextStage.nome);
+      if (isClosingStage && lead.financialApprovalStatus !== "APROVADO") {
+        set("financialApprovalStatus", "PENDENTE");
+        plan.events.push({
+          tipo: "fechamento_solicitado",
+          conteudo: `Fechamento comercial registrado por ${session.nome}. Enviado para precificação e formalização do Financeiro.`,
+        });
+      }
     }
   }
 
