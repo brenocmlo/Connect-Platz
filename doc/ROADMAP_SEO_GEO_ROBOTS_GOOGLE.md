@@ -63,17 +63,17 @@ flowchart TD
 ### Fase 1: Fundação Técnica (`robots.ts`, `sitemap.ts` e Metadados Globais)
 *Foco: Garantir que o Googlebot consiga rastrear o site com facilidade e indexar sem gastar crawl budget em rotas privadas.*
 
-- [ ] **1.1. Gerador Nativo de Robots (`app/robots.ts`):**
+- [x] **1.1. Gerador Nativo de Robots (`app/robots.ts`):**
   - Permitir acesso a `/`, `/imoveis`, `/imoveis/*`, `/espelho/*`.
   - Bloquear terminantemente `/crm`, `/crm/*`, `/api/*`, `/login`, `/_next/*`.
   - Apontar a diretiva `sitemap: https://connectplatz.com.br/sitemap.xml`.
-- [ ] **1.2. Gerador Dinâmico de Sitemap (`app/sitemap.ts`):**
+- [x] **1.2. Gerador Dinâmico de Sitemap (`app/sitemap.ts`):**
   - Consultar Prisma para recuperar todos os imóveis públicos com `isActive: true` e `exibirNaLandingPage: true`.
   - Gerar entradas com URL canônica, `lastModified` atualizado da propriedade, `changeFrequency: 'daily'` e `priority: 0.9` (para imóveis) e `1.0` (para a Home).
   - Incluir rotas estáticas e hubs de cidades principais (Fortaleza, Aquiraz, Eusébio, Caucaia).
-- [ ] **1.3. Configuração de Canonical & Base URL em `app/layout.tsx`:**
+- [x] **1.3. Configuração de Canonical & Base URL em `app/layout.tsx`:**
   - Definir `metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://connectplatz.com.br')`.
-  - Configurar template de títulos: `title: { default: "Connect Platz | Imóveis de Alto Padrão e Veraneio", template: "%s | Connect Platz" }`.
+  - Configurar template de títulos: `title: { default: "Connect Platz Imobiliária | Imóveis de Alto Padrão e Temporada em Fortaleza e Ceará", template: "%s | Connect Platz" }`.
   - Configurar verificação do Google Search Console: `verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }`.
 
 ---
@@ -81,12 +81,12 @@ flowchart TD
 ### Fase 2: Geo SEO & Dados Estruturados (LocalBusiness & RealEstateAgent)
 *Foco: Fazer a Connect Platz aparecer no Google Maps, Local Pack de busca imobiliária e pesquisas como "imóveis em Fortaleza", "casas de praia no Aquiraz", "aluguel temporada Porto das Dunas".*
 
-- [ ] **2.1. Meta Tags Geográficas no `<head>`:**
+- [x] **2.1. Meta Tags Geográficas no `<head>`:**
   - `geo.region`: `BR-CE`
   - `geo.placename`: `Fortaleza, Ceará, Brasil`
   - `geo.position`: `-3.734236;-38.584945`
   - `ICBM`: `-3.734236, -38.584945`
-- [ ] **2.2. Componente de JSON-LD LocalBusiness / RealEstateAgent:**
+- [x] **2.2. Componente de JSON-LD LocalBusiness / RealEstateAgent:**
   - Criar `components/seo/OrganizationJsonLd.tsx`:
     - `@type`: `["RealEstateAgent", "LocalBusiness"]`
     - `name`: "Connect Platz Imobiliária"
@@ -96,9 +96,9 @@ flowchart TD
     - `geo`: `GeoCoordinates` (`latitude: -3.734236`, `longitude: -38.584945`).
     - `areaServed`: Lista de cidades atendidas (Fortaleza, Aquiraz, Eusébio, Caucaia).
     - `sameAs`: Links de redes sociais e WhatsApp.
-- [ ] **2.3. Exibição do Endereço Completo no Rodapé (`PortalFooter`):**
+- [x] **2.3. Exibição do Endereço Completo no Rodapé (`PortalFooter`):**
   - Atualizar o rodapé do portal com o endereço físico oficial, fortalecendo a consistência de NAP (Name, Address, Phone) exigida pelo Google Search e Google Maps.
-- [ ] **2.3. FAQPage Schema na Landing Page:**
+- [x] **2.4. FAQPage Schema na Landing Page:**
   - Criar `components/seo/FaqJsonLd.tsx` com perguntas frequentes reais sobre compra de imóveis no Ceará, financiamento imobiliário e locação de veraneio por temporada. O Google destaca essas perguntas com rich snippets direto nos resultados de busca!
 
 ---
@@ -106,23 +106,23 @@ flowchart TD
 ### Fase 3: Páginas Dedicadas de Imóveis (`/imoveis/[slug]`) & Server-Side SEO
 *Foco: Cada imóvel publicado vira uma página indexável no Google, captando tráfego qualificado de pessoas buscando o nome exato do empreendimento ou condomínio.*
 
-- [ ] **3.1. Rota Dinâmica Server-Rendered (`app/imoveis/[slug]/page.tsx`):**
+- [x] **3.1. Rota Dinâmica Server-Rendered (`app/imoveis/[slug]/page.tsx`):**
   - Implementar função `generateMetadata({ params })`:
     - Título dinâmico: `${property.nome} em ${property.bairro}, ${property.cidade} | Connect Platz`
     - Descrição rica com diferenciais, metragem e valor formatado.
     - Imagem OpenGraph de capa do imóvel (`property.fotos[0]`).
     - Canonical link direto para `/imoveis/${property.slug}`.
   - Pré-renderização rápida com cache revalidado (`revalidate = 3600`).
-- [ ] **3.2. JSON-LD de Imóvel (`RealEstateListing` & `Offer`):**
+- [x] **3.2. JSON-LD de Imóvel (`RealEstateListing` & `Offer`):**
   - Criar `components/seo/PropertyJsonLd.tsx`:
-    - `@type`: `SingleFamilyResidence` ou `ApartmentComplex` conforme o tipo.
+    - `@type`: `RealEstateListing` conforme o tipo.
     - `name`, `description`, `image`.
     - `geo`: coordenadas `latitude` e `longitude` salvas no cadastro do imóvel.
     - `address`: rua, bairro, cidade, estado, CEP.
     - `offers`: modalidade (venda ou diária de temporada), preço em BRL, disponibilidade.
-- [ ] **3.3. BreadcrumbList Estruturado:**
+- [x] **3.3. BreadcrumbList Estruturado:**
   - Schema de navegação: `Início > Imóveis > ${cidade} > ${nomeDoImovel}` para exibir trilha de links limpa no snippet do Google.
-- [ ] **3.4. Atualização Amigável do `app/espelho/[slug]`:**
+- [x] **3.4. Atualização Amigável do `app/espelho/[slug]`:**
   - Redirecionar `301 (Permanent Redirect)` de `/espelho/[slug]` para `/imoveis/[slug]`, garantindo que links antigos transfiram autoridade SEO.
 
 ---
