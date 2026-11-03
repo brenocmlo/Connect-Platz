@@ -101,6 +101,8 @@ export function ImoveisAvulsosList({
                         "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"
                       }
                       alt={imovel.nome}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30" />
