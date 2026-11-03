@@ -18,6 +18,10 @@ export interface CreateLeadDto {
   utmMedium?: string;
   utmCampaign?: string;
   utmContent?: string;
+  utmTerm?: string;
+  fbp?: string;
+  fbc?: string;
+  eventId?: string;
   isNightQueue?: boolean;
   isBolsao?: boolean;
   bolsaoEnteredAt?: Date | null;
