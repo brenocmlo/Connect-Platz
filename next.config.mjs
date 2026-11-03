@@ -3,6 +3,9 @@ const nextConfig = {
   output: "standalone",
   transpilePackages: ["framer-motion", "motion-dom", "motion-utils"],
   reactStrictMode: false,
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
   async headers() {
     return [
       {
@@ -12,6 +15,12 @@ const nextConfig = {
           { key: "Access-Control-Allow-Methods", value: "GET, POST, PATCH, PUT, DELETE, OPTIONS" },
           { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization, X-Requested-With" },
           { key: "Access-Control-Allow-Private-Network", value: "true" },
+        ],
+      },
+      {
+        source: "/uploads/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" },
         ],
       },
     ];

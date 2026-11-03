@@ -143,6 +143,7 @@ export async function fetchCnpjData(cnpjInput: string): Promise<CnpjData | null>
   try {
     const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${clean}`, {
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(4000),
       next: { revalidate: 86400 },
     });
 
@@ -189,6 +190,7 @@ export async function fetchCnpjData(cnpjInput: string): Promise<CnpjData | null>
   try {
     const resFallback = await fetch(`https://receitaws.com.br/v1/cnpj/${clean}`, {
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(4000),
     });
 
     if (resFallback.ok) {

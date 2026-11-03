@@ -65,7 +65,7 @@ export class MetaWebhookService {
 
     try {
       const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(leadgenId)}?fields=field_data,campaign_name,ad_name&access_token=${encodeURIComponent(accessToken)}`;
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5000) });
       if (!res.ok) {
         console.error("[Meta Webhook] Graph API respondeu", res.status);
         return null;

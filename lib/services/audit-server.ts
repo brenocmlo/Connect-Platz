@@ -35,29 +35,41 @@ export interface RecordAuditInput {
   ator?: string; // rótulo quando não há usuário (ex.: "Integração: Meta Ads")
 }
 
-export async function recordAudit(input: RecordAuditInput): Promise<void> {
-  try {
-    await prisma.auditLog.create({
-      data: {
-        organizationId: input.organizationId,
-        userId: input.userId || null,
-        acao: input.acao,
-        entidade: input.entidade,
-        entidadeId: input.entidadeId || null,
-        ipAddress: input.req ? getClientIp(input.req) : null,
-        detalhes: {
-          tipoAcao: input.tipoAcao,
-          modulo: input.modulo,
-          descricao: input.descricao,
-          entidadeNome: input.entidadeNome || undefined,
-          dispositivo: input.req?.headers.get("user-agent") || (input.ator ? "Integração" : "Servidor"),
-          ator: input.ator,
-          dadosAntes: input.dadosAntes ?? undefined,
-          dadosDepois: input.dadosDepois ?? undefined,
-        } as any,
-      },
-    });
-  } catch (err) {
-    console.error("[AUDIT] Falha ao registrar evento de auditoria:", err);
-  }
+/**
+ * Registra auditoria de forma assíncrona não-bloqueante (fire-and-forget).
+ * Retorna Promise resolvida imediatamente para não penalizar a latência da resposta HTTP.
+ */
+export function recordAudit(input: RecordAuditInput): Promise<void> {
+  const ipAddress = input.req ? getClientIp(input.req) : null;
+  const userAgent = input.req?.headers.get("user-agent") || (input.ator ? "Integração" : "Servidor");
+
+  // Despacha em microtarefa assíncrona desacoplada da resposta HTTP
+  queueMicrotask(() => {
+    prisma.auditLog
+      .create({
+        data: {
+          organizationId: input.organizationId,
+          userId: input.userId || null,
+          acao: input.acao,
+          entidade: input.entidade,
+          entidadeId: input.entidadeId || null,
+          ipAddress,
+          detalhes: {
+            tipoAcao: input.tipoAcao,
+            modulo: input.modulo,
+            descricao: input.descricao,
+            entidadeNome: input.entidadeNome || undefined,
+            dispositivo: userAgent,
+            ator: input.ator,
+            dadosAntes: input.dadosAntes ?? undefined,
+            dadosDepois: input.dadosDepois ?? undefined,
+          } as any,
+        },
+      })
+      .catch((err) => {
+        console.error("[AUDIT] Falha ao registrar evento de auditoria:", err);
+      });
+  });
+
+  return Promise.resolve();
 }
