@@ -14,6 +14,7 @@ import { PortalFloatingWhatsApp } from "@/components/portal/PortalFloatingWhatsA
 import { usePortalProperties } from "@/components/portal/usePortalProperties";
 import { PortalSettingsProvider } from "@/components/portal/PortalSettingsContext";
 import { cityLabel, inferPropertyType, isTemporada, scrollToId } from "@/components/portal/portalUtils";
+import { FaqJsonLd } from "@/components/seo/FaqJsonLd";
 import type { PortalFilters, PropertyItem } from "@/components/portal/types";
 
 // Portal público inspirado na estrutura do remax.com.br, com a identidade Connect Platz.
@@ -50,7 +51,8 @@ export default function LandingPage() {
 
   return (
     <PortalSettingsProvider>
-    <div className="min-h-[100dvh] bg-portal-mist text-portal-ink [color-scheme:light] dark:[color-scheme:dark]">
+      <FaqJsonLd />
+      <div className="min-h-[100dvh] bg-portal-mist text-portal-ink [color-scheme:light] dark:[color-scheme:dark]">
       <PortalHeader cities={portal.directoryCities} onNavigate={navigateTo} />
 
       <main>

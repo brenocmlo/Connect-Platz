@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Calendar,
   Navigation,
+  ExternalLink,
 } from "lucide-react";
 import type { PropertyItem } from "./types";
 import { FALLBACK_PHOTO, formatPrice, isTemporada } from "./portalUtils";
@@ -241,6 +242,14 @@ function ModalPanel({ property, onClose }: { property: PropertyItem; onClose: ()
                   <MapPin className="w-4 h-4 text-connect-blue" />
                   <span>Ver Mapa & Localização</span>
                 </button>
+                <a
+                  href={`/imoveis/${encodeURIComponent(property.slug)}`}
+                  className="h-11 px-3.5 rounded-xl border border-portal-line hover:border-connect-blue text-portal-ink font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  title="Abrir página exclusiva indexada para este imóvel"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-connect-blue" />
+                  <span className="hidden sm:inline">Página Exclusiva</span>
+                </a>
                 <button
                   type="button"
                   onClick={() => setActiveTab("contato")}

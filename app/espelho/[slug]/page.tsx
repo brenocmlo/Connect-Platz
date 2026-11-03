@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 
-// Links antigos de espelho apontam para a ficha do imóvel no portal público.
+// app/espelho/[slug]/page.tsx
+// Redirecionamento permanente para a URL canônica e otimizada para SEO (/imoveis/[slug]).
 export default function EspelhoRedirect({ params }: { params: { slug: string } }) {
-  const slug = String(params.slug || "").replace(/[^a-zA-Z0-9-]/g, "");
-  redirect(slug ? `/?imovel=${encodeURIComponent(slug)}#vitrine` : "/#vitrine");
+  const cleanSlug = String(params.slug || "").replace(/[^a-zA-Z0-9-]/g, "");
+  if (cleanSlug) {
+    redirect(`/imoveis/${encodeURIComponent(cleanSlug)}`);
+  }
+  redirect("/#vitrine");
 }
