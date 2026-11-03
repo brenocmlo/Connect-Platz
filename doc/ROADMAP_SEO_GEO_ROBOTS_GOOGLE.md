@@ -22,7 +22,17 @@
 
 ---
 
-## 2. Diagrama de Arquitetura de SEO & Indexação
+### 2. Dados Oficiais de Localização da Imobiliária (NAP & Geo Signals)
+
+> **Nome Empresarial:** Connect Platz Imobiliária / Robson Carvalho  
+> **CNPJ:** `53.758.699/0001-10` • **CRECI:** `023456-J`  
+> **Endereço Completo:** Avenida Sargento Hermínio Sampaio, 5107, Antônio Bezerra, Fortaleza - CE, CEP 60356-640, Brasil  
+> **Coordenadas Geográficas (GPS):** Latitude `-3.734236`, Longitude `-38.584945`  
+> **Área de Atuação Primária:** Fortaleza, Aquiraz (Porto das Dunas/Prainha), Eusébio e Caucaia (Cumbuco).
+
+---
+
+## 3. Diagrama de Arquitetura de SEO & Indexação
 
 ```mermaid
 flowchart TD
@@ -74,18 +84,20 @@ flowchart TD
 - [ ] **2.1. Meta Tags Geográficas no `<head>`:**
   - `geo.region`: `BR-CE`
   - `geo.placename`: `Fortaleza, Ceará, Brasil`
-  - `geo.position`: latitude e longitude da sede da imobiliária.
-  - `ICBM`: coordenadas para geolocalização legada.
+  - `geo.position`: `-3.734236;-38.584945`
+  - `ICBM`: `-3.734236, -38.584945`
 - [ ] **2.2. Componente de JSON-LD LocalBusiness / RealEstateAgent:**
   - Criar `components/seo/OrganizationJsonLd.tsx`:
     - `@type`: `["RealEstateAgent", "LocalBusiness"]`
     - `name`: "Connect Platz Imobiliária"
     - `founder`: "Robson Carvalho"
     - `telephone`, `email`, `url`, `logo`, `image`.
-    - `address`: `PostalAddress` (Fortaleza, Ceará, Brasil).
-    - `geo`: `GeoCoordinates`.
+    - `address`: `PostalAddress` ("Avenida Sargento Hermínio Sampaio, 5107", "Antônio Bezerra", "Fortaleza", "CE", "60356-640", "BR").
+    - `geo`: `GeoCoordinates` (`latitude: -3.734236`, `longitude: -38.584945`).
     - `areaServed`: Lista de cidades atendidas (Fortaleza, Aquiraz, Eusébio, Caucaia).
     - `sameAs`: Links de redes sociais e WhatsApp.
+- [ ] **2.3. Exibição do Endereço Completo no Rodapé (`PortalFooter`):**
+  - Atualizar o rodapé do portal com o endereço físico oficial, fortalecendo a consistência de NAP (Name, Address, Phone) exigida pelo Google Search e Google Maps.
 - [ ] **2.3. FAQPage Schema na Landing Page:**
   - Criar `components/seo/FaqJsonLd.tsx` com perguntas frequentes reais sobre compra de imóveis no Ceará, financiamento imobiliário e locação de veraneio por temporada. O Google destaca essas perguntas com rich snippets direto nos resultados de busca!
 
