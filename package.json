@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:integration": "node scripts/test-leads-bidirectional-sync.mjs",
     "test:e2e": "playwright test",
-    "clean:qa": "tsx scripts/cleanup-qa-users.ts"
+    "clean:qa": "tsx scripts/cleanup-qa-users.ts",
+    "sync:membros": "tsx scripts/sync-membros-oficiais.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
