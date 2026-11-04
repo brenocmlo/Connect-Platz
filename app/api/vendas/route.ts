@@ -18,6 +18,8 @@ import { requireSession, isAdmin, canManageSaleValues } from "@/lib/auth/session
 import { Role } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-server";
 import { normalizeBrPhone } from "@/lib/utils/phone";
+import { getOrganizationTrackingSettings } from "@/lib/tracking/tracking-settings";
+import { MetaCapiService } from "@/lib/services/meta-capi";
 import {
   calculateSaleValues,
   ROLE_TO_BENEFICIARY,
@@ -370,6 +372,54 @@ export async function POST(req: NextRequest) {
         participantes: calc.participants.map((p) => ({ papel: p.role, nome: p.nome, valor: p.valor })),
       },
     });
+
+    // Disparo Server-Side CAPI para Meta (Offline Conversion: Purchase com VGV - Decisão 1.A)
+    getOrganizationTrackingSettings(orgId)
+      .then(async (tracking) => {
+        const pixelId = tracking.crmPixelId || tracking.sitePixelId;
+        if (!tracking.capiToken || !pixelId || (!tracking.crmPixelActive && !tracking.sitePixelActive)) return;
+
+        const leadData = sale.leadId
+          ? await prisma.lead.findUnique({
+              where: { id: sale.leadId },
+              select: { nome: true, email: true, telefone: true, fbp: true, fbc: true },
+            })
+          : null;
+
+        const buyerName = leadData?.nome || input.novoComprador?.nome || "";
+        const buyerEmail = leadData?.email || input.novoComprador?.email || undefined;
+        const buyerPhone = leadData?.telefone || input.novoComprador?.telefone || undefined;
+
+        const nameParts = buyerName.trim().split(" ");
+        const firstName = nameParts[0];
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
+
+        await MetaCapiService.sendEvent({
+          pixelId,
+          token: tracking.capiToken,
+          testEventCode: tracking.capiTestEventCode,
+          eventName: "Purchase",
+          eventId: `purchase_${sale.codigoVenda}`,
+          actionSource: "system_generated",
+          userData: {
+            email: buyerEmail,
+            phone: buyerPhone,
+            firstName,
+            lastName,
+            fbp: leadData?.fbp,
+            fbc: leadData?.fbc,
+          },
+          customData: {
+            currency: "BRL",
+            value: Number(sale.valorVendaVGV), // VGV Total da venda
+            contentName: property.nome,
+            orderId: sale.codigoVenda,
+          },
+        });
+      })
+      .catch((err) => {
+        console.warn("[Meta CAPI] Falha ao processar conversão Purchase:", err?.message || err);
+      });
 
     return NextResponse.json({ success: true, sale: serializeSale(sale) }, { status: 201 });
   } catch (err: any) {

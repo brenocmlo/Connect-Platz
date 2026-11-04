@@ -17,6 +17,8 @@ import {
 } from "../_lib/leadAccess";
 import { zodMessage } from "../_lib/leadPayload";
 import { UpdateLeadSchema, buildLeadUpdate, summarizeChanges, LeadUpdateError } from "../_lib/leadUpdate";
+import { getOrganizationTrackingSettings } from "@/lib/tracking/tracking-settings";
+import { MetaCapiService } from "@/lib/services/meta-capi";
 
 export const dynamic = "force-dynamic";
 
@@ -128,6 +130,42 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       dadosAntes: antes,
       dadosDepois: depois,
     });
+
+    // Disparo Server-Side CAPI para Meta (Offline Conversion: Schedule no atendimento)
+    if (input.action === "REGISTRAR_CONTATO" || (plan.isStageChange && /atend|visit|contat|agend/i.test(plan.events.map((e) => e.conteudo).join(" ")))) {
+      getOrganizationTrackingSettings(session.organizationId)
+        .then(async (tracking) => {
+          const pixelId = tracking.crmPixelId || tracking.sitePixelId;
+          if (!tracking.capiToken || !pixelId || (!tracking.crmPixelActive && !tracking.sitePixelActive)) return;
+
+          const nameParts = (lead.nome || "").trim().split(" ");
+          const firstName = nameParts[0];
+          const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
+
+          await MetaCapiService.sendEvent({
+            pixelId,
+            token: tracking.capiToken,
+            testEventCode: tracking.capiTestEventCode,
+            eventName: "Schedule",
+            eventId: `schedule_${lead.id}_${Date.now()}`,
+            actionSource: "system_generated",
+            userData: {
+              email: lead.email,
+              phone: lead.telefone,
+              firstName,
+              lastName,
+              fbp: (lead as any).fbp,
+              fbc: (lead as any).fbc,
+            },
+            customData: {
+              contentName: "Atendimento ou Visita Agendada",
+            },
+          });
+        })
+        .catch((err) => {
+          console.warn("[Meta CAPI] Erro ao disparar evento Schedule:", err?.message || err);
+        });
+    }
 
     const updated = await loadSerializedLead(lead.id, ctx);
     return NextResponse.json({ success: true, lead: updated }, { status: 200 });

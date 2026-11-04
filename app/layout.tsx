@@ -3,6 +3,7 @@ import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { SITE_CONFIG, getBaseUrl } from "@/lib/seo/siteConfig";
 import { OrganizationJsonLd } from "@/components/seo/OrganizationJsonLd";
+import { PublicTrackingScripts } from "@/components/tracking/PublicTrackingScripts";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -120,6 +121,7 @@ export default function RootLayout({
         <OrganizationJsonLd />
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-connect-blue selection:text-white">
+        <PublicTrackingScripts />
         {children}
         <script
           dangerouslySetInnerHTML={{

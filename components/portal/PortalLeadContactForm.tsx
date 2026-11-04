@@ -2,6 +2,7 @@
 
 import React, { FormEvent, useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, MessageCircle } from "lucide-react";
+import { getCapturedUtmData } from "@/lib/tracking/utmCapture";
 
 interface PortalLeadContactFormProps {
   propertyId: string;
@@ -48,11 +49,45 @@ export function PortalLeadContactForm({
     e.preventDefault();
     setEnviando(true);
     setErro(null);
+
+    const utmData = getCapturedUtmData();
+    const eventId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `lead_${Date.now()}`;
+
+    // Disparo no navegador via Meta Pixel e GA4 (se ativos)
+    try {
+      if (typeof window !== "undefined" && window.fbq) {
+        window.fbq(
+          "track",
+          "Lead",
+          {
+            content_name: propertyNome,
+            content_category: "Imóvel",
+          },
+          { eventID: eventId }
+        );
+      }
+      if (typeof window !== "undefined" && window.gtag) {
+        window.gtag("event", "generate_lead", {
+          event_label: propertyNome,
+          value: 1,
+        });
+      }
+    } catch {}
+
     try {
       const res = await fetch("/api/leads/public", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, telefone, email, propertyId, propertyNome, mensagem }),
+        body: JSON.stringify({
+          nome,
+          telefone,
+          email,
+          propertyId,
+          propertyNome,
+          mensagem,
+          eventId,
+          ...utmData,
+        }),
       });
       const data = await res.json();
       if (res.ok) setCorretorAtribuido(data.assignedCorretor || "Equipe de Plantão");

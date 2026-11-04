@@ -317,6 +317,10 @@ model Lead {
   utmMedium    String?
   utmCampaign  String?
   utmContent   String?
+  utmTerm      String?
+  fbp          String? // Cookie Meta _fbp do navegador
+  fbc          String? // Cookie Meta _fbc ou fbclid
+  eventId      String? // UUID para desduplicação Pixel x CAPI
 
   // SLA & Mecânica de Roleta / Bolsão / Transbordo
   firstContactAt  DateTime?

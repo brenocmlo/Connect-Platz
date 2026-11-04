@@ -109,6 +109,12 @@ export function SiteContactBioSection({
               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-mono text-foreground focus:outline-none"
             />
           </div>
+          <p className="text-xs text-muted-foreground">
+            Para gerenciar parâmetros avançados, Meta Conversions API (CAPI), Google Analytics 4 e Gerador de URLs com UTM, acesse{" "}
+            <a href="/crm/integracoes" className="text-connect-blue font-semibold hover:underline">
+              Canais & Integrações
+            </a>.
+          </p>
         </div>
       </div>
     );
