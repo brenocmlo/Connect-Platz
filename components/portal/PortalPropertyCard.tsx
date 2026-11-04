@@ -119,17 +119,15 @@ export function PortalPropertyCard({ property, onSelect, className = "" }: Porta
           >
             Ver detalhes
           </button>
-          {waLink && (
-          <a
-            href={waLink(`Olá! Gostaria de informações sobre o imóvel "${property.nome}" (${price}).`)}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => onSelect(property)}
             aria-label="Conversar no WhatsApp sobre este imóvel"
-            className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#16A34A] text-white transition-colors hover:bg-[#15803D] active:scale-95"
+            title="Falar com corretor no WhatsApp"
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#16A34A] text-white transition-colors hover:bg-[#15803D] active:scale-95 cursor-pointer"
           >
             <MessageCircle className="h-4 w-4" />
-          </a>
-          )}
+          </button>
         </div>
       </div>
     </article>

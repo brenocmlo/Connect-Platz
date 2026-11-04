@@ -66,8 +66,10 @@ export function computeLeadScore(input: LeadScoreInput, rules: ScoreRulesConfig 
 
   if ((input.documentsCount || 0) > 0) score += rules.docPoints;
   const pos = input.stagePosition || 1;
-  if (pos >= 3) score += rules.visitPoints;
-  if (pos >= 4) score += rules.proposalPoints;
+  // Etapas ordenadas: 1=Novo Lead, 2=Primeiro Contato, 3=Análise de Crédito, 4=Visita, 5=Proposta
+  if (pos >= 3) score += Math.round(rules.visitPoints / 2); // Pontos por avanço para Análise
+  if (pos >= 4) score += rules.visitPoints; // Pontos por Visita Agendada/Realizada
+  if (pos >= 5) score += rules.proposalPoints; // Pontos por Proposta Comercial Enviada
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }

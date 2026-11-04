@@ -38,15 +38,20 @@ export function PortalLeadContactForm({
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [corretorAtribuido, setCorretorAtribuido] = useState<string | null>(null);
+  const [corretorTelefone, setCorretorTelefone] = useState<string | null>(null);
 
   useEffect(() => {
     if (!corretorAtribuido) return;
-    const timer = setTimeout(onClose, 4000);
+    const timer = setTimeout(onClose, 6000);
     return () => clearTimeout(timer);
   }, [corretorAtribuido, onClose]);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent, redirectWhatsApp: boolean = false) => {
     e.preventDefault();
+    if (!nome.trim() || !telefone.trim()) {
+      setErro("Por favor, preencha seu nome e WhatsApp para direcionarmos o atendimento.");
+      return;
+    }
     setEnviando(true);
     setErro(null);
 
@@ -79,9 +84,9 @@ export function PortalLeadContactForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nome,
-          telefone,
-          email,
+          nome: nome.trim(),
+          telefone: telefone.trim(),
+          email: email.trim(),
           propertyId,
           propertyNome,
           mensagem,
@@ -90,8 +95,22 @@ export function PortalLeadContactForm({
         }),
       });
       const data = await res.json();
-      if (res.ok) setCorretorAtribuido(data.assignedCorretor || "Equipe de Plantão");
-      else setErro(data.error || "Erro ao registrar interesse.");
+      if (res.ok) {
+        const corretorName = data.assignedCorretor || "Equipe de Plantão";
+        const phone = data.assignedCorretorPhone || "85999990001";
+        setCorretorAtribuido(corretorName);
+        setCorretorTelefone(phone);
+
+        if (redirectWhatsApp) {
+          const cleanPhone = String(phone).replace(/\D/g, "");
+          const waUrl = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(
+            `Olá ${corretorName}! Vim pelo site da Connect Platz e tenho interesse no imóvel "${propertyNome}".\n\n(Nome: ${nome.trim()} • WhatsApp: ${telefone.trim()})`
+          )}`;
+          window.open(waUrl, "_blank", "noopener,noreferrer");
+        }
+      } else {
+        setErro(data.error || "Erro ao registrar interesse.");
+      }
     } catch (err) {
       console.error(err);
       setErro("Falha de conexão ao enviar seus dados. Tente novamente.");
@@ -108,15 +127,30 @@ export function PortalLeadContactForm({
       </p>
 
       {corretorAtribuido ? (
-        <div role="status" className="mt-4 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/50 dark:text-emerald-200">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <div>
-            <strong className="block text-sm">Solicitação registrada com sucesso!</strong>
-            <span>O corretor <strong>{corretorAtribuido}</strong> da Connect Platz entrará em contato em instantes.</span>
+        <div role="status" className="mt-4 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/50 dark:text-emerald-200">
+          <div className="flex gap-3">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <div>
+              <strong className="block text-sm">Solicitação registrada com sucesso!</strong>
+              <span>O corretor <strong>{corretorAtribuido}</strong> da Connect Platz entrará em contato em instantes.</span>
+            </div>
           </div>
+          {corretorTelefone && (
+            <a
+              href={`https://wa.me/55${corretorTelefone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                `Olá ${corretorAtribuido}! Vim pelo site da Connect Platz e tenho interesse no imóvel "${propertyNome}".`
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs shadow-md transition-all self-start mt-1"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Falar com {corretorAtribuido} no WhatsApp agora</span>
+            </a>
+          )}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="mt-3.5 grid gap-3 text-xs">
+        <form onSubmit={(e) => handleSubmit(e, false)} className="mt-3.5 grid gap-3 text-xs">
           <div className="grid gap-3 sm:grid-cols-2">
             <Field id="lead-nome" label="Seu nome completo *">
               <input id="lead-nome" required value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Robson Carvalho" className={inputClass} />
@@ -148,22 +182,20 @@ export function PortalLeadContactForm({
             <button
               type="submit"
               disabled={enviando}
-              className="flex-1 h-11 rounded-xl bg-connect-blue text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-connect-blue/20 transition-all hover:bg-connect-deep-blue disabled:opacity-60"
+              className="flex-1 h-11 rounded-xl bg-connect-blue text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-connect-blue/20 transition-all hover:bg-connect-deep-blue disabled:opacity-60 cursor-pointer"
             >
               {enviando ? "Enviando..." : "Enviar Interesse"}
             </button>
-            {whatsAppDirectUrl && (
-            <a
-              href={whatsAppDirectUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="h-11 px-4 rounded-xl bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all shrink-0"
-              title="Chamar no WhatsApp"
+            <button
+              type="button"
+              onClick={(e) => handleSubmit(e, true)}
+              disabled={enviando}
+              className="h-11 px-4 rounded-xl bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all shrink-0 cursor-pointer disabled:opacity-60"
+              title="Salvar e abrir WhatsApp com corretor"
             >
               <MessageCircle className="w-4 h-4" />
               <span className="hidden sm:inline">WhatsApp</span>
-            </a>
-            )}
+            </button>
           </div>
         </form>
       )}

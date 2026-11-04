@@ -8,6 +8,7 @@ import { PortalMobileMenu } from "./PortalMobileMenu";
 import { PortalThemeToggle } from "./PortalThemeToggle";
 import { ANCHOR_LINKS, cityLabel, scrollToId } from "./portalUtils";
 import { useWaLink } from "./PortalSettingsContext";
+import { PortalQuickLeadModal } from "./PortalQuickLeadModal";
 
 interface PortalHeaderProps {
   cities: DirectoryCity[];
@@ -61,6 +62,7 @@ function NavDropdown({
 export function PortalHeader({ cities, onNavigate }: PortalHeaderProps) {
   const waLink = useWaLink();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-portal-navy shadow-lg shadow-portal-navy-deep/20">
@@ -86,15 +88,14 @@ export function PortalHeader({ cities, onNavigate }: PortalHeaderProps) {
 
         <div className="flex items-center gap-2">
           {waLink && (
-          <a
-            href={waLink("Olá! Gostaria de informações sobre imóveis com a Connect Platz.")}
-            target="_blank"
-            rel="noreferrer"
-            className="hidden items-center gap-2 rounded-lg bg-[#16A34A] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition-all hover:scale-[1.02] hover:bg-[#15803D] active:scale-[0.98] sm:inline-flex"
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="hidden items-center gap-2 rounded-lg bg-[#16A34A] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition-all hover:scale-[1.02] hover:bg-[#15803D] active:scale-[0.98] sm:inline-flex cursor-pointer"
           >
             <MessageCircle className="h-4 w-4" />
             Falar com corretor
-          </a>
+          </button>
           )}
           <PortalThemeToggle />
           <button
@@ -114,6 +115,15 @@ export function PortalHeader({ cities, onNavigate }: PortalHeaderProps) {
         onClose={() => setMenuOpen(false)}
         cities={cities}
         onNavigate={onNavigate}
+      />
+
+      <PortalQuickLeadModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Falar com Especialista Connect Platz"
+        subtitle="Informe seu nome e WhatsApp para ser atendido pelo corretor credenciado de plantão."
+        defaultMessage="Olá! Gostaria de informações sobre imóveis com a Connect Platz."
+        contextSource="header_nav_cta"
       />
     </header>
   );

@@ -113,9 +113,9 @@ async function main() {
     const stages = [
       { nome: "Novo Lead", posicao: 1, cor: "#1266C7", slaMinutes: 20, actionOnExpire: "transbordo" },
       { nome: "Primeiro Contato", posicao: 2, cor: "#0D478F", slaMinutes: 120, actionOnExpire: "bolsao" },
-      { nome: "Visita Agendada", posicao: 3, cor: "#D9BB4C", slaMinutes: 2880, actionOnExpire: "notificar" },
-      { nome: "Proposta Enviada", posicao: 4, cor: "#F59E0B", slaMinutes: 1440, actionOnExpire: "notificar" },
-      { nome: "Análise de Crédito", posicao: 5, cor: "#8B5CF6", slaMinutes: 4320, actionOnExpire: "notificar" },
+      { nome: "Análise de Crédito", posicao: 3, cor: "#8B5CF6", slaMinutes: 4320, actionOnExpire: "notificar" },
+      { nome: "Visita Agendada", posicao: 4, cor: "#D9BB4C", slaMinutes: 2880, actionOnExpire: "notificar" },
+      { nome: "Proposta Enviada", posicao: 5, cor: "#F59E0B", slaMinutes: 1440, actionOnExpire: "notificar" },
       { nome: "Fechado / Ganho", posicao: 6, cor: "#10B981", slaMinutes: null, actionOnExpire: "none" },
       { nome: "Encerrado", posicao: 7, cor: "#64748B", slaMinutes: null, actionOnExpire: "none" },
     ];

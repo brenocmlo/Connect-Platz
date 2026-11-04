@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronDown, Info, MessageCircle, TriangleAlert } from "l
 import { Reveal } from "./PortalUI";
 import { formatBRL } from "./portalUtils";
 import { useWaLink } from "./PortalSettingsContext";
+import { PortalQuickLeadModal } from "./PortalQuickLeadModal";
 
 // Premissas fixas e públicas da estimativa (100% determinística, sem consulta externa).
 const TAXA_ANUAL = 0.105;
@@ -42,6 +43,7 @@ function MoneyField({ id, label, value, onChange, hint }: { id: string; label: s
 
 export function PortalCreditSimulator() {
   const waLink = useWaLink();
+  const [modalOpen, setModalOpen] = useState(false);
   const [regime, setRegime] = useState(REGIMES[0]);
   const [valorImovel, setValorImovel] = useState(800000);
   const [renda, setRenda] = useState(16000);
@@ -148,18 +150,26 @@ export function PortalCreditSimulator() {
             </p>
 
             {waLink && (
-            <a
-              href={waLink(mensagem)}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-auto inline-flex h-12 items-center justify-center gap-2 rounded-full bg-connect-blue px-6 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-connect-blue/25 transition-all hover:scale-[1.02] hover:bg-connect-deep-blue active:scale-[0.98]"
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="mt-auto inline-flex h-12 items-center justify-center gap-2 rounded-full bg-connect-blue px-6 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-connect-blue/25 transition-all hover:scale-[1.02] hover:bg-connect-deep-blue active:scale-[0.98] cursor-pointer"
             >
               <MessageCircle className="h-4 w-4" />
               Receber proposta
-            </a>
+            </button>
             )}
           </form>
         </Reveal>
+
+        <PortalQuickLeadModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Receber Proposta de Financiamento"
+          subtitle="Informe seus dados para receber a simulação oficial com o corretor responsável."
+          defaultMessage={mensagem}
+          contextSource="simulador_credito"
+        />
       </div>
     </section>
   );

@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { FileCheck, MessageCircle, ShieldCheck, Zap } from "lucide-react";
 import { CountUp, PortalSectionTitle, Reveal } from "./PortalUI";
 import { useWaLink } from "./PortalSettingsContext";
+import { PortalQuickLeadModal } from "./PortalQuickLeadModal";
 
 interface PortalWhyUsProps {
   totalImoveis: number;
@@ -52,6 +53,7 @@ function StatPin({ label, value, suffix, caption }: { label: string; value: numb
 
 export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: PortalWhyUsProps) {
   const waLink = useWaLink();
+  const [modalOpen, setModalOpen] = useState(false);
   // Valores institucionais com fallback caso o banco local/staging ainda esteja sendo alimentado
   const imoveisVal = totalImoveis > 0 ? totalImoveis : 120;
   const cidadesVal = totalCidades > 0 ? totalCidades : 8;
@@ -126,17 +128,25 @@ export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: Port
 
         {waLink && (
         <div className="mt-16 flex justify-center">
-          <a
-            href={waLink("Olá! Gostaria de falar com um corretor da Connect Platz.")}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-connect-blue px-8 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-connect-blue/30 transition-all hover:scale-[1.02] hover:bg-connect-deep-blue hover:shadow-connect-blue/40 active:scale-[0.98]"
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-connect-blue px-8 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-connect-blue/30 transition-all hover:scale-[1.02] hover:bg-connect-deep-blue hover:shadow-connect-blue/40 active:scale-[0.98] cursor-pointer"
           >
             <MessageCircle className="h-4 w-4" />
             Falar com corretor
-          </a>
+          </button>
         </div>
         )}
+
+        <PortalQuickLeadModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Falar com Especialista Connect Platz"
+          subtitle="Informe seu nome e WhatsApp para ser atendido pelo corretor credenciado de plantão."
+          defaultMessage="Olá! Gostaria de falar com um corretor da Connect Platz."
+          contextSource="sobre_nos_cta"
+        />
       </div>
     </section>
   );
