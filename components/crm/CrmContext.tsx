@@ -6,6 +6,8 @@ import { useCrmNotifications } from "./useCrmNotifications";
 
 export type UserRole =
   | "ADMINISTRADOR"
+  | "ADMINISTRADOR_VENDA"
+  | "ADMINISTRADOR_ALUGUEL"
   | "FINANCEIRO_VENDA"
   | "FINANCEIRO_ALUGUEL"
   | "CORRETOR_VENDA"

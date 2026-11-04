@@ -45,6 +45,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
+    if (
+      context.role === "ADMINISTRADOR_VENDA" ||
+      context.role === "FINANCEIRO_VENDA" ||
+      context.role === "CORRETOR_VENDA"
+    ) {
+      return NextResponse.json(
+        { error: "Acesso restrito ao departamento de Aluguel e Locações. Vendas não pode alugar." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const data = BookingSchema.parse(body);
 

@@ -35,8 +35,12 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
   const { session } = auth;
 
-  if (session.role === Role.FINANCEIRO_ALUGUEL || session.role === Role.CORRETOR_ALUGUEL) {
-    return NextResponse.json({ error: "Acesso restrito ao departamento de Vendas." }, { status: 403 });
+  if (
+    session.role === Role.ADMINISTRADOR_ALUGUEL ||
+    session.role === Role.FINANCEIRO_ALUGUEL ||
+    session.role === Role.CORRETOR_ALUGUEL
+  ) {
+    return NextResponse.json({ error: "Acesso restrito ao departamento de Vendas. Aluguel não pode vender." }, { status: 403 });
   }
 
   const isSaleManager = canManageSaleValues(session.role);
@@ -161,7 +165,12 @@ export async function POST(req: NextRequest) {
     if (users.length !== userIds.length) {
       throw new HttpError(400, "Um ou mais participantes não pertencem à organização.");
     }
-    const invalidParticipant = users.find((u) => u.role === Role.CORRETOR_ALUGUEL || u.role === Role.FINANCEIRO_ALUGUEL);
+    const invalidParticipant = users.find(
+      (u) =>
+        u.role === Role.CORRETOR_ALUGUEL ||
+        u.role === Role.FINANCEIRO_ALUGUEL ||
+        u.role === Role.ADMINISTRADOR_ALUGUEL
+    );
     if (invalidParticipant) {
       throw new HttpError(400, `O profissional ${invalidParticipant.nome} pertence à modalidade de Aluguel e não pode participar de vendas.`);
     }

@@ -203,7 +203,9 @@ export function EditCollaboratorModal({
                   <option value="CORRETOR_ALUGUEL">Corretor Aluguéis (Locações e Temporada)</option>
                   <option value="FINANCEIRO_VENDA">Financeiro Vendas (VGV, Comissões e ERP Venda)</option>
                   <option value="FINANCEIRO_ALUGUEL">Financeiro Aluguéis (Diárias, Locações e ERP Aluguel)</option>
-                  <option value="ADMINISTRADOR">Administrador (Gestão Irrestrita)</option>
+                  <option value="ADMINISTRADOR_VENDA">Administrador Venda (Gestão total exclusiva de Vendas)</option>
+                  <option value="ADMINISTRADOR_ALUGUEL">Administrador Aluguel (Gestão total exclusiva de Aluguel)</option>
+                  <option value="ADMINISTRADOR">Administrador Geral (Robson - Gestão Irrestrita)</option>
                 </select>
               ) : (
                 <div className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-semibold flex items-center justify-between">

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Role, CorretorStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { recordAudit } from "@/lib/services/audit-server";
+import { isAdmin } from "@/lib/auth/session";
 import { SessionPayload } from "@/lib/auth/jwt";
 
 export async function handleRemoveMember(req: NextRequest, session: SessionPayload) {
@@ -41,10 +42,10 @@ export async function handleRemoveMember(req: NextRequest, session: SessionPaylo
       );
     }
 
-    if (target.role === Role.ADMINISTRADOR) {
+    if (target.role === Role.ADMINISTRADOR || (isAdmin(target.role) && session.role !== Role.ADMINISTRADOR)) {
       return NextResponse.json(
-        { error: "Usuários administradores não podem ser removidos por esta rota." },
-        { status: 400 }
+        { error: "Apenas o Administrador Geral pode remover usuários administradores." },
+        { status: 403 }
       );
     }
 

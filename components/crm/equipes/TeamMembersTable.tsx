@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Users2, Trash2, Pencil } from "lucide-react";
+import { Users2, Trash2, Pencil, KeyRound } from "lucide-react";
 import { TeamMember, ROLE_LABEL, STATUS_META, MemberRole } from "./types";
 
 interface TeamMembersTableProps {
@@ -11,11 +11,14 @@ interface TeamMembersTableProps {
   userRole?: string;
   onRequestRemove?: (member: TeamMember) => void;
   onRequestEdit?: (member: TeamMember) => void;
+  onRequestEmergencyReset?: (member: TeamMember) => void;
   onRoleChange?: (userId: string, newRole: MemberRole) => Promise<void> | void;
 }
 
 const ROLE_BADGE: Record<string, string> = {
   ADMINISTRADOR: "bg-platz-gold/20 text-amber-700 dark:text-platz-gold border border-platz-gold/40",
+  ADMINISTRADOR_VENDA: "bg-connect-blue/20 text-connect-blue border border-connect-blue/40 font-bold",
+  ADMINISTRADOR_ALUGUEL: "bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/40 font-bold",
   FINANCEIRO_VENDA: "bg-connect-blue/15 text-connect-blue border border-connect-blue/30",
   FINANCEIRO_ALUGUEL: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30",
   CORRETOR_VENDA: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
@@ -30,6 +33,7 @@ export function TeamMembersTable({
   userRole,
   onRequestRemove,
   onRequestEdit,
+  onRequestEmergencyReset,
   onRoleChange,
 }: TeamMembersTableProps) {
   const canUserEdit = (member: TeamMember): boolean => {
@@ -137,6 +141,16 @@ export function TeamMembersTable({
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-connect-blue hover:bg-connect-blue/10 transition-colors"
                         >
                           <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                      {isAdmin && onRequestEmergencyReset && (
+                        <button
+                          type="button"
+                          onClick={() => onRequestEmergencyReset(member)}
+                          title={`Redefinição emergencial de senha para ${member.nome}`}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
+                        >
+                          <KeyRound className="w-4 h-4" />
                         </button>
                       )}
                       {isAdmin && member.role !== "ADMINISTRADOR" && onRequestRemove && (

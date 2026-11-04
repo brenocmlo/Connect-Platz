@@ -17,6 +17,8 @@ datasource db {
 
 enum Role {
   ADMINISTRADOR
+  ADMINISTRADOR_VENDA
+  ADMINISTRADOR_ALUGUEL
   FINANCEIRO_VENDA
   FINANCEIRO_ALUGUEL
   CORRETOR_VENDA
@@ -205,6 +207,8 @@ model User {
   isActive           Boolean        @default(true)
   lastLeadAssignedAt DateTime? // Utilizado pelo algoritmo Round-Robin
   dailyCheckInAt     DateTime? // Data/Hora do último check-in diário
+  emergencyResetToken String? // Token / chave para redefinição emergencial de senha
+  emergencyResetExpiresAt DateTime? // Expiração da chave emergencial
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 

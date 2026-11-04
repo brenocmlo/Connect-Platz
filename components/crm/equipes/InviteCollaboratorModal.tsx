@@ -17,6 +17,8 @@ import {
 
 export type InviteRole =
   | "ADMINISTRADOR"
+  | "ADMINISTRADOR_VENDA"
+  | "ADMINISTRADOR_ALUGUEL"
   | "FINANCEIRO_VENDA"
   | "FINANCEIRO_ALUGUEL"
   | "CORRETOR_VENDA"
@@ -207,7 +209,9 @@ export function InviteCollaboratorModal({
                   <option value="CORRETOR_ALUGUEL">Corretor Aluguel (Locações e Temporada)</option>
                   <option value="FINANCEIRO_VENDA">Financeiro Venda (VGV, Comissões e ERP Venda)</option>
                   <option value="FINANCEIRO_ALUGUEL">Financeiro Aluguel (Locações, Diárias e ERP Aluguel)</option>
-                  <option value="ADMINISTRADOR">Administrador (Gestão completa irrestrita)</option>
+                  <option value="ADMINISTRADOR_VENDA">Administrador Venda (Gestão total exclusiva de Vendas)</option>
+                  <option value="ADMINISTRADOR_ALUGUEL">Administrador Aluguel (Gestão total exclusiva de Aluguel)</option>
+                  <option value="ADMINISTRADOR">Administrador Geral (Robson - Gestão irrestrita)</option>
                 </select>
               )}
             </div>

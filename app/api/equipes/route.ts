@@ -26,10 +26,10 @@ export async function GET(req: NextRequest) {
     const today = startOfToday();
     const userRole = session.role;
     const roleFilter =
-      userRole === Role.FINANCEIRO_VENDA
-        ? { in: [Role.CORRETOR_VENDA, Role.ADMINISTRADOR, Role.FINANCEIRO_VENDA] }
-        : userRole === Role.FINANCEIRO_ALUGUEL
-        ? { in: [Role.CORRETOR_ALUGUEL, Role.ADMINISTRADOR, Role.FINANCEIRO_ALUGUEL] }
+      userRole === Role.FINANCEIRO_VENDA || userRole === Role.ADMINISTRADOR_VENDA
+        ? { in: [Role.CORRETOR_VENDA, Role.FINANCEIRO_VENDA, Role.ADMINISTRADOR_VENDA] }
+        : userRole === Role.FINANCEIRO_ALUGUEL || userRole === Role.ADMINISTRADOR_ALUGUEL
+        ? { in: [Role.CORRETOR_ALUGUEL, Role.FINANCEIRO_ALUGUEL, Role.ADMINISTRADOR_ALUGUEL] }
         : undefined;
 
     const users = await prisma.user.findMany({
@@ -98,15 +98,18 @@ export async function POST(req: NextRequest) {
 
   const targetRole = data.role;
 
-  if (session.role === Role.FINANCEIRO_VENDA && targetRole !== Role.CORRETOR_VENDA) {
+  const isSaleScoped = session.role === Role.FINANCEIRO_VENDA || session.role === Role.ADMINISTRADOR_VENDA;
+  const isRentScoped = session.role === Role.FINANCEIRO_ALUGUEL || session.role === Role.ADMINISTRADOR_ALUGUEL;
+
+  if (isSaleScoped && targetRole !== Role.CORRETOR_VENDA && targetRole !== Role.FINANCEIRO_VENDA) {
     return NextResponse.json(
-      { error: "O Financeiro de Vendas só pode cadastrar corretores de venda para o seu time." },
+      { error: "Gestor/Administrador de Vendas só pode cadastrar colaboradores do time de Vendas." },
       { status: 403 }
     );
   }
-  if (session.role === Role.FINANCEIRO_ALUGUEL && targetRole !== Role.CORRETOR_ALUGUEL) {
+  if (isRentScoped && targetRole !== Role.CORRETOR_ALUGUEL && targetRole !== Role.FINANCEIRO_ALUGUEL) {
     return NextResponse.json(
-      { error: "O Financeiro de Aluguel só pode cadastrar corretores de aluguel para o seu time." },
+      { error: "Gestor/Administrador de Aluguel só pode cadastrar colaboradores do time de Aluguel." },
       { status: 403 }
     );
   }
@@ -197,30 +200,30 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Colaborador não encontrado." }, { status: 404 });
     }
 
-    const isSessionAdmin = isAdmin(session.role);
-    const isSessionFinVenda = session.role === Role.FINANCEIRO_VENDA;
-    const isSessionFinAluguel = session.role === Role.FINANCEIRO_ALUGUEL;
+    const isSuperAdmin = session.role === Role.ADMINISTRADOR;
+    const isSaleAdminOrFin = session.role === Role.ADMINISTRADOR_VENDA || session.role === Role.FINANCEIRO_VENDA;
+    const isRentAdminOrFin = session.role === Role.ADMINISTRADOR_ALUGUEL || session.role === Role.FINANCEIRO_ALUGUEL;
 
     // Regras de autorização por perfil:
-    // Admin: pode editar corretores e financeiro (e outros administradores).
-    // Financeiro Venda: pode editar corretores de venda.
-    // Financeiro Aluguel: pode editar corretores de aluguel.
-    if (!isSessionAdmin) {
-      if (isSessionFinVenda && target.role !== Role.CORRETOR_VENDA) {
+    // Superadmin: pode editar qualquer colaborador.
+    // Vendas (Admin / Financeiro): pode editar corretores e financeiro de venda.
+    // Aluguel (Admin / Financeiro): pode editar corretores e financeiro de aluguel.
+    if (!isSuperAdmin) {
+      if (isSaleAdminOrFin && target.role !== Role.CORRETOR_VENDA && target.role !== Role.FINANCEIRO_VENDA) {
         return NextResponse.json(
-          { error: "Gestor de Vendas só pode editar corretores do time de Vendas." },
+          { error: "Gestores/Administradores de Vendas só podem editar colaboradores do time de Vendas." },
           { status: 403 }
         );
       }
-      if (isSessionFinAluguel && target.role !== Role.CORRETOR_ALUGUEL) {
+      if (isRentAdminOrFin && target.role !== Role.CORRETOR_ALUGUEL && target.role !== Role.FINANCEIRO_ALUGUEL) {
         return NextResponse.json(
-          { error: "Gestor de Aluguel só pode editar corretores do time de Aluguel." },
+          { error: "Gestores/Administradores de Aluguel só podem editar colaboradores do time de Aluguel." },
           { status: 403 }
         );
       }
-      if (role && role !== target.role) {
+      if (role && role !== target.role && !isAdmin(session.role)) {
         return NextResponse.json(
-          { error: "Apenas o Administrador pode alterar o tipo ou cargo do colaborador." },
+          { error: "Apenas Administradores podem alterar o cargo do colaborador." },
           { status: 403 }
         );
       }
@@ -243,7 +246,7 @@ export async function PATCH(req: NextRequest) {
     if (telefone !== undefined) updateData.telefone = telefone ? normalizeBrPhone(telefone) : null;
     if (creci !== undefined) updateData.creci = creci || null;
     if (status) updateData.status = status;
-    if (role && isSessionAdmin) updateData.role = role;
+    if (role && isAdmin(session.role)) updateData.role = role;
 
     const updated = await prisma.user.update({
       where: { id: target.id },

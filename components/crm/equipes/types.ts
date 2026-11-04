@@ -2,6 +2,8 @@
 
 export type MemberRole =
   | "ADMINISTRADOR"
+  | "ADMINISTRADOR_VENDA"
+  | "ADMINISTRADOR_ALUGUEL"
   | "FINANCEIRO_VENDA"
   | "FINANCEIRO_ALUGUEL"
   | "CORRETOR_VENDA"
@@ -24,7 +26,9 @@ export interface TeamMember {
 }
 
 export const ROLE_LABEL: Record<MemberRole, string> = {
-  ADMINISTRADOR: "Administrador",
+  ADMINISTRADOR: "Administrador Geral",
+  ADMINISTRADOR_VENDA: "Administrador (Venda)",
+  ADMINISTRADOR_ALUGUEL: "Administrador (Aluguel)",
   FINANCEIRO_VENDA: "Financeiro (Venda)",
   FINANCEIRO_ALUGUEL: "Financeiro (Aluguel)",
   CORRETOR_VENDA: "Corretor (Venda)",

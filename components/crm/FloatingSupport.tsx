@@ -29,27 +29,29 @@ export function FloatingSupport() {
 
           <div className="space-y-2 text-xs">
             <a
-              href="https://wa.me/558599999999?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20o%20Connect%20Platz%20CRM"
+              href="https://wa.me/5585999990001?text=Ol%C3%A1%20Robson%2C%20preciso%20de%20ajuda%20com%20o%20Connect%20Platz%20CRM"
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-between p-2.5 rounded-xl bg-muted/60 hover:bg-muted text-foreground transition-all group"
             >
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-emerald-500" />
-                <span className="font-semibold text-[11px]">Suporte via WhatsApp</span>
+                <span className="font-semibold text-[11px]">Suporte Robson (WhatsApp)</span>
               </div>
               <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground" />
             </a>
 
             <a
-              href="/crm/configuracoes"
+              href="/manual.pdf"
+              target="_blank"
+              rel="noreferrer"
               className="flex items-center justify-between p-2.5 rounded-xl bg-muted/60 hover:bg-muted text-foreground transition-all group"
             >
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-connect-blue" />
-                <span className="font-semibold text-[11px]">Manual de Operação</span>
+                <span className="font-semibold text-[11px]">Manual de Operação (PDF)</span>
               </div>
-              <span className="text-[10px] text-muted-foreground font-medium">Docs</span>
+              <span className="text-[10px] font-bold text-connect-blue bg-connect-blue/10 px-1.5 py-0.5 rounded">PDF</span>
             </a>
 
             <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/10 flex items-center gap-2 text-[10px] text-muted-foreground">
