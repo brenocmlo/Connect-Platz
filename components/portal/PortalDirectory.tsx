@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { MapPin } from "lucide-react";
 import type { DirectoryCity } from "./types";
 import { CarouselArrow, PortalSectionTitle, Reveal } from "./PortalUI";
 import { useScrollCarousel } from "./useScrollCarousel";
@@ -63,8 +64,12 @@ export function PortalDirectory({ directoryCities, onFilterClick }: PortalDirect
             .filter((city) => (tab === "COMPRAR" ? city.comprar : city.alugar).length > 0)
             .map((city) => {
             const items = tab === "COMPRAR" ? city.comprar : city.alugar;
+            const activeModalidade = tab === "COMPRAR" ? "VENDA" : "VERANEIO_TEMPORADA";
+            const relevantBairros = (city.bairros || []).filter(
+              (b) => b.modalidades.includes(activeModalidade) || b.modalidades.includes("AMBOS")
+            );
             return (
-              <div key={city.cidade} className="w-[230px] shrink-0 snap-start">
+              <div key={city.cidade} className="w-[260px] shrink-0 snap-start">
                 <h3 className="text-base font-bold text-portal-ink">{city.cidade}</h3>
                 <ul className="mt-4 space-y-3">
                   {items.map((item) => (
@@ -81,6 +86,29 @@ export function PortalDirectory({ directoryCities, onFilterClick }: PortalDirect
                     </li>
                   ))}
                 </ul>
+
+                {relevantBairros.length > 0 && (
+                  <div className="mt-5 border-t border-portal-line/60 pt-4">
+                    <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-portal-slate">
+                      <MapPin className="h-3 w-3 text-connect-blue" /> Bairros ({relevantBairros.length})
+                    </span>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {relevantBairros.map((bairro) => (
+                        <button
+                          key={bairro.nome}
+                          type="button"
+                          onClick={() =>
+                            onFilterClick(bairro.nome, tab === "COMPRAR" ? "VENDA" : "VERANEIO", bairro.nome)
+                          }
+                          className="inline-flex items-center gap-1 rounded-md border border-portal-field bg-portal-surface px-2.5 py-1 text-xs font-medium text-portal-ink shadow-sm transition-all hover:border-connect-blue hover:bg-connect-blue hover:text-white"
+                        >
+                          <span>{bairro.nome}</span>
+                          <span className="text-[10px] opacity-60">({bairro.total})</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

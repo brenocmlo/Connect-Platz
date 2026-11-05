@@ -28,11 +28,18 @@ export interface PropertyItem {
   fotos?: string[];
 }
 
+export interface DirectoryNeighborhood {
+  nome: string;
+  total: number;
+  modalidades: string[];
+}
+
 export interface DirectoryCity {
   cidade: string;
   estado: string;
   comprar: string[];
   alugar: string[];
+  bairros: DirectoryNeighborhood[];
 }
 
 export interface PortalFilters {

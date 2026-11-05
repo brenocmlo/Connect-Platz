@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { unlink } from "fs/promises";
 import { prisma } from "@/lib/db/prisma";
 import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
@@ -70,6 +71,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       dadosAntes: auditSnapshot(current as any),
       dadosDepois: auditSnapshot(updated as any),
     });
+
+    try {
+      revalidatePath("/");
+      revalidatePath("/crm/empreendimentos");
+    } catch (revalErr) {
+      console.warn("Falha ao revalidar cache após edição:", revalErr);
+    }
 
     return NextResponse.json({ success: true, property: updated }, { status: 200 });
   } catch (error: any) {
@@ -170,6 +178,13 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       tipoAcao: "DELETE",
       descricao: `${session.nome} ${isPermanent ? "apagou definitivamente" : "excluiu"} "${property.nome}" do catálogo.`,
     });
+
+    try {
+      revalidatePath("/");
+      revalidatePath("/crm/empreendimentos");
+    } catch (revalErr) {
+      console.warn("Falha ao revalidar cache após exclusão:", revalErr);
+    }
 
     return NextResponse.json(
       {

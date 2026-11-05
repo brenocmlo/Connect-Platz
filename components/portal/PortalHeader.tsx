@@ -9,6 +9,7 @@ import { PortalThemeToggle } from "./PortalThemeToggle";
 import { ANCHOR_LINKS, cityLabel, scrollToId } from "./portalUtils";
 import { useWaLink } from "./PortalSettingsContext";
 import { PortalQuickLeadModal } from "./PortalQuickLeadModal";
+import { PortalBairrosSelector } from "./PortalBairrosSelector";
 
 interface PortalHeaderProps {
   cities: DirectoryCity[];
@@ -91,16 +92,27 @@ export function PortalHeader({
         <nav aria-label="Principal" className="hidden items-center lg:flex">
           <NavDropdown label="Comprar" modalidade="VENDA" locations={finalComprar} onNavigate={onNavigate} />
           <NavDropdown label="Temporada" modalidade="VERANEIO" locations={finalTemporada} onNavigate={onNavigate} />
-          {ANCHOR_LINKS.map((link) => (
-            <button
-              key={link.id}
-              type="button"
-              onClick={() => scrollToId(link.id)}
-              className="h-[72px] px-3 text-sm font-medium text-white/90 transition-colors hover:text-white"
-            >
-              {link.label}
-            </button>
-          ))}
+          {ANCHOR_LINKS.map((link) => {
+            if (link.id === "diretorio") {
+              return (
+                <PortalBairrosSelector
+                  key="bairros-selector"
+                  cities={cities}
+                  onNavigate={onNavigate}
+                />
+              );
+            }
+            return (
+              <button
+                key={link.id}
+                type="button"
+                onClick={() => scrollToId(link.id)}
+                className="h-[72px] px-3 text-sm font-medium text-white/90 transition-colors hover:text-white"
+              >
+                {link.label}
+              </button>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-2">
