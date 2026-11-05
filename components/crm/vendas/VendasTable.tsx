@@ -1,17 +1,31 @@
 "use client";
 
 import React, { useState } from "react";
-import { MoreHorizontal, ChevronLeft, ChevronRight, FileText, Eye, CreditCard } from "lucide-react";
+import {
+  MoreHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Eye,
+  CreditCard,
+  Pencil,
+  Trash2,
+  Paperclip,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 import { SaleItem } from "./types";
 
 interface VendasTableProps {
   sales: SaleItem[];
   hideValues?: boolean;
-  /** "Editar pagamento" só aparece para o administrador */
+  /** "Editar pagamento", "Editar venda" e "Excluir venda" só aparecem para o administrador/financeiro */
   canManagePayments?: boolean;
   onViewDetails: (sale: SaleItem) => void;
   onViewReceipt: (sale: SaleItem) => void;
   onEditPayment: (sale: SaleItem) => void;
+  onEditSale?: (sale: SaleItem) => void;
+  onDeleteSale?: (sale: SaleItem) => Promise<boolean>;
 }
 
 export function VendasTable({
@@ -21,10 +35,14 @@ export function VendasTable({
   onViewDetails,
   onViewReceipt,
   onEditPayment,
+  onEditSale,
+  onDeleteSale,
 }: VendasTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [saleToDelete, setSaleToDelete] = useState<SaleItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(sales.length / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
@@ -35,8 +53,16 @@ export function VendasTable({
     return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   };
 
+  const handleConfirmDelete = async () => {
+    if (!saleToDelete || !onDeleteSale) return;
+    setDeleting(true);
+    const ok = await onDeleteSale(saleToDelete);
+    setDeleting(false);
+    if (ok) setSaleToDelete(null);
+  };
+
   return (
-    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden space-y-4">
+    <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden space-y-4">
       {/* Table Sub-bar: Counter, Per Page, Pagination */}
       <div className="p-4 border-b border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-3">
@@ -114,6 +140,7 @@ export function VendasTable({
                   .filter((s) => s.tipo === "CORRETOR_TITULAR" || s.tipo === "CO_CORRETOR")
                   .reduce((acc, s) => acc + s.valor, 0);
                 const imposto = sale.impostoValor;
+                const hasReceipt = sale.splits.some((s) => Boolean(s.comprovanteUrl));
 
                 return (
                   <tr
@@ -122,8 +149,18 @@ export function VendasTable({
                   >
                     {/* Data / Cód */}
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="font-semibold text-slate-900 dark:text-white">
-                        {sale.dataVenda}
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-slate-900 dark:text-white">
+                          {sale.dataVenda}
+                        </span>
+                        {hasReceipt && (
+                          <span
+                            title="Comprovante de pagamento anexo"
+                            className="text-connect-blue dark:text-blue-400"
+                          >
+                            <Paperclip className="w-3 h-3" />
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono">
                         {sale.codigoVenda}
@@ -165,7 +202,7 @@ export function VendasTable({
                       {sale.proximoPagamento || "—"}
                     </td>
 
-                    {/* Corretor (avatar + nome; rótulos "CORRETOR 1/2" quando dividido) */}
+                    {/* Corretor */}
                     <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <div className="w-5 h-5 rounded-full bg-connect-blue text-white text-[9px] font-bold flex items-center justify-center">
@@ -198,7 +235,7 @@ export function VendasTable({
                       {sale.captador || "—"}
                     </td>
 
-                    {/* Comissão Corretor (cor primária) */}
+                    {/* Comissão Corretor */}
                     <td className="py-3 px-4 text-right font-bold text-connect-blue dark:text-blue-400 whitespace-nowrap">
                       {formatCurrency(corretorValor)}
                     </td>
@@ -248,6 +285,30 @@ export function VendasTable({
                               Editar pagamento
                             </button>
                           )}
+                          {canManagePayments && onEditSale && (
+                            <button
+                              onClick={() => {
+                                onEditSale(sale);
+                                setOpenActionId(null);
+                              }}
+                              className="w-full px-3 py-1.5 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              Editar venda
+                            </button>
+                          )}
+                          {canManagePayments && onDeleteSale && (
+                            <button
+                              onClick={() => {
+                                setSaleToDelete(sale);
+                                setOpenActionId(null);
+                              }}
+                              className="w-full px-3 py-1.5 flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white transition-colors border-t border-border mt-1 pt-1.5"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Excluir venda
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -258,6 +319,52 @@ export function VendasTable({
           </tbody>
         </table>
       </div>
+
+      {/* Modal de Confirmação de Exclusão de Venda */}
+      {saleToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">
+                  Excluir Venda #{saleToDelete.codigoVenda}?
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {saleToDelete.imovelNome} • {saleToDelete.compradorNome}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-red-700 dark:text-red-300 space-y-1">
+              <p className="font-semibold">Atenção: esta ação é irreversível.</p>
+              <p className="text-[11px] opacity-90">
+                Ao excluir a venda, todos os splits de comissão serão cancelados e os lançamentos correspondentes no fluxo de caixa serão automaticamente estornados.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+              <button
+                onClick={() => setSaleToDelete(null)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="px-4 py-2 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-700 text-white flex items-center gap-1.5 disabled:opacity-50 transition-all hover:scale-[1.02]"
+              >
+                {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                Confirmar Exclusão
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

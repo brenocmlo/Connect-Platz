@@ -27,6 +27,7 @@ const PatchSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Data de pagamento inválida.")
     .optional(),
   documentoPix: z.string().trim().max(140).optional(),
+  comprovanteUrl: z.string().trim().max(1000).optional().nullable(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -58,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "Venda cancelada: comissão não pode ser alterada." }, { status: 409 });
     }
 
-    const { status, dataPagamento, documentoPix } = parsed.data;
+    const { status, dataPagamento, documentoPix, comprovanteUrl } = parsed.data;
     const paidAt =
       status === "PAGO" ? (dataPagamento ? new Date(`${dataPagamento}T12:00:00Z`) : new Date()) : null;
 
@@ -69,6 +70,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           status: status as PaymentStatus,
           dataPagamento: paidAt,
           ...(documentoPix !== undefined ? { documentoPix: documentoPix || null } : {}),
+          ...(comprovanteUrl !== undefined ? { comprovanteUrl: comprovanteUrl || null } : {}),
         },
       });
 
@@ -86,7 +88,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
               split.sale.codigoVenda
             ),
           },
-          data: { status: status as PaymentStatus, dataPagamento: paidAt },
+          data: {
+            status: status as PaymentStatus,
+            dataPagamento: paidAt,
+            ...(comprovanteUrl !== undefined ? { anexoUrl: comprovanteUrl || null } : {}),
+          },
         });
       }
 

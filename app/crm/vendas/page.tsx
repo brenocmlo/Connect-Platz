@@ -8,6 +8,7 @@ import { VendasStatCards } from "@/components/crm/vendas/VendasStatCards";
 import { VendasTable } from "@/components/crm/vendas/VendasTable";
 import { VendasFilterSheet } from "@/components/crm/vendas/VendasFilterSheet";
 import { NewSaleModal } from "@/components/crm/vendas/NewSaleModal";
+import { EditSaleModal } from "@/components/crm/vendas/EditSaleModal";
 import { SaleDetailModal } from "@/components/crm/vendas/SaleDetailModal";
 import { CommissionReceiptModal } from "@/components/crm/vendas/CommissionReceiptModal";
 import {
@@ -31,6 +32,7 @@ const initialFilters: VendasFilterState = {
   codigoVenda: "",
   status: "ALL",
   ordenarPor: "recente",
+  ano: "TODOS",
 };
 
 const TABS = [
@@ -43,7 +45,7 @@ const TABS = [
 
 export default function VendasComissoesPage() {
   const { user, setActionMessage, selectedPeriod, hideValues, toggleHideValues } = useCrm();
-  const canManageSales = user?.role === "ADMINISTRADOR" || user?.role === "FINANCEIRO_VENDA";
+  const canManageSales = user?.role === "ADMINISTRADOR" || user?.role === "ADMINISTRADOR_VENDA" || user?.role === "FINANCEIRO_VENDA";
   const canManagePayments = canManageSales;
 
   const [sales, setSales] = useState<SaleItem[]>([]);
@@ -53,6 +55,7 @@ export default function VendasComissoesPage() {
   const [filters, setFilters] = useState<VendasFilterState>(initialFilters);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<SaleItem | null>(null);
   const [selectedSaleDetail, setSelectedSaleDetail] = useState<SaleItem | null>(null);
   const [selectedReceiptSale, setSelectedReceiptSale] = useState<SaleItem | null>(null);
 
@@ -121,13 +124,18 @@ export default function VendasComissoesPage() {
   const handleUpdateSplitStatus = async (
     splitId: string,
     status: "PAGO" | "PENDENTE",
-    dataPagamento?: string
+    dataPagamento?: string,
+    comprovanteUrl?: string
   ): Promise<boolean> => {
     try {
       const res = await fetch(`/api/vendas/splits/${splitId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, ...(dataPagamento ? { dataPagamento } : {}) }),
+        body: JSON.stringify({
+          status,
+          ...(dataPagamento ? { dataPagamento } : {}),
+          ...(comprovanteUrl ? { comprovanteUrl } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -135,7 +143,7 @@ export default function VendasComissoesPage() {
         return false;
       }
       replaceSale(data.sale);
-      notify(status === "PAGO" ? "Baixa de comissão confirmada!" : "Baixa de comissão estornada.");
+      notify(status === "PAGO" ? "Baixa de comissão confirmada com sucesso!" : "Baixa de comissão estornada.");
       return true;
     } catch {
       notify("Falha de conexão ao atualizar a comissão.");
@@ -146,6 +154,29 @@ export default function VendasComissoesPage() {
   const handleSaleCreated = (created: SaleItem) => {
     setSales((prev) => [created, ...prev]);
     notify(`Venda ${created.codigoVenda} registrada e splits gerados!`);
+  };
+
+  const handleSaleUpdated = (updated: SaleItem) => {
+    replaceSale(updated);
+    notify(`Venda ${updated.codigoVenda} atualizada com sucesso!`);
+  };
+
+  const handleDeleteSale = async (sale: SaleItem): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/vendas/${sale.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        notify(data?.error || "Não foi possível excluir a venda.");
+        return false;
+      }
+      setSales((prev) => prev.filter((s) => s.id !== sale.id));
+      if (selectedSaleDetail?.id === sale.id) setSelectedSaleDetail(null);
+      notify(`Venda ${sale.codigoVenda} excluída e lançamentos estornados com sucesso!`);
+      return true;
+    } catch {
+      notify("Falha de conexão ao excluir a venda.");
+      return false;
+    }
   };
 
   return (
@@ -228,6 +259,8 @@ export default function VendasComissoesPage() {
           onViewDetails={(s) => setSelectedSaleDetail(s)}
           onViewReceipt={(s) => setSelectedReceiptSale(s)}
           onEditPayment={(s) => setSelectedSaleDetail(s)}
+          onEditSale={(s) => setEditingSale(s)}
+          onDeleteSale={handleDeleteSale}
         />
       )}
 
@@ -242,6 +275,13 @@ export default function VendasComissoesPage() {
       />
 
       <NewSaleModal isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} onSubmit={handleSaleCreated} />
+
+      <EditSaleModal
+        isOpen={Boolean(editingSale)}
+        sale={editingSale}
+        onClose={() => setEditingSale(null)}
+        onSaleUpdated={handleSaleUpdated}
+      />
 
       <SaleDetailModal
         sale={selectedSaleDetail}

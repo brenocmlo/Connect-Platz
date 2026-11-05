@@ -88,6 +88,32 @@ export function VendasFilterSheet({
           </div>
 
           <div>
+            <label className={labelClass}>Ano de Lançamento</label>
+            <select
+              value={filters.ano || "TODOS"}
+              onChange={(e) => handleChange("ano", e.target.value)}
+              className={fieldClass}
+            >
+              <option value="TODOS">Todos os anos</option>
+              {Array.from(
+                new Set([
+                  String(new Date().getFullYear()),
+                  ...sales
+                    .map((s) => (s.dataVendaIso ? s.dataVendaIso.slice(0, 4) : null))
+                    .filter((y): y is string => Boolean(y)),
+                ])
+              )
+                .sort()
+                .reverse()
+                .map((y) => (
+                  <option key={y} value={y}>
+                    Ano {y}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div>
             <label className={labelClass}>Status da Venda</label>
             <select value={filters.status} onChange={(e) => handleChange("status", e.target.value)} className={fieldClass}>
               <option value="ALL">Todos os status</option>

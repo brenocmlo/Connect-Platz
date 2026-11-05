@@ -2,7 +2,9 @@
 
 import React from "react";
 import { AlertTriangle } from "lucide-react";
-import { SaleCalculation, ROLE_LABEL } from "./saleSplitHelper";
+import { SaleCalculation, ROLE_LABEL, ROLE_TO_BENEFICIARY } from "./saleSplitHelper";
+import { SaleFinancialRepasseCard } from "./SaleFinancialRepasseCard";
+import { SplitItem } from "./types";
 
 interface SaleCalculationsTabProps {
   calculated: SaleCalculation;
@@ -95,6 +97,35 @@ export function SaleCalculationsTab({ calculated, impostoPercentual, nameByRole 
           {brl(calculated.receitaImobiliaria)}
         </span>
       </div>
+
+      {calculated.vgv > 0 && (
+        <SaleFinancialRepasseCard
+          vgv={calculated.vgv}
+          comissaoTotal={calculated.comissaoTotalBruta}
+          impostoValor={calculated.impostoEstimado}
+          impostoPercentual={impostoPercentual}
+          splits={[
+            ...calculated.participants.map((p) => ({
+              id: p.role,
+              beneficiario: nameByRole[p.role] || ROLE_LABEL[p.role],
+              categoria: ROLE_LABEL[p.role],
+              tipo: ROLE_TO_BENEFICIARY[p.role],
+              percentual: p.percentual,
+              valor: p.valor,
+              status: "PENDENTE" as const,
+            })),
+            {
+              id: "IMOBILIARIA",
+              beneficiario: "Connect Platz",
+              categoria: "Imobiliária",
+              tipo: "IMOBILIARIA",
+              percentual: calculated.percentualImobiliaria,
+              valor: calculated.receitaImobiliaria,
+              status: "PENDENTE" as const,
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }
