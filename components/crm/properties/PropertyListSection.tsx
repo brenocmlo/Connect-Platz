@@ -26,6 +26,7 @@ interface PropertyListSectionProps {
   onOpenNewAvulsoModal?: () => void;
   onToggleLandingPage: (id: string, current: boolean) => Promise<void>;
   onDeleteProperty?: (id: string) => Promise<void>;
+  onPermanentDeleteProperty?: (id: string) => Promise<void>;
 }
 
 export function PropertyListSection({
@@ -38,6 +39,7 @@ export function PropertyListSection({
   onOpenNewAvulsoModal,
   onToggleLandingPage,
   onDeleteProperty,
+  onPermanentDeleteProperty,
 }: PropertyListSectionProps) {
   const { user } = useCrm();
   const isVendaOnly = user?.role === "FINANCEIRO_VENDA" || user?.role === "CORRETOR_VENDA";
@@ -258,6 +260,7 @@ export function PropertyListSection({
               onOpenEditImage={onOpenEditImage}
               onToggleLandingPage={onToggleLandingPage}
               onDelete={onDeleteProperty}
+              onPermanentDelete={onPermanentDeleteProperty}
             />
           ))}
         </div>

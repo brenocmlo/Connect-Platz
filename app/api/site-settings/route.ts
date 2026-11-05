@@ -33,6 +33,25 @@ const SiteSettingsSchema = z
     themePreset: text(40),
     primaryColor: hex,
     secondaryColor: hex,
+    // Regras de Simulação de Crédito (Item 27)
+    simuladorTaxaAnual: z.number().min(0.01).max(0.5).default(0.105),
+    simuladorPrazoMeses: z.number().int().min(12).max(480).default(360),
+    simuladorComprometimento: z.number().min(0.05).max(0.7).default(0.3),
+    simuladorEntradaMinima: z.number().min(0.05).max(0.9).default(0.2),
+    // Sobre Nós Editável (Item 28)
+    sobreTitulo: text(160).optional(),
+    sobreSubtitulo: text(300).optional(),
+    sobreTexto: text(2000).optional(),
+    sobreEstatistica1Valor: text(50).optional(),
+    sobreEstatistica1Rotulo: text(100).optional(),
+    sobreEstatistica2Valor: text(50).optional(),
+    sobreEstatistica2Rotulo: text(100).optional(),
+    sobreEstatistica3Valor: text(50).optional(),
+    sobreEstatistica3Rotulo: text(100).optional(),
+    sobreEstatistica4Valor: text(50).optional(),
+    sobreEstatistica4Rotulo: text(100).optional(),
+    // Tipos customizados de imóveis (Item 29)
+    customPropertyTypes: z.array(z.string().trim().max(60)).max(20).optional(),
   })
   .partial()
   .strict(); // chaves fora da lista são rejeitadas
@@ -56,6 +75,22 @@ const DEFAULT_SITE_SETTINGS: Required<SiteSettingsData> = {
   themePreset: "connect-blue",
   primaryColor: "#1266C7",
   secondaryColor: "#D9BB4C",
+  simuladorTaxaAnual: 0.105,
+  simuladorPrazoMeses: 360,
+  simuladorComprometimento: 0.3,
+  simuladorEntradaMinima: 0.2,
+  sobreTitulo: "POR QUE A CONNECT PLATZ?",
+  sobreSubtitulo: "Comprar, vender ou alugar é uma decisão importante. Você merece a confiança de quem conhece a região.",
+  sobreTexto: "Somos especialistas no mercado imobiliário do Ceará, com atuação focada em lançamentos, revendas e aluguel de temporada nas melhores praias do litoral.",
+  sobreEstatistica1Valor: "120+",
+  sobreEstatistica1Rotulo: "imóveis ativos",
+  sobreEstatistica2Valor: "8",
+  sobreEstatistica2Rotulo: "cidades do Ceará",
+  sobreEstatistica3Valor: "45+",
+  sobreEstatistica3Rotulo: "temporada no litoral",
+  sobreEstatistica4Valor: "7 dias",
+  sobreEstatistica4Rotulo: "atendimento por semana",
+  customPropertyTypes: ["Apartamento", "Casa", "Cobertura", "Casa de praia", "Chácara"],
 };
 
 async function readSettings(organizationId: string) {

@@ -120,6 +120,8 @@ export async function POST(req: NextRequest) {
         success: true,
         message: "Obrigado pelo seu contato! Seu interesse foi registrado e um de nossos corretores credenciados entrará em contato em instantes.",
         assignedCorretor: result.lead.corretor?.nome || "Equipe de Plantão",
+        assignedCorretorPhone: result.lead.corretor?.telefone || "85999990001",
+        leadId: result.lead.id,
       },
       { status: 201 }
     );

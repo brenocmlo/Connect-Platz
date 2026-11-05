@@ -12,7 +12,8 @@ export const PERIOD_OPTIONS: { value: PeriodFilter; label: string }[] = [
   { value: "mes", label: "Mês atual" },
   { value: "30d", label: "Últimos 30 dias" },
   { value: "ano", label: "Ano atual" },
-  { value: "todos", label: "Todos" },
+  { value: "todos", label: "Todos (Geral)" },
+  { value: "personalizado", label: "Personalizado" },
 ];
 
 export function periodLabel(period: PeriodFilter): string {
@@ -21,7 +22,7 @@ export function periodLabel(period: PeriodFilter): string {
 
 /** Botão outline "📅 <período> ▾" com menu ancorado (fecha com clique externo ou Esc). */
 function PeriodSelector() {
-  const { selectedPeriod, setSelectedPeriod } = useCrm();
+  const { selectedPeriod, setSelectedPeriod, customDateRange, setCustomDateRange } = useCrm();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
@@ -45,7 +46,7 @@ function PeriodSelector() {
   }, [open]);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative flex flex-wrap items-center gap-1.5">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -57,6 +58,24 @@ function PeriodSelector() {
         <span>{periodLabel(selectedPeriod)}</span>
         <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
+
+      {selectedPeriod === "personalizado" && (
+        <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg p-1 text-xs shadow-xs animate-in fade-in-0 duration-200">
+          <input
+            type="date"
+            value={customDateRange.start}
+            onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+            className="bg-muted px-2 py-1 rounded text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-connect-blue"
+          />
+          <span className="text-muted-foreground text-[10px]">até</span>
+          <input
+            type="date"
+            value={customDateRange.end}
+            onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+            className="bg-muted px-2 py-1 rounded text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-connect-blue"
+          />
+        </div>
+      )}
 
       <AnimatePresence>
         {open && (

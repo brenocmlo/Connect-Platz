@@ -6,6 +6,8 @@ import { useCrmNotifications } from "./useCrmNotifications";
 
 export type UserRole =
   | "ADMINISTRADOR"
+  | "ADMINISTRADOR_VENDA"
+  | "ADMINISTRADOR_ALUGUEL"
   | "FINANCEIRO_VENDA"
   | "FINANCEIRO_ALUGUEL"
   | "CORRETOR_VENDA"
@@ -24,7 +26,7 @@ export interface UserSession {
   photoUrl?: string;
 }
 
-export type PeriodFilter = "hoje" | "7d" | "mes" | "30d" | "ano" | "todos";
+export type PeriodFilter = "hoje" | "7d" | "mes" | "30d" | "ano" | "todos" | "personalizado";
 
 export interface CrmNotification {
   id: string;
@@ -56,6 +58,8 @@ interface CrmContextType {
   setSelectedBranch: (branch: string) => void;
   selectedPeriod: PeriodFilter;
   setSelectedPeriod: (period: PeriodFilter) => void;
+  customDateRange: { start: string; end: string };
+  setCustomDateRange: (range: { start: string; end: string }) => void;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (collapsed: boolean) => void;
   slaBreachedCount: number;
@@ -88,6 +92,16 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   // Filtros Globais da Shell
   const [selectedBranch, setSelectedBranch] = useState("Sede Fortaleza — Aldeota");
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>("mes");
+  const [customDateRange, setCustomDateRange] = useState<{ start: string; end: string }>(() => {
+    const d = new Date();
+    d.setDate(1);
+    const start = d.toISOString().slice(0, 10);
+    const endObj = new Date();
+    endObj.setMonth(endObj.getMonth() + 1);
+    endObj.setDate(0);
+    const end = endObj.toISOString().slice(0, 10);
+    return { start, end };
+  });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [slaBreachedCount, setSlaBreachedCount] = useState(2);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -305,6 +319,8 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         setSelectedBranch,
         selectedPeriod,
         setSelectedPeriod,
+        customDateRange,
+        setCustomDateRange,
         isSidebarCollapsed,
         setIsSidebarCollapsed,
         slaBreachedCount,

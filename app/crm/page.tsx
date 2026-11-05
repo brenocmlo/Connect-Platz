@@ -19,8 +19,26 @@ import { UpcomingAppointmentsTimeline } from "@/components/crm/dashboard/Upcomin
 import { TeamPerformanceAndActivity } from "@/components/crm/dashboard/TeamPerformanceAndActivity";
 
 export default function CrmDashboardPage() {
-  const { selectedPeriod, setActionMessage } = useCrm();
-  const { data, loading, error, reload } = useDashboardData(selectedPeriod);
+  const { user, selectedPeriod, customDateRange, setActionMessage } = useCrm();
+  const isAdminUser = Boolean(
+    user &&
+      (user.role === "ADMINISTRADOR" ||
+        user.role === "ADMINISTRADOR_VENDA" ||
+        user.role === "ADMINISTRADOR_ALUGUEL")
+  );
+  const defaultModality =
+    user?.role === "ADMINISTRADOR_VENDA"
+      ? "VENDA"
+      : user?.role === "ADMINISTRADOR_ALUGUEL"
+      ? "ALUGUEL"
+      : "TODOS";
+  const [modality, setModality] = React.useState<"TODOS" | "VENDA" | "ALUGUEL">(defaultModality);
+
+  const { data, loading, error, reload } = useDashboardData(
+    selectedPeriod,
+    customDateRange,
+    modality
+  );
 
   const handleExport = () => {
     if (!data) return;
@@ -33,19 +51,45 @@ export default function CrmDashboardPage() {
 
   return (
     <div className="space-y-7 max-w-7xl mx-auto pb-12">
-      <PageHeader
-        title="Dashboard"
-        subtitle={
-          data?.scope === "corretor"
-            ? "Seus resultados: vendas, comissões, leads e agenda"
-            : "Visão executiva de VGV, vendas, fluxo de caixa e funil comercial"
-        }
-        actionLabel="Novo Lead"
-        actionHref="/crm/leads"
-        showPeriodSelector={true}
-        showExportButton={Boolean(data)}
-        onExportClick={data ? handleExport : undefined}
-      />
+      <div className="space-y-3">
+        <PageHeader
+          title="Dashboard"
+          subtitle={
+            data?.scope === "corretor"
+              ? "Seus resultados: vendas, comissões, leads e agenda"
+              : "Visão executiva de VGV, vendas, fluxo de caixa e funil comercial"
+          }
+          actionLabel="Novo Lead"
+          actionHref="/crm/leads"
+          showPeriodSelector={true}
+          showExportButton={Boolean(data)}
+          onExportClick={data ? handleExport : undefined}
+        />
+
+        {isAdminUser && (
+          <div className="flex items-center gap-1.5 p-1 bg-muted/60 border border-border rounded-xl w-fit text-xs font-semibold">
+            <span className="text-[11px] font-bold text-muted-foreground px-2">Segmento:</span>
+            {[
+              { id: "TODOS", label: "Consolidado" },
+              { id: "VENDA", label: "🏢 Vendas" },
+              { id: "ALUGUEL", label: "🏖️ Aluguel & Temporada" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setModality(tab.id as any)}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  modality === tab.id
+                    ? "bg-connect-blue text-white shadow-sm font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {error && (
         <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300">

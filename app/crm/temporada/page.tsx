@@ -1,114 +1,163 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Calendar,
   ShieldCheck,
   Palmtree,
+  Loader2,
+  AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
 import { CountUpNumber } from "@/components/crm/CountUpNumber";
-import { TrendBadge } from "@/components/crm/primitives/TrendBadge";
 import { BookingItem } from "@/components/crm/temporada/types";
 import { NewBookingModal } from "@/components/crm/temporada/NewBookingModal";
-
-const mockBookings: BookingItem[] = [
-  {
-    id: "bk-1",
-    imovelNome: "Villa Platz Beach • Bangalô Coral Frente Mar",
-    locatarioNome: "Família Dr. Rodrigo Fontes",
-    checkIn: "2026-10-10",
-    checkOut: "2026-10-15",
-    diarias: 5,
-    valorDiaria: 1200,
-    taxaLimpeza: 250,
-    valorTotal: 6250,
-    meioPagamento: "PIX",
-    status: "CONFIRMADA",
-  },
-  {
-    id: "bk-2",
-    imovelNome: "Solarium Porto das Dunas • Cobertura",
-    locatarioNome: "Carla Mendes",
-    checkIn: "2026-10-18",
-    checkOut: "2026-10-22",
-    diarias: 4,
-    valorDiaria: 950,
-    taxaLimpeza: 200,
-    valorTotal: 4000,
-    meioPagamento: "CARTAO_CREDITO",
-    status: "CONFIRMADA",
-  },
-];
+import { EditBookingModal } from "@/components/crm/temporada/EditBookingModal";
+import { SeasonBookingsList } from "@/components/crm/temporada/SeasonBookingsList";
+import { RentalContractsList, RentalContractItem } from "@/components/crm/temporada/RentalContractsList";
 
 export default function TemporadaVeraneioPage() {
   const { user, setActionMessage, hideValues } = useCrm();
   const canManageRental =
     user?.role === "ADMINISTRADOR" ||
+    user?.role === "ADMINISTRADOR_ALUGUEL" ||
     user?.role === "FINANCEIRO_ALUGUEL" ||
     user?.role === "CORRETOR_ALUGUEL";
-  const [bookings, setBookings] = useState<BookingItem[]>(mockBookings);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<"temporada" | "anual" | "overbooking">("temporada");
+  const [bookings, setBookings] = useState<BookingItem[]>([]);
+  const [rentals, setRentals] = useState<RentalContractItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [isNewBookingModalOpen, setIsNewBookingModalOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<BookingItem | null>(null);
+
+  const notify = useCallback(
+    (msg: string) => {
+      setActionMessage(msg);
+      setTimeout(() => setActionMessage(null), 5000);
+    },
+    [setActionMessage]
+  );
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [resBookings, resRentals] = await Promise.all([
+        fetch("/api/bookings", { cache: "no-store" }),
+        fetch("/api/rentals", { cache: "no-store" }),
+      ]);
+
+      const dataBookings = await resBookings.json().catch(() => ({}));
+      const dataRentals = await resRentals.json().catch(() => ({}));
+
+      if (!resBookings.ok) {
+        setError(dataBookings?.error || "Erro ao carregar reservas de temporada.");
+        return;
+      }
+
+      setBookings(dataBookings.bookings || []);
+      if (resRentals.ok) {
+        setRentals(dataRentals.contracts || []);
+      }
+    } catch {
+      setError("Falha de conexão ao carregar dados de locação.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const activeBookings = useMemo(
+    () => bookings.filter((b) => b.status !== "CANCELADA"),
+    [bookings]
+  );
+
+  const cancelledBookings = useMemo(
+    () => bookings.filter((b) => b.status === "CANCELADA"),
+    [bookings]
+  );
+
+  const totals = useMemo(() => {
+    const faturamento = activeBookings.reduce((acc, b) => acc + b.valorTotal, 0);
+    const noites = activeBookings.reduce((acc, b) => acc + b.diarias, 0);
+    return { faturamento, noites };
+  }, [activeBookings]);
 
   const handleBookingCreated = (newBooking: BookingItem) => {
-    setBookings([newBooking, ...bookings]);
-    setActionMessage(
-      `Reserva confirmada de ${newBooking.checkIn} a ${newBooking.checkOut}! O calendário foi bloqueado e o lançamento efetuado no ERP.`
+    setBookings((prev) => [newBooking, ...prev]);
+    notify(`Reserva confirmada de ${newBooking.checkIn} a ${newBooking.checkOut}! Calendário bloqueado.`);
+  };
+
+  const handleBookingUpdated = (updated: BookingItem) => {
+    setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    notify(
+      updated.status === "CANCELADA"
+        ? `Reserva de ${updated.locatarioNome} cancelada. Datas liberadas no calendário!`
+        : `Reserva de ${updated.locatarioNome} atualizada com sucesso!`
     );
-    setTimeout(() => setActionMessage(null), 5000);
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* 1. CABEÇALHO PADRÃO SEÇÃO 5.2 */}
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in-up">
       <PageHeader
-        title="Temporada & Veraneio"
-        subtitle="Gestão de diárias, bloqueio estrito de calendário sem conflitos e conciliação automática no ERP."
-        actionLabel={canManageRental ? "Nova Reserva" : undefined}
-        onActionClick={canManageRental ? () => setIsModalOpen(true) : undefined}
+        title="Gestão de Aluguel & Temporada"
+        subtitle="Controle de diárias, locação anual, bloqueio determinístico de calendário e prevenção de overbooking."
+        actionLabel={canManageRental && activeTab === "temporada" ? "Nova Reserva" : undefined}
+        onActionClick={canManageRental && activeTab === "temporada" ? () => setIsNewBookingModalOpen(true) : undefined}
         showPeriodSelector={true}
         showExportButton={true}
       />
 
-      {/* 2. STATCARDS */}
+      {/* STATCARDS VIVOS */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div className="p-2 rounded-xl bg-platz-gold/15 text-platz-gold">
               <Palmtree className="w-4 h-4" />
             </div>
-            <TrendBadge value="+24%" isPositive={true} />
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+              Confirmado
+            </span>
           </div>
           <div>
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
               Faturamento em Diárias
             </span>
             <span className="text-2xl font-black text-amber-700 dark:text-[#F8DA56] mt-1 block">
-              {hideValues ? "••••••" : <CountUpNumber value={10250} prefix="R$ " decimals={2} />}
+              {hideValues ? "••••••" : <CountUpNumber value={totals.faturamento} prefix="R$ " decimals={2} />}
             </span>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div className="p-2 rounded-xl bg-connect-blue/10 text-connect-blue">
               <Calendar className="w-4 h-4" />
             </div>
-            <TrendBadge value="+5 noites" isPositive={true} />
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-connect-blue/10 text-connect-blue">
+              {activeBookings.length} reservas
+            </span>
           </div>
           <div>
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Diárias Reservadas no Mês
+              Diárias Reservadas
             </span>
             <span className="text-2xl font-black text-foreground mt-1 block">
-              <CountUpNumber value={9} suffix=" Noites" />
+              <CountUpNumber value={totals.noites} suffix=" Noites" />
             </span>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
               <ShieldCheck className="w-4 h-4" />
@@ -128,54 +177,143 @@ export default function TemporadaVeraneioPage() {
         </div>
       </div>
 
-      {/* 3. LISTAGEM DE RESERVAS ATIVAS */}
-      <div className="space-y-3">
-        <SectionTitle>Reservas Confirmadas & Calendário Bloqueado</SectionTitle>
-
-        <div className="space-y-3">
-          {bookings.map((b) => (
-            <div
-              key={b.id}
-              className="bg-card border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-connect-blue/30 transition-all"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-foreground">{b.imovelNome}</span>
-                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-full">
-                    {b.status}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Hóspede: <strong className="text-foreground">{b.locatarioNome}</strong>
-                </p>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground font-mono pt-1">
-                  <span className="flex items-center gap-1 text-amber-700 dark:text-platz-gold">
-                    <Calendar className="w-3.5 h-3.5" />
-                    {b.checkIn} até {b.checkOut} ({b.diarias} diárias)
-                  </span>
-                  <span>• Taxa Limpeza: R$ {b.taxaLimpeza}</span>
-                  <span className="text-connect-blue font-semibold">• Meio: {b.meioPagamento}</span>
-                </div>
-              </div>
-
-              <div className="text-left sm:text-right">
-                <span className="text-base font-black text-amber-700 dark:text-[#F8DA56]">
-                  {hideValues ? "••••••" : b.valorTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-semibold">
-                  Conciliado no Caixa
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* TABS DE SELEÇÃO */}
+      <div className="flex bg-muted p-1 rounded-lg overflow-x-auto">
+        <button
+          onClick={() => setActiveTab("temporada")}
+          className={`px-3.5 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+            activeTab === "temporada"
+              ? "bg-card text-connect-blue dark:text-foreground shadow-xs font-bold"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Temporada & Veraneio ({activeBookings.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("anual")}
+          className={`px-3.5 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+            activeTab === "anual"
+              ? "bg-card text-connect-blue dark:text-foreground shadow-xs font-bold"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Locação Anual / Comum ({rentals.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("overbooking")}
+          className={`px-3.5 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+            activeTab === "overbooking"
+              ? "bg-card text-connect-blue dark:text-foreground shadow-xs font-bold"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Histórico Overbooking & Canceladas ({cancelledBookings.length})
+        </button>
       </div>
 
-      {/* 4. MODAL NOVA RESERVA COM SELETORES DINÂMICOS */}
+      {/* CORPO DE CONTEÚDO */}
+      {loading ? (
+        <div className="bg-card border border-border rounded-2xl p-12 flex flex-col items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-6 h-6 animate-spin text-connect-blue" />
+          <span className="text-xs">Carregando reservas e locações...</span>
+        </div>
+      ) : error ? (
+        <div className="bg-card border border-border rounded-2xl p-10 flex flex-col items-center gap-3 text-center">
+          <AlertCircle className="w-6 h-6 text-red-500" />
+          <p className="text-sm font-semibold text-foreground">{error}</p>
+          <button
+            onClick={loadData}
+            className="px-4 py-2 rounded-lg bg-connect-blue text-white text-xs font-bold hover:scale-[1.02] transition-all"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : activeTab === "temporada" ? (
+        <div className="space-y-3">
+          <SectionTitle>Reservas Confirmadas & Calendário Bloqueado</SectionTitle>
+          <SeasonBookingsList
+            bookings={activeBookings}
+            hideValues={hideValues}
+            canManageRental={canManageRental}
+            onEditBooking={(b) => setEditingBooking(b)}
+          />
+        </div>
+      ) : activeTab === "anual" ? (
+        <div className="space-y-3">
+          <SectionTitle>Contratos de Locação Anual / Comum</SectionTitle>
+          <RentalContractsList rentals={rentals} hideValues={hideValues} />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <SectionTitle>Prevenção de Overbooking & Reservas Canceladas</SectionTitle>
+          <div className="p-3.5 rounded-xl bg-connect-blue/10 border border-connect-blue/20 text-xs text-connect-blue space-y-1">
+            <span className="font-bold flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4 text-platz-gold" />
+              Gestão Ativa de Disponibilidade
+            </span>
+            <p className="text-[11px] opacity-90">
+              Quando uma reserva é cancelada, o calendário é imediatamente liberado para permitir novas locações sem conflitos. Todos os cancelamentos ficam documentados aqui para fins de auditoria e controle de overbooking.
+            </p>
+          </div>
+
+          {cancelledBookings.length === 0 ? (
+            <div className="bg-card border border-border rounded-xl p-8 text-center text-xs text-muted-foreground">
+              Nenhuma reserva cancelada ou registro de overbooking.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {cancelledBookings.map((b) => (
+                <div
+                  key={b.id}
+                  className="bg-card border border-red-500/20 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-foreground line-through opacity-75">{b.imovelNome}</span>
+                      <span className="text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400 border border-red-300 dark:border-red-800 px-2 py-0.5 rounded-full">
+                        Cancelada
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Hóspede: <strong className="text-foreground">{b.locatarioNome}</strong>
+                    </p>
+                    <span className="text-[11px] text-muted-foreground font-mono block">
+                      Período liberado: {b.checkIn} até {b.checkOut} ({b.diarias} noites liberadas)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                      ✓ Calendário liberado
+                    </span>
+                    {canManageRental && (
+                      <button
+                        onClick={() => setEditingBooking(b)}
+                        className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                      >
+                        Reativar / Editar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODAIS */}
       <NewBookingModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isNewBookingModalOpen}
+        onClose={() => setIsNewBookingModalOpen(false)}
         onSubmit={handleBookingCreated}
+      />
+
+      <EditBookingModal
+        isOpen={Boolean(editingBooking)}
+        booking={editingBooking}
+        onClose={() => setEditingBooking(null)}
+        onUpdated={handleBookingUpdated}
       />
     </div>
   );

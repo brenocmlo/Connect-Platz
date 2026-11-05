@@ -110,14 +110,21 @@ export default function FluxoCaixaDREPage() {
     item: CashFlowItem,
     dataEfetiva: string,
     meio: string,
-    observacao?: string
+    observacao?: string,
+    anexoUrl?: string
   ): Promise<boolean> => {
     setBusyId(item.id);
     try {
       const res = await fetch(`/api/financeiro/${item.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "PAGO", dataPagamento: dataEfetiva, meioPagamento: meio, observacao }),
+        body: JSON.stringify({
+          status: "PAGO",
+          dataPagamento: dataEfetiva,
+          meioPagamento: meio,
+          observacao,
+          ...(anexoUrl ? { anexoUrl } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.entry) {

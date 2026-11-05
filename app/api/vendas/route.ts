@@ -3,23 +3,19 @@
 // lançamentos no Fluxo de Caixa e auditoria.
 
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import {
   Prisma,
-  PaymentMethod,
   PaymentStatus,
   CashFlowType,
   CommissionBeneficiaryType,
   LeadSource,
   LeadTemperature,
+  Role,
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, isAdmin, canManageSaleValues } from "@/lib/auth/session";
-import { Role } from "@prisma/client";
+import { requireSession, canManageSaleValues } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { normalizeBrPhone } from "@/lib/utils/phone";
-import { getOrganizationTrackingSettings } from "@/lib/tracking/tracking-settings";
-import { MetaCapiService } from "@/lib/services/meta-capi";
 import {
   calculateSaleValues,
   ROLE_TO_BENEFICIARY,
@@ -27,6 +23,8 @@ import {
 } from "@/components/crm/vendas/saleSplitHelper";
 import { saleInclude, serializeSale, splitCashFlowDescription } from "./serialize";
 import { syncLeadSaleCompletion } from "./leadSync";
+import { CreateSaleSchema, HttpError, nextSaleCode } from "./saleSchemas";
+import { fireSaleMetaCapi } from "./saleCapi";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +33,12 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
   const { session } = auth;
 
-  if (session.role === Role.FINANCEIRO_ALUGUEL || session.role === Role.CORRETOR_ALUGUEL) {
-    return NextResponse.json({ error: "Acesso restrito ao departamento de Vendas." }, { status: 403 });
+  if (
+    session.role === Role.ADMINISTRADOR_ALUGUEL ||
+    session.role === Role.FINANCEIRO_ALUGUEL ||
+    session.role === Role.CORRETOR_ALUGUEL
+  ) {
+    return NextResponse.json({ error: "Acesso restrito ao departamento de Vendas. Aluguel não pode vender." }, { status: 403 });
   }
 
   const isSaleManager = canManageSaleValues(session.role);
@@ -64,63 +66,6 @@ export async function GET(req: NextRequest) {
     console.error("[VENDAS] Erro ao listar vendas:", err?.message);
     return NextResponse.json({ error: "Erro ao listar vendas." }, { status: 500 });
   }
-}
-
-const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use AAAA-MM-DD).");
-
-const ParticipantSchema = z.object({
-  role: z.enum(["CORRETOR_1", "CORRETOR_2", "GESTOR", "CAPTADOR"]),
-  userId: z.string().uuid("Participante inválido."),
-  percentual: z.number().min(0).max(100),
-  desconto: z.number().nonnegative().optional().default(0),
-  bonus: z.number().nonnegative().optional().default(0),
-  documentoPix: z.string().trim().max(140).optional(),
-});
-
-const CreateSaleSchema = z
-  .object({
-    leadId: z.string().uuid().optional(),
-    novoComprador: z
-      .object({
-        nome: z.string().trim().min(2, "Informe o nome do comprador."),
-        telefone: z.string().trim().min(8, "Informe o telefone do comprador."),
-        email: z.string().trim().email("E-mail inválido.").optional().or(z.literal("")),
-      })
-      .optional(),
-    propertyId: z.string().uuid("Selecione um empreendimento."),
-    unidadeNumero: z.string().trim().max(40).optional(),
-    dataVenda: dateOnly,
-    dataPrevistaPagamento: dateOnly.optional(),
-    vgv: z.number().positive("O VGV deve ser maior que zero."),
-    valorAvaliacao: z.number().nonnegative().optional(),
-    percentualComissao: z.number().positive("Informe a % de comissão.").max(100),
-    impostoPercentual: z.number().min(0).max(100).default(6),
-    meioPagamento: z.nativeEnum(PaymentMethod).default(PaymentMethod.TED),
-    participants: z.array(ParticipantSchema).min(1, "Informe o corretor titular."),
-  })
-  .refine((d) => Boolean(d.leadId) !== Boolean(d.novoComprador), {
-    message: "Selecione um cliente cadastrado ou informe os dados do novo comprador.",
-    path: ["leadId"],
-  })
-  .refine((d) => d.participants.some((p) => p.role === "CORRETOR_1"), {
-    message: "O Corretor 1 (titular) é obrigatório.",
-    path: ["participants"],
-  })
-  .refine((d) => new Set(d.participants.map((p) => p.role)).size === d.participants.length, {
-    message: "Cada papel do split só pode aparecer uma vez.",
-    path: ["participants"],
-  });
-
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
-
-async function nextSaleCode(tx: Prisma.TransactionClient, year: number) {
-  const prefix = `CP-${year}-`;
-  const count = await tx.sale.count({ where: { codigoVenda: { startsWith: prefix } } });
-  return `${prefix}${String(count + 1).padStart(3, "0")}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -161,7 +106,12 @@ export async function POST(req: NextRequest) {
     if (users.length !== userIds.length) {
       throw new HttpError(400, "Um ou mais participantes não pertencem à organização.");
     }
-    const invalidParticipant = users.find((u) => u.role === Role.CORRETOR_ALUGUEL || u.role === Role.FINANCEIRO_ALUGUEL);
+    const invalidParticipant = users.find(
+      (u) =>
+        u.role === Role.CORRETOR_ALUGUEL ||
+        u.role === Role.FINANCEIRO_ALUGUEL ||
+        u.role === Role.ADMINISTRADOR_ALUGUEL
+    );
     if (invalidParticipant) {
       throw new HttpError(400, `O profissional ${invalidParticipant.nome} pertence à modalidade de Aluguel e não pode participar de vendas.`);
     }
@@ -173,7 +123,7 @@ export async function POST(req: NextRequest) {
     });
     if (!property) throw new HttpError(404, "Empreendimento não encontrado.");
 
-    // Cálculo determinístico (o servidor recalcula; não confia nos valores do cliente)
+    // Cálculo determinístico
     const calc = calculateSaleValues({
       vgvValue: input.vgv,
       percentualComissao: input.percentualComissao,
@@ -203,7 +153,7 @@ export async function POST(req: NextRequest) {
       : undefined;
 
     const sale = await prisma.$transaction(async (tx) => {
-      // 1. Comprador: lead real existente ou novo lead com os dados informados
+      // 1. Comprador: lead existente ou novo
       let leadId = input.leadId;
       if (leadId) {
         const lead = await tx.lead.findFirst({
@@ -231,11 +181,10 @@ export async function POST(req: NextRequest) {
           if (!funnel || funnel.stages.length === 0) {
             throw new HttpError(400, "Nenhum funil ativo configurado para cadastrar o comprador.");
           }
-          const created = await tx.lead.create({
+          const createdLead = await tx.lead.create({
             data: {
               organizationId: orgId,
               funnelId: funnel.id,
-              // Etapa de venda/fechamento quando existir; senão a primeira etapa do funil
               stageId: (
                 funnel.stages.find((st) => /vend|fechad|ganh/i.test(st.nome)) || funnel.stages[0]
               ).id,
@@ -247,7 +196,7 @@ export async function POST(req: NextRequest) {
               temperatura: LeadTemperature.QUENTE,
             },
           });
-          leadId = created.id;
+          leadId = createdLead.id;
         }
       }
 
@@ -272,7 +221,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 3. Splits (somente valores > 0) + parcela da imobiliária (restante)
+      // 3. Splits e lançamentos de repasse
       const pixByRole = new Map(input.participants.map((p) => [p.role, p.documentoPix]));
       const payouts = calc.participants.filter((p) => p.valor > 0);
       for (const p of payouts) {
@@ -289,7 +238,6 @@ export async function POST(req: NextRequest) {
             dataVencimento: dataPrevista,
           },
         });
-        // Repasse previsto no Fluxo de Caixa (DRE: Custo Variável)
         await tx.cashFlow.create({
           data: {
             organizationId: orgId,
@@ -319,7 +267,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 4. Receita da comissão bruta a receber da construtora/vendedor
+      // 4. Receita da comissão bruta a receber
       await tx.cashFlow.create({
         data: {
           organizationId: orgId,
@@ -335,7 +283,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 5. Sincronização automática do Lead no Kanban (move para Ganho e registra na timeline)
+      // 5. Sincronização do Lead no Kanban
       if (leadId) {
         await syncLeadSaleCompletion({
           tx,
@@ -363,63 +311,17 @@ export async function POST(req: NextRequest) {
       entidadeId: sale.id,
       entidadeNome: sale.codigoVenda,
       descricao: `Venda ${sale.codigoVenda} (${property.nome}) registrada por ${session.nome}.`,
-      dadosDepois: {
-        vgv: input.vgv,
-        comissaoBruta: calc.comissaoTotalBruta,
-        imposto: calc.impostoEstimado,
-        baseLiquida: calc.baseLiquida,
-        receitaImobiliaria: calc.receitaImobiliaria,
-        participantes: calc.participants.map((p) => ({ papel: p.role, nome: p.nome, valor: p.valor })),
-      },
     });
 
-    // Disparo Server-Side CAPI para Meta (Offline Conversion: Purchase com VGV - Decisão 1.A)
-    getOrganizationTrackingSettings(orgId)
-      .then(async (tracking) => {
-        const pixelId = tracking.crmPixelId || tracking.sitePixelId;
-        if (!tracking.capiToken || !pixelId || (!tracking.crmPixelActive && !tracking.sitePixelActive)) return;
-
-        const leadData = sale.leadId
-          ? await prisma.lead.findUnique({
-              where: { id: sale.leadId },
-              select: { nome: true, email: true, telefone: true, fbp: true, fbc: true },
-            })
-          : null;
-
-        const buyerName = leadData?.nome || input.novoComprador?.nome || "";
-        const buyerEmail = leadData?.email || input.novoComprador?.email || undefined;
-        const buyerPhone = leadData?.telefone || input.novoComprador?.telefone || undefined;
-
-        const nameParts = buyerName.trim().split(" ");
-        const firstName = nameParts[0];
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
-
-        await MetaCapiService.sendEvent({
-          pixelId,
-          token: tracking.capiToken,
-          testEventCode: tracking.capiTestEventCode,
-          eventName: "Purchase",
-          eventId: `purchase_${sale.codigoVenda}`,
-          actionSource: "system_generated",
-          userData: {
-            email: buyerEmail,
-            phone: buyerPhone,
-            firstName,
-            lastName,
-            fbp: leadData?.fbp,
-            fbc: leadData?.fbc,
-          },
-          customData: {
-            currency: "BRL",
-            value: Number(sale.valorVendaVGV), // VGV Total da venda
-            contentName: property.nome,
-            orderId: sale.codigoVenda,
-          },
-        });
-      })
-      .catch((err) => {
-        console.warn("[Meta CAPI] Falha ao processar conversão Purchase:", err?.message || err);
-      });
+    // Disparo Server-Side CAPI para Meta (Offline Conversion: Purchase)
+    fireSaleMetaCapi({
+      orgId,
+      leadId: sale.leadId,
+      codigoVenda: sale.codigoVenda,
+      propertyName: property.nome,
+      vgv: Number(sale.valorVendaVGV),
+      novoComprador: input.novoComprador,
+    });
 
     return NextResponse.json({ success: true, sale: serializeSale(sale) }, { status: 201 });
   } catch (err: any) {

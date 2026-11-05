@@ -49,11 +49,38 @@ export default function LandingPage() {
   const navigateTo = (modalidade: "VENDA" | "VERANEIO", cidade?: string) =>
     showResults({ modalidade, localizacao: cidade ?? "" });
 
+  const comprarLocations = React.useMemo(() => {
+    return Array.from(
+      new Set(
+        properties
+          .filter((p) => p.modalidade !== "VERANEIO_TEMPORADA")
+          .map((p) => p.bairro || p.cidade)
+          .filter(Boolean) as string[]
+      )
+    ).sort();
+  }, [properties]);
+
+  const temporadaLocations = React.useMemo(() => {
+    return Array.from(
+      new Set(
+        properties
+          .filter((p) => isTemporada(p) || p.modalidade === "AMBOS")
+          .map((p) => p.bairro || p.cidade)
+          .filter(Boolean) as string[]
+      )
+    ).sort();
+  }, [properties]);
+
   return (
     <PortalSettingsProvider>
       <FaqJsonLd />
       <div className="min-h-[100dvh] bg-portal-mist text-portal-ink [color-scheme:light] dark:[color-scheme:dark]">
-      <PortalHeader cities={portal.directoryCities} onNavigate={navigateTo} />
+      <PortalHeader
+        cities={portal.directoryCities}
+        comprarLocations={comprarLocations}
+        temporadaLocations={temporadaLocations}
+        onNavigate={navigateTo}
+      />
 
       <main>
         <PortalHero onSearch={showResults} />

@@ -43,6 +43,10 @@ export function matchesFilters(s: SaleItem, f: VendasFilterState) {
       if (s.statusComissao !== f.status.replace("comissao_", "")) return false;
     } else if (s.status !== f.status) return false;
   }
+  if (f.ano && f.ano !== "TODOS") {
+    const saleYear = s.dataVendaIso ? s.dataVendaIso.slice(0, 4) : "";
+    if (saleYear !== f.ano) return false;
+  }
   if (f.corretor !== "ALL" && s.corretorTitular !== f.corretor && s.segundoCorretor !== f.corretor) return false;
   if (f.captador !== "ALL" && s.captador !== f.captador) return false;
   if (f.gestor !== "ALL" && s.gestor !== f.gestor) return false;

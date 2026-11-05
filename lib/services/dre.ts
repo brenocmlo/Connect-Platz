@@ -120,10 +120,20 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
  * Regime de CAIXA: considera apenas o que foi liquidado (PAGO) no mês da liquidação.
  * Regime de COMPETÊNCIA: considera tudo (pago + pendente) pelo mês de vencimento.
  */
-export function computeDre(entries: DreEntry[], month: string | "TODOS", regime: DreRegime): DreReport {
+export function computeDre(
+  entries: DreEntry[],
+  month: string | "TODOS" | "PERSONALIZADO",
+  regime: DreRegime,
+  customRange?: { start: string; end: string }
+): DreReport {
   const inScope = entries.filter((e) => {
     if (regime === "CAIXA" && e.status !== "PAGO") return false;
     if (month === "TODOS") return true;
+    if (month === "PERSONALIZADO" && customRange?.start && customRange?.end) {
+      const refDate = regime === "CAIXA" ? e.dataLiquidacao || e.dataVencimento : e.dataVencimento;
+      const d = refDate ? (refDate.length > 10 ? refDate.slice(0, 10) : refDate) : "";
+      return d >= customRange.start && d <= customRange.end;
+    }
     const ref = regime === "CAIXA" ? monthKey(e.dataLiquidacao) || monthKey(e.dataVencimento) : monthKey(e.dataVencimento);
     return ref === month;
   });

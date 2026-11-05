@@ -8,7 +8,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PeriodFilter } from "@/components/crm/CrmContext";
 import type { DashboardData } from "./types";
 
-export function useDashboardData(period: PeriodFilter) {
+export function useDashboardData(
+  period: PeriodFilter,
+  customRange?: { start: string; end: string },
+  modality: "TODOS" | "VENDA" | "ALUGUEL" = "TODOS"
+) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +26,12 @@ export function useDashboardData(period: PeriodFilter) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/dashboard?period=${encodeURIComponent(period)}`, {
+      const params = new URLSearchParams({ period, modality });
+      if (period === "personalizado" && customRange?.start && customRange?.end) {
+        params.set("startDate", customRange.start);
+        params.set("endDate", customRange.end);
+      }
+      const res = await fetch(`/api/dashboard?${params.toString()}`, {
         signal: controller.signal,
         cache: "no-store",
       });
@@ -37,7 +46,7 @@ export function useDashboardData(period: PeriodFilter) {
     } finally {
       if (controllerRef.current === controller) setLoading(false);
     }
-  }, [period]);
+  }, [period, customRange?.start, customRange?.end, modality]);
 
   useEffect(() => {
     load();

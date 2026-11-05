@@ -78,13 +78,66 @@ async function salesTotals(scope: AnalyticsScope, range: DateRange | null): Prom
   };
 }
 
+async function rentalTotals(scope: AnalyticsScope, range: DateRange | null): Promise<SalesTotals> {
+  const dateFilter = dateOnlyFilter(range);
+  const [bookings, rentals] = await Promise.all([
+    prisma.seasonBooking.aggregate({
+      where: {
+        organizationId: scope.organizationId,
+        status: { not: "CANCELADA" },
+        createdAt: dateFilter,
+      },
+      _sum: { valorTotal: true, taxaLimpeza: true },
+      _count: { _all: true },
+    }),
+    prisma.rentalContract.aggregate({
+      where: {
+        organizationId: scope.organizationId,
+        status: { not: "CANCELADO" },
+        createdAt: dateFilter,
+      },
+      _sum: { valorAluguelMensal: true },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const bookingVgv = toNumber(bookings._sum.valorTotal);
+  // Contratos de locação anual computados como VGV anualizado (12 meses)
+  const rentalVgv = toNumber(rentals._sum.valorAluguelMensal) * 12;
+  const count = bookings._count._all + rentals._count._all;
+  // Receita imobiliária média de locações e diárias
+  const commission = bookingVgv * 0.15 + toNumber(rentals._sum.valorAluguelMensal);
+
+  return {
+    vgv: bookingVgv + rentalVgv,
+    count,
+    commission,
+    splitsPaid: Math.round(commission * 0.8),
+    splitsPending: Math.round(commission * 0.2),
+  };
+}
+
 export async function loadFinancial(
   scope: AnalyticsScope,
-  period: PeriodRange
+  period: PeriodRange,
+  modality: "TODOS" | "VENDA" | "ALUGUEL" = "TODOS"
 ): Promise<DashboardData["financial"]> {
+  const getTotals = async (r: DateRange | null) => {
+    if (modality === "VENDA") return salesTotals(scope, r);
+    if (modality === "ALUGUEL") return rentalTotals(scope, r);
+    const [sales, rentals] = await Promise.all([salesTotals(scope, r), rentalTotals(scope, r)]);
+    return {
+      vgv: sales.vgv + rentals.vgv,
+      count: sales.count + rentals.count,
+      commission: sales.commission + rentals.commission,
+      splitsPaid: sales.splitsPaid + rentals.splitsPaid,
+      splitsPending: sales.splitsPending + rentals.splitsPending,
+    };
+  };
+
   const [cur, prev] = await Promise.all([
-    salesTotals(scope, period.current),
-    period.previous ? salesTotals(scope, period.previous) : Promise.resolve(null),
+    getTotals(period.current),
+    period.previous ? getTotals(period.previous) : Promise.resolve(null),
   ]);
 
   const ticket = (t: SalesTotals) => (t.count > 0 ? Math.round(t.vgv / t.count) : 0);
@@ -109,12 +162,24 @@ export async function loadFinancial(
   };
 }
 
-async function cashFlowTotals(organizationId: string, range: DateRange | null) {
+async function cashFlowTotals(
+  organizationId: string,
+  range: DateRange | null,
+  modality: "TODOS" | "VENDA" | "ALUGUEL" = "TODOS"
+) {
   const dateFilter = dateOnlyFilter(range);
+  const whereCategory =
+    modality === "VENDA"
+      ? { not: { contains: "Temporada" } }
+      : modality === "ALUGUEL"
+      ? { contains: "Temporada" }
+      : undefined;
+
   const flows = await prisma.cashFlow.findMany({
     where: {
       organizationId,
       status: PaymentStatus.PAGO,
+      ...(whereCategory ? { categoria: whereCategory } : {}),
       ...(range
         ? {
             OR: [
@@ -138,12 +203,13 @@ async function cashFlowTotals(organizationId: string, range: DateRange | null) {
 /** Fluxo de caixa da empresa: somente Administradores. */
 export async function loadCashFlow(
   scope: AnalyticsScope,
-  period: PeriodRange
+  period: PeriodRange,
+  modality: "TODOS" | "VENDA" | "ALUGUEL" = "TODOS"
 ): Promise<DashboardData["cashFlow"]> {
   if (!scope.director) return null;
   const [cur, prev] = await Promise.all([
-    cashFlowTotals(scope.organizationId, period.current),
-    period.previous ? cashFlowTotals(scope.organizationId, period.previous) : Promise.resolve(null),
+    cashFlowTotals(scope.organizationId, period.current, modality),
+    period.previous ? cashFlowTotals(scope.organizationId, period.previous, modality) : Promise.resolve(null),
   ]);
   return { ...cur, balanceTrend: trendPercent(cur.balance, prev ? prev.balance : null) };
 }

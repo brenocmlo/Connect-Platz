@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { FileCheck, MessageCircle, ShieldCheck, Zap } from "lucide-react";
 import { CountUp, PortalSectionTitle, Reveal } from "./PortalUI";
-import { useWaLink } from "./PortalSettingsContext";
+import { useWaLink, usePortalSettings } from "./PortalSettingsContext";
+import { PortalQuickLeadModal } from "./PortalQuickLeadModal";
 
 interface PortalWhyUsProps {
   totalImoveis: number;
@@ -52,16 +53,42 @@ function StatPin({ label, value, suffix, caption }: { label: string; value: numb
 
 export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: PortalWhyUsProps) {
   const waLink = useWaLink();
+  const settings = usePortalSettings();
+  const [modalOpen, setModalOpen] = useState(false);
   // Valores institucionais com fallback caso o banco local/staging ainda esteja sendo alimentado
   const imoveisVal = totalImoveis > 0 ? totalImoveis : 120;
   const cidadesVal = totalCidades > 0 ? totalCidades : 8;
   const temporadaVal = totalTemporada > 0 ? totalTemporada : 45;
 
+  const titulo = settings.sobreTitulo || "POR QUE A CONNECT PLATZ?";
+  const subtitulo =
+    settings.sobreSubtitulo ||
+    "Comprar, vender ou alugar é uma decisão importante. Você merece a confiança de quem conhece a região.";
+
   const stats = [
-    { label: "Portfólio com", value: imoveisVal, suffix: "+", caption: "imóveis ativos" },
-    { label: "Presente em", value: cidadesVal, caption: "cidades do Ceará" },
-    { label: "Opções de", value: temporadaVal, suffix: "+", caption: "temporada no litoral" },
-    { label: "Atendimento", value: 7, suffix: " dias", caption: "por semana, das 8h às 20h" },
+    {
+      label: "Portfólio com",
+      value: imoveisVal,
+      suffix: "+",
+      caption: settings.sobreEstatistica1Rotulo || "imóveis ativos",
+    },
+    {
+      label: "Presente em",
+      value: cidadesVal,
+      caption: settings.sobreEstatistica2Rotulo || "cidades do Ceará",
+    },
+    {
+      label: "Opções de",
+      value: temporadaVal,
+      suffix: "+",
+      caption: settings.sobreEstatistica3Rotulo || "temporada no litoral",
+    },
+    {
+      label: "Atendimento",
+      value: 7,
+      suffix: " dias",
+      caption: settings.sobreEstatistica4Rotulo || "por semana, das 8h às 20h",
+    },
   ];
 
   return (
@@ -82,8 +109,8 @@ export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: Port
         <Reveal>
           <PortalSectionTitle
             align="center"
-            title="POR QUE A CONNECT PLATZ?"
-            subtitle="Comprar, vender ou alugar é uma decisão importante. Você merece a confiança de quem conhece a região."
+            title={titulo}
+            subtitle={subtitulo}
           />
         </Reveal>
 
@@ -126,17 +153,25 @@ export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: Port
 
         {waLink && (
         <div className="mt-16 flex justify-center">
-          <a
-            href={waLink("Olá! Gostaria de falar com um corretor da Connect Platz.")}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-connect-blue px-8 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-connect-blue/30 transition-all hover:scale-[1.02] hover:bg-connect-deep-blue hover:shadow-connect-blue/40 active:scale-[0.98]"
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-connect-blue px-8 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-connect-blue/30 transition-all hover:scale-[1.02] hover:bg-connect-deep-blue hover:shadow-connect-blue/40 active:scale-[0.98] cursor-pointer"
           >
             <MessageCircle className="h-4 w-4" />
             Falar com corretor
-          </a>
+          </button>
         </div>
         )}
+
+        <PortalQuickLeadModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Falar com Especialista Connect Platz"
+          subtitle="Informe seu nome e WhatsApp para ser atendido pelo corretor credenciado de plantão."
+          defaultMessage="Olá! Gostaria de falar com um corretor da Connect Platz."
+          contextSource="sobre_nos_cta"
+        />
       </div>
     </section>
   );

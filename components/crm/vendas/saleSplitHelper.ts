@@ -50,6 +50,7 @@ export interface CalculatedParticipant extends ParticipantInput {
 }
 
 export interface SaleCalculation {
+  vgv: number;
   comissaoTotalBruta: number;
   impostoEstimado: number;
   baseLiquida: number;
@@ -80,6 +81,7 @@ export function calculateSaleValues(params: SplitCalculationParams): SaleCalcula
   const isOverAllocated = restante < -0.004 || participants.some((p) => p.valor < 0);
 
   return {
+    vgv: safe(params.vgvValue),
     comissaoTotalBruta,
     impostoEstimado,
     baseLiquida,

@@ -22,6 +22,7 @@ interface PropertyMenuProps {
   onOpenMaterials?: () => void;
   onOpenEditImage?: () => void;
   onDelete?: () => void;
+  onPermanentDelete?: () => void;
 }
 
 export function PropertyMenu({
@@ -33,6 +34,7 @@ export function PropertyMenu({
   onOpenMaterials,
   onOpenEditImage,
   onDelete,
+  onPermanentDelete,
 }: PropertyMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -173,21 +175,37 @@ export function PropertyMenu({
             <span>{copied ? "Link Copiado!" : "Copiar Link Público"}</span>
           </button>
 
-          {/* 5. Excluir */}
-          {onDelete && (
-            <div className="border-t border-border mt-1 pt-1">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsOpen(false);
-                  onDelete();
-                }}
-                className="w-full text-left px-3 py-2 text-destructive hover:bg-destructive hover:text-white flex items-center gap-2.5 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Excluir Empreendimento</span>
-              </button>
+          {/* 5. Excluir e Apagar Definitivamente */}
+          {(onDelete || onPermanentDelete) && (
+            <div className="border-t border-border mt-1 pt-1 space-y-0.5">
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(false);
+                    onDelete();
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-muted-foreground hover:bg-muted flex items-center gap-2 transition-colors text-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Desativar / Remover</span>
+                </button>
+              )}
+              {onPermanentDelete && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(false);
+                    onPermanentDelete();
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white flex items-center gap-2 transition-colors font-bold text-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Apagar Definitivamente</span>
+                </button>
+              )}
             </div>
           )}
         </div>

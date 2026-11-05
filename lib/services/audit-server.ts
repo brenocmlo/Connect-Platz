@@ -15,6 +15,8 @@ export type AuditModulo =
   | "METAS"
   | "AGENDA"
   | "EMPREENDIMENTOS"
+  | "TEMPORADA"
+  | "LOCACAO"
   | "CONFIGURACOES"
   | "INTEGRACOES"
   | "SISTEMA";

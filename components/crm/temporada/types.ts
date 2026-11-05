@@ -9,5 +9,7 @@ export interface BookingItem {
   taxaLimpeza: number;
   valorTotal: number;
   meioPagamento: "PIX" | "CARTAO_CREDITO" | "CARTAO_DEBITO" | "BOLETO" | "TED";
-  status: "CONFIRMADA" | "PENDENTE" | "CONCLUIDA";
+  status: "CONFIRMADA" | "PENDENTE" | "CONCLUIDA" | "CANCELADA";
+  locatarioTelefone?: string | null;
+  observacoes?: string | null;
 }

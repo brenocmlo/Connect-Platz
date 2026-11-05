@@ -60,6 +60,7 @@ interface PropertyProductCardProps {
   onOpenEditImage?: (prop: PropertyCardData) => void;
   onToggleLandingPage: (id: string, current: boolean) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
+  onPermanentDelete?: (id: string) => Promise<void>;
 }
 
 export function PropertyProductCard({
@@ -70,6 +71,7 @@ export function PropertyProductCard({
   onOpenEditImage,
   onToggleLandingPage,
   onDelete,
+  onPermanentDelete,
 }: PropertyProductCardProps) {
   const isEmpreendimento = property.tipoCadastro !== "AVULSO";
   const isTemporada = property.modalidade === "VERANEIO_TEMPORADA";
@@ -165,6 +167,7 @@ export function PropertyProductCard({
               onOpenMaterials={onOpenMaterials ? () => onOpenMaterials(property) : undefined}
               onOpenEditImage={onOpenEditImage ? () => onOpenEditImage(property) : undefined}
               onDelete={onDelete ? () => onDelete(property.id) : undefined}
+              onPermanentDelete={onPermanentDelete ? () => onPermanentDelete(property.id) : undefined}
             />
 
             {onOpenEditImage && (

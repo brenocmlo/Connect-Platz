@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
   const { session } = auth;
 
   try {
-    const period = resolvePeriod(parsePeriod(req.nextUrl.searchParams.get("period")));
+    const periodParam = parsePeriod(req.nextUrl.searchParams.get("period"));
+    const startDate = req.nextUrl.searchParams.get("startDate");
+    const endDate = req.nextUrl.searchParams.get("endDate");
+    const period = resolvePeriod(periodParam, new Date(), { start: startDate, end: endDate });
 
     const modality = getUserModality(session.role);
     const roleFilter =

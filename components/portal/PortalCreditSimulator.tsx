@@ -4,7 +4,8 @@ import React, { useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, Info, MessageCircle, TriangleAlert } from "lucide-react";
 import { Reveal } from "./PortalUI";
 import { formatBRL } from "./portalUtils";
-import { useWaLink } from "./PortalSettingsContext";
+import { useWaLink, usePortalSettings } from "./PortalSettingsContext";
+import { PortalQuickLeadModal } from "./PortalQuickLeadModal";
 
 // Premissas fixas e públicas da estimativa (100% determinística, sem consulta externa).
 const TAXA_ANUAL = 0.105;
@@ -42,19 +43,26 @@ function MoneyField({ id, label, value, onChange, hint }: { id: string; label: s
 
 export function PortalCreditSimulator() {
   const waLink = useWaLink();
+  const settings = usePortalSettings();
+  const [modalOpen, setModalOpen] = useState(false);
   const [regime, setRegime] = useState(REGIMES[0]);
   const [valorImovel, setValorImovel] = useState(800000);
   const [renda, setRenda] = useState(16000);
   const [entrada, setEntrada] = useState(160000);
 
+  const taxaAnual = settings.simuladorTaxaAnual ?? TAXA_ANUAL;
+  const prazoMeses = settings.simuladorPrazoMeses ?? PRAZO_MESES;
+  const comprometimento = settings.simuladorComprometimento ?? COMPROMETIMENTO;
+  const entradaMinima = settings.simuladorEntradaMinima ?? ENTRADA_MINIMA;
+
   const sim = useMemo(() => {
     const financiado = Math.max(valorImovel - entrada, 0);
-    const i = Math.pow(1 + TAXA_ANUAL, 1 / 12) - 1;
-    const parcela = financiado > 0 ? (financiado * i) / (1 - Math.pow(1 + i, -PRAZO_MESES)) : 0;
-    const parcelaMaxima = renda * COMPROMETIMENTO;
-    const entradaOk = valorImovel > 0 && entrada >= valorImovel * ENTRADA_MINIMA;
+    const i = Math.pow(1 + taxaAnual, 1 / 12) - 1;
+    const parcela = financiado > 0 ? (financiado * i) / (1 - Math.pow(1 + i, -prazoMeses)) : 0;
+    const parcelaMaxima = renda * comprometimento;
+    const entradaOk = valorImovel > 0 && entrada >= valorImovel * entradaMinima;
     return { financiado, parcela, parcelaMaxima, entradaOk, cabeNaRenda: parcela > 0 && parcela <= parcelaMaxima };
-  }, [valorImovel, renda, entrada]);
+  }, [valorImovel, renda, entrada, taxaAnual, prazoMeses, comprometimento, entradaMinima]);
 
   const aprovavel = sim.entradaOk && sim.cabeNaRenda;
   const mensagem =
@@ -148,18 +156,26 @@ export function PortalCreditSimulator() {
             </p>
 
             {waLink && (
-            <a
-              href={waLink(mensagem)}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-auto inline-flex h-12 items-center justify-center gap-2 rounded-full bg-connect-blue px-6 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-connect-blue/25 transition-all hover:scale-[1.02] hover:bg-connect-deep-blue active:scale-[0.98]"
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="mt-auto inline-flex h-12 items-center justify-center gap-2 rounded-full bg-connect-blue px-6 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-connect-blue/25 transition-all hover:scale-[1.02] hover:bg-connect-deep-blue active:scale-[0.98] cursor-pointer"
             >
               <MessageCircle className="h-4 w-4" />
               Receber proposta
-            </a>
+            </button>
             )}
           </form>
         </Reveal>
+
+        <PortalQuickLeadModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Receber Proposta de Financiamento"
+          subtitle="Informe seus dados para receber a simulação oficial com o corretor responsável."
+          defaultMessage={mensagem}
+          contextSource="simulador_credito"
+        />
       </div>
     </section>
   );

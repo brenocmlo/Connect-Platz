@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, User, Plus } from "lucide-react";
+import { Clock, User, Plus, Pencil, Trash2 } from "lucide-react";
 import { AppointmentItem, getTypeConfig, localDateKey } from "./types";
 
 interface AgendaWeekViewProps {
@@ -9,6 +9,8 @@ interface AgendaWeekViewProps {
   currentDate: Date;
   onOpenOutcomeModal: (app: AppointmentItem) => void;
   onNewAppointment: () => void;
+  onEdit?: (app: AppointmentItem) => void;
+  onDelete?: (app: AppointmentItem) => void;
 }
 
 export function AgendaWeekView({
@@ -16,6 +18,8 @@ export function AgendaWeekView({
   currentDate,
   onOpenOutcomeModal,
   onNewAppointment,
+  onEdit,
+  onDelete,
 }: AgendaWeekViewProps) {
   // Compute start of week (Monday)
   const getStartOfWeek = (d: Date) => {
@@ -159,9 +163,37 @@ export function AgendaWeekView({
                       >
                         {config.label}
                       </span>
-                      <span className="text-xs font-mono text-slate-600 dark:text-slate-300 font-semibold">
-                        {startTime} — {endTime}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-mono text-slate-600 dark:text-slate-300 font-semibold">
+                          {startTime} — {endTime}
+                        </span>
+                        {onEdit && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEdit(app);
+                            }}
+                            className="p-1 text-slate-400 hover:text-connect-blue rounded transition-colors"
+                            title="Editar"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(app);
+                            }}
+                            className="p-1 text-slate-400 hover:text-red-500 rounded transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">
@@ -256,9 +288,37 @@ export function AgendaWeekView({
                           >
                             {config.label}
                           </span>
-                          <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                            {startTime}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                              {startTime}
+                            </span>
+                            {onEdit && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEdit(app);
+                                }}
+                                className="p-0.5 text-slate-400 hover:text-connect-blue rounded transition-colors"
+                                title="Editar"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDelete(app);
+                                }}
+                                className="p-0.5 text-slate-400 hover:text-red-500 rounded transition-colors"
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         <p className="text-xs font-semibold text-slate-900 dark:text-white line-clamp-2 leading-snug">

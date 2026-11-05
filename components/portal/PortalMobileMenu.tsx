@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, MessageCircle, UserRound, X } from "lucide-react";
+import { ChevronDown, MapPin, MessageCircle, UserRound, X } from "lucide-react";
 import type { DirectoryCity, NavigateFn } from "./types";
 import { PortalLogo } from "./PortalUI";
 import { ANCHOR_LINKS, cityLabel, scrollToId } from "./portalUtils";
@@ -114,16 +114,81 @@ export function PortalMobileMenu({ open, onClose, cities, onNavigate }: PortalMo
                   </div>
                 );
               })}
-              {ANCHOR_LINKS.map((link) => (
-                <button
-                  key={link.id}
-                  type="button"
-                  onClick={() => go(() => scrollToId(link.id))}
-                  className="block w-full border-b border-white/10 py-4 text-left text-base font-semibold"
-                >
-                  {link.label}
-                </button>
-              ))}
+              {ANCHOR_LINKS.map((link) => {
+                if (link.id === "diretorio") {
+                  const isOpen = expanded === "Bairros";
+                  return (
+                    <div key={link.id} className="border-b border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(isOpen ? null : "Bairros")}
+                        aria-expanded={isOpen}
+                        className="flex w-full items-center justify-between py-4 text-base font-semibold"
+                      >
+                        <span className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-platz-gold" />
+                          <span>Bairros por Cidade</span>
+                        </span>
+                        <ChevronDown className={`h-5 w-5 text-white/60 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {isOpen && (
+                        <div className="space-y-4 pb-4">
+                          {cities.map((c) => (
+                            <div key={c.cidade} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold uppercase tracking-wider text-platz-gold">
+                                  {c.cidade}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => go(() => onNavigate("VENDA", c.cidade))}
+                                  className="text-[11px] text-sky-400 hover:underline"
+                                >
+                                  Ver todos
+                                </button>
+                              </div>
+                              {c.bairros && c.bairros.length > 0 ? (
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {c.bairros.map((b) => (
+                                    <button
+                                      key={b.nome}
+                                      type="button"
+                                      onClick={() => go(() => onNavigate("VENDA", b.nome))}
+                                      className="rounded-lg border border-white/10 bg-white/10 px-2 py-1 text-xs text-white/90 active:bg-connect-blue"
+                                    >
+                                      {b.nome} ({b.total})
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mt-1 text-[11px] text-white/40">Nenhum bairro com imóveis no momento.</p>
+                              )}
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => go(() => scrollToId("diretorio"))}
+                            className="block w-full text-center text-xs font-semibold text-platz-gold py-1"
+                          >
+                            Ir para o Diretório Completo ↓
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <button
+                    key={link.id}
+                    type="button"
+                    onClick={() => go(() => scrollToId(link.id))}
+                    className="block w-full border-b border-white/10 py-4 text-left text-base font-semibold"
+                  >
+                    {link.label}
+                  </button>
+                );
+              })}
             </nav>
 
             {waLink && (

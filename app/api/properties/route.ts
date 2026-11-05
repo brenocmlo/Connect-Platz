@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db/prisma";
 import { PropertyModality, UnitStatus } from "@prisma/client";
 import { getRequestSession, requireSession, ADMIN_ROLES, getUserModality } from "@/lib/auth/session";
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
     const orgId = session?.organizationId || (await resolvePublicOrganizationId());
 
     const cacheHeader = portal
-      ? "public, s-maxage=60, stale-while-revalidate=300"
+      ? "public, s-maxage=5, stale-while-revalidate=30"
       : "private, no-cache, no-store, must-revalidate";
 
     if (!orgId) {
@@ -175,6 +176,13 @@ export async function POST(req: NextRequest) {
       descricao: `${session.nome} cadastrou ${property.tipoCadastro === "AVULSO" ? "o imóvel avulso" : "o empreendimento"} "${property.nome}".`,
       dadosDepois: auditSnapshot(property),
     });
+
+    try {
+      revalidatePath("/");
+      revalidatePath("/crm/empreendimentos");
+    } catch (revalErr) {
+      console.warn("Falha ao revalidar cache após cadastro:", revalErr);
+    }
 
     return NextResponse.json({ success: true, property: created }, { status: 201 });
   } catch (error: any) {

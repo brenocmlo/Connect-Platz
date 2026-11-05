@@ -10,13 +10,17 @@ import { RoletaDistributionPanel } from "@/components/crm/equipes/RoletaDistribu
 import { InviteCollaboratorModal, InviteCollaboratorData } from "@/components/crm/equipes/InviteCollaboratorModal";
 import { EditCollaboratorModal, EditCollaboratorData } from "@/components/crm/equipes/EditCollaboratorModal";
 import { RemoveBrokerModal } from "@/components/crm/equipes/RemoveBrokerModal";
+import { EmergencyResetPasswordModal } from "@/components/crm/equipes/EmergencyResetPasswordModal";
 import { TeamStatCards } from "@/components/crm/equipes/TeamStatCards";
 import { TeamMembersTable } from "@/components/crm/equipes/TeamMembersTable";
 import { TeamMember, MemberStatus, STATUS_META, ROLE_LABEL, MemberRole } from "@/components/crm/equipes/types";
 
 export default function EquipesPage() {
   const { user, setActionMessage } = useCrm();
-  const isAdmin = user?.role === "ADMINISTRADOR";
+  const isAdmin =
+    user?.role === "ADMINISTRADOR" ||
+    user?.role === "ADMINISTRADOR_VENDA" ||
+    user?.role === "ADMINISTRADOR_ALUGUEL";
   const isFinanceiro = user?.role === "FINANCEIRO_VENDA" || user?.role === "FINANCEIRO_ALUGUEL";
   const canAccessEquipes = isAdmin || isFinanceiro;
 
@@ -27,6 +31,7 @@ export default function EquipesPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [brokerToRemove, setBrokerToRemove] = useState<TeamMember | null>(null);
   const [brokerToEdit, setBrokerToEdit] = useState<TeamMember | null>(null);
+  const [memberToReset, setMemberToReset] = useState<TeamMember | null>(null);
   const [activeTab, setActiveTab] = useState<"membros" | "roleta">("membros");
 
   const flash = (msg: string) => {
@@ -201,6 +206,7 @@ export default function EquipesPage() {
             onRoleChange={isAdmin ? handleRoleChange : undefined}
             onRequestRemove={(m) => setBrokerToRemove(m)}
             onRequestEdit={(m) => setBrokerToEdit(m)}
+            onRequestEmergencyReset={(m) => setMemberToReset(m)}
           />
         </div>
       )}
@@ -225,6 +231,13 @@ export default function EquipesPage() {
         member={brokerToRemove}
         onClose={() => setBrokerToRemove(null)}
         onConfirm={handleRemoveBroker}
+      />
+
+      <EmergencyResetPasswordModal
+        isOpen={Boolean(memberToReset)}
+        member={memberToReset}
+        onClose={() => setMemberToReset(null)}
+        onSuccess={(msg) => flash(msg)}
       />
     </div>
   );

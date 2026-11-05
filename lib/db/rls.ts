@@ -68,21 +68,21 @@ export function buildLeadRLSWhere(context: RLSUserContext): Prisma.LeadWhereInpu
     };
   }
 
-  if (context.role === Role.FINANCEIRO_VENDA) {
+  if (context.role === Role.FINANCEIRO_VENDA || context.role === Role.ADMINISTRADOR_VENDA) {
     return {
       ...baseWhere,
       modalidade: "VENDA",
     };
   }
 
-  if (context.role === Role.FINANCEIRO_ALUGUEL) {
+  if (context.role === Role.FINANCEIRO_ALUGUEL || context.role === Role.ADMINISTRADOR_ALUGUEL) {
     return {
       ...baseWhere,
       modalidade: "ALUGUEL",
     };
   }
 
-  // Administradores visualizam toda a organização (todas as modalidades)
+  // Administrador Geral visualiza toda a organização (todas as modalidades)
   return baseWhere;
 }
 
@@ -94,11 +94,15 @@ export function maskLeadSensitiveData<
   T extends { telefone: string; email?: string | null; corretorId?: string | null; modalidade?: string }
 >(lead: T, context: RLSUserContext): T {
   const isOwner = lead.corretorId === context.userId;
-  const isAdmin = context.role === Role.ADMINISTRADOR;
-  const isFinVenda = context.role === Role.FINANCEIRO_VENDA && (!lead.modalidade || lead.modalidade === "VENDA");
-  const isFinAluguel = context.role === Role.FINANCEIRO_ALUGUEL && lead.modalidade === "ALUGUEL";
+  const isSuperAdmin = context.role === Role.ADMINISTRADOR;
+  const isSaleAuthorized =
+    (context.role === Role.ADMINISTRADOR_VENDA || context.role === Role.FINANCEIRO_VENDA) &&
+    (!lead.modalidade || lead.modalidade === "VENDA");
+  const isRentAuthorized =
+    (context.role === Role.ADMINISTRADOR_ALUGUEL || context.role === Role.FINANCEIRO_ALUGUEL) &&
+    lead.modalidade === "ALUGUEL";
 
-  if (isOwner || isAdmin || isFinVenda || isFinAluguel) {
+  if (isOwner || isSuperAdmin || isSaleAuthorized || isRentAuthorized) {
     return lead;
   }
 

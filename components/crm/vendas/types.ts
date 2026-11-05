@@ -12,6 +12,7 @@ export interface SplitItem {
   pix?: string;
   dataVencimento?: string;
   dataPagamento?: string | null;
+  comprovanteUrl?: string | null;
 }
 
 export interface SaleItem {
@@ -38,6 +39,9 @@ export interface SaleItem {
   impostoPercentual: number;
   proximoPagamento?: string | null;
   meioPagamento: string;
+  propertyId?: string;
+  leadId?: string;
+  unitId?: string | null;
   /** "ativa" | "cancelada" (Sale.status) */
   status: string;
   /** "pendente" | "parcial" | "paga" (Sale.statusComissao) */
@@ -56,4 +60,5 @@ export interface VendasFilterState {
   codigoVenda: string;
   status: string;
   ordenarPor: "recente" | "vgv_desc" | "vgv_asc";
+  ano?: string;
 }

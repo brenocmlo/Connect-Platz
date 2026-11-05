@@ -9,9 +9,34 @@ export interface PortalPublicSettings {
   email: string;
   corretorNome: string;
   creci: string;
+  simuladorTaxaAnual?: number;
+  simuladorPrazoMeses?: number;
+  simuladorComprometimento?: number;
+  simuladorEntradaMinima?: number;
+  sobreTitulo?: string;
+  sobreSubtitulo?: string;
+  sobreTexto?: string;
+  sobreEstatistica1Valor?: string;
+  sobreEstatistica1Rotulo?: string;
+  sobreEstatistica2Valor?: string;
+  sobreEstatistica2Rotulo?: string;
+  sobreEstatistica3Valor?: string;
+  sobreEstatistica3Rotulo?: string;
+  sobreEstatistica4Valor?: string;
+  sobreEstatistica4Rotulo?: string;
+  customPropertyTypes?: string[];
 }
 
-const EMPTY: PortalPublicSettings = { whatsapp: "", email: "", corretorNome: "", creci: "" };
+const EMPTY: PortalPublicSettings = {
+  whatsapp: "",
+  email: "",
+  corretorNome: "",
+  creci: "",
+  simuladorTaxaAnual: 0.105,
+  simuladorPrazoMeses: 360,
+  simuladorComprometimento: 0.3,
+  simuladorEntradaMinima: 0.2,
+};
 
 const PortalSettingsContext = createContext<{ settings: PortalPublicSettings; loaded: boolean }>({
   settings: EMPTY,
@@ -34,6 +59,22 @@ export function PortalSettingsProvider({ children }: { children: React.ReactNode
           email: s.email || "",
           corretorNome: s.corretorNome || "",
           creci: s.creci || "",
+          simuladorTaxaAnual: typeof s.simuladorTaxaAnual === "number" ? s.simuladorTaxaAnual : 0.105,
+          simuladorPrazoMeses: typeof s.simuladorPrazoMeses === "number" ? s.simuladorPrazoMeses : 360,
+          simuladorComprometimento: typeof s.simuladorComprometimento === "number" ? s.simuladorComprometimento : 0.3,
+          simuladorEntradaMinima: typeof s.simuladorEntradaMinima === "number" ? s.simuladorEntradaMinima : 0.2,
+          sobreTitulo: s.sobreTitulo || undefined,
+          sobreSubtitulo: s.sobreSubtitulo || undefined,
+          sobreTexto: s.sobreTexto || undefined,
+          sobreEstatistica1Valor: s.sobreEstatistica1Valor || undefined,
+          sobreEstatistica1Rotulo: s.sobreEstatistica1Rotulo || undefined,
+          sobreEstatistica2Valor: s.sobreEstatistica2Valor || undefined,
+          sobreEstatistica2Rotulo: s.sobreEstatistica2Rotulo || undefined,
+          sobreEstatistica3Valor: s.sobreEstatistica3Valor || undefined,
+          sobreEstatistica3Rotulo: s.sobreEstatistica3Rotulo || undefined,
+          sobreEstatistica4Valor: s.sobreEstatistica4Valor || undefined,
+          sobreEstatistica4Rotulo: s.sobreEstatistica4Rotulo || undefined,
+          customPropertyTypes: s.customPropertyTypes || undefined,
         });
       })
       .catch(() => undefined)

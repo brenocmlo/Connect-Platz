@@ -52,6 +52,9 @@ export function serializeSale(s: SaleWithRelations) {
     unidadeNumero: s.unit ? `${s.unit.numeroUnidade}${s.unit.bloco ? ` (${s.unit.bloco})` : ""}` : null,
     compradorNome: s.lead?.nome || "—",
     corretorId: s.corretorId,
+    propertyId: s.propertyId,
+    leadId: s.leadId,
+    unitId: s.unitId,
     corretorTitular: s.corretorTitular?.nome || nameOf("CORRETOR_TITULAR") || "—",
     segundoCorretor: nameOf("CO_CORRETOR"),
     gestor: nameOf("SOCIO_GESTOR"),
@@ -80,6 +83,7 @@ export function serializeSale(s: SaleWithRelations) {
       pix: sp.documentoPix || undefined,
       dataVencimento: fmtDate(sp.dataVencimento),
       dataPagamento: sp.dataPagamento ? fmtDate(sp.dataPagamento) : null,
+      comprovanteUrl: sp.comprovanteUrl || null,
     })),
   };
 }

@@ -8,6 +8,8 @@ import { INITIAL_FILTERS, matchesFilters } from "./portalUtils";
 export function usePortalProperties() {
   const [properties, setProperties] = useState<PropertyItem[]>([]);
   const [directoryCities, setDirectoryCities] = useState<DirectoryCity[]>([]);
+  const [cidades, setCidades] = useState<string[]>([]);
+  const [bairros, setBairros] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [filters, setFilters] = useState<PortalFilters>(INITIAL_FILTERS);
@@ -22,6 +24,8 @@ export function usePortalProperties() {
         if (!active) return;
         setProperties(data.properties || []);
         setDirectoryCities(data.directory || []);
+        setCidades(data.cidades || []);
+        setBairros(data.bairros || []);
       } catch (err) {
         console.error("Erro ao carregar dados do sistema:", err);
         if (active) setError(true);
@@ -57,6 +61,8 @@ export function usePortalProperties() {
     properties,
     filtered,
     directoryCities,
+    cidades,
+    bairros,
     loading,
     error,
     filters,

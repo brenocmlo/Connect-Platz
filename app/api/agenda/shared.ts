@@ -41,6 +41,22 @@ export async function findOwnedAppointment(id: string, session: SessionPayload) 
 
 const patchSchema = z
   .object({
+    titulo: z.string().trim().min(2).max(200).optional(),
+    tipo: z
+      .enum(["VISITA", "LEMBRETE", "DOCUMENTACAO", "RETORNO_FOLLOWUP", "PROPOSTA_APRESENTACAO"])
+      .optional(),
+    dataInicio: z
+      .string()
+      .refine((val) => !isNaN(Date.parse(val)), "Data início inválida")
+      .optional(),
+    dataFim: z
+      .string()
+      .refine((val) => !isNaN(Date.parse(val)), "Data fim inválida")
+      .optional(),
+    local: z.string().trim().max(500).nullable().optional(),
+    link: z.string().trim().max(500).nullable().optional(),
+    leadId: z.string().uuid().nullable().optional(),
+    propertyId: z.string().uuid().nullable().optional(),
     status: z.enum(["AGENDADO", "CONCLUIDO", "CANCELADO", "NAO_COMPARECEU"]).optional(),
     resultadoVisita: z.string().trim().max(2000).nullable().optional(),
     observacoes: z.string().trim().max(5000).nullable().optional(),
@@ -65,9 +81,13 @@ export async function updateAppointment(
   if (owned.error) return owned.error;
   const before = owned.appointment;
 
+  const dataToUpdate: any = { ...parsed.data };
+  if (parsed.data.dataInicio) dataToUpdate.dataInicio = new Date(parsed.data.dataInicio);
+  if (parsed.data.dataFim) dataToUpdate.dataFim = new Date(parsed.data.dataFim);
+
   const updated = await prisma.appointment.update({
     where: { id },
-    data: parsed.data,
+    data: dataToUpdate,
     include: appointmentInclude,
   });
 

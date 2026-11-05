@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, User, MapPin, CheckCircle2, Navigation, Compass } from "lucide-react";
+import { Clock, User, MapPin, CheckCircle2, Navigation, Compass, Pencil, Trash2 } from "lucide-react";
 import { AppointmentItem, getTypeConfig } from "./types";
 import { getWazeNavigationUrl, getGoogleMapsNavigationUrl } from "@/lib/services/location";
 
@@ -10,9 +10,11 @@ export type { AppointmentItem };
 interface AppointmentCardProps {
   app: AppointmentItem;
   onOpenOutcomeModal: (app: AppointmentItem) => void;
+  onEdit?: (app: AppointmentItem) => void;
+  onDelete?: (app: AppointmentItem) => void;
 }
 
-export function AppointmentCard({ app, onOpenOutcomeModal }: AppointmentCardProps) {
+export function AppointmentCard({ app, onOpenOutcomeModal, onEdit, onDelete }: AppointmentCardProps) {
   const config = getTypeConfig(app.tipo);
 
   const destinationQuery = app.property
@@ -35,23 +37,53 @@ export function AppointmentCard({ app, onOpenOutcomeModal }: AppointmentCardProp
           >
             {config.label}
           </span>
-          <span
-            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              app.status === "CONCLUIDO"
-                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800"
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                app.status === "CONCLUIDO"
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800"
+                  : app.status === "NAO_COMPARECEU"
+                  ? "bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-400 border border-red-300 dark:border-red-800"
+                  : "bg-slate-100 text-slate-700 dark:bg-[#111827] dark:text-slate-300"
+              }`}
+            >
+              {app.status === "CONCLUIDO"
+                ? "Concluído"
                 : app.status === "NAO_COMPARECEU"
-                ? "bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-400 border border-red-300 dark:border-red-800"
-                : "bg-slate-100 text-slate-700 dark:bg-[#111827] dark:text-slate-300"
-            }`}
-          >
-            {app.status === "CONCLUIDO"
-              ? "Concluído"
-              : app.status === "NAO_COMPARECEU"
-              ? "Não compareceu"
-              : app.status === "CANCELADO"
-              ? "Cancelado"
-              : "Agendado"}
-          </span>
+                ? "Não compareceu"
+                : app.status === "CANCELADO"
+                ? "Cancelado"
+                : "Agendado"}
+            </span>
+
+            {onEdit && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(app);
+                }}
+                className="p-1 rounded-md text-slate-400 hover:text-connect-blue hover:bg-connect-blue/10 transition-colors"
+                title="Editar compromisso"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {onDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(app);
+                }}
+                className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                title="Excluir compromisso"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">

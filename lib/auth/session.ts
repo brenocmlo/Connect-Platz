@@ -7,10 +7,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { verifySessionToken, SessionPayload } from "./jwt";
 
-export const ADMIN_ROLES: Role[] = [Role.ADMINISTRADOR];
-export const FINANCE_ROLES: Role[] = [Role.ADMINISTRADOR, Role.FINANCEIRO_VENDA, Role.FINANCEIRO_ALUGUEL];
-export const SALE_ROLES: Role[] = [Role.ADMINISTRADOR, Role.FINANCEIRO_VENDA, Role.CORRETOR_VENDA];
-export const RENT_ROLES: Role[] = [Role.ADMINISTRADOR, Role.FINANCEIRO_ALUGUEL, Role.CORRETOR_ALUGUEL];
+export const ADMIN_ROLES: Role[] = [
+  Role.ADMINISTRADOR,
+  Role.ADMINISTRADOR_VENDA,
+  Role.ADMINISTRADOR_ALUGUEL,
+];
+export const SUPER_ADMIN_ROLES: Role[] = [Role.ADMINISTRADOR];
+export const SALE_ADMIN_ROLES: Role[] = [Role.ADMINISTRADOR, Role.ADMINISTRADOR_VENDA];
+export const RENT_ADMIN_ROLES: Role[] = [Role.ADMINISTRADOR, Role.ADMINISTRADOR_ALUGUEL];
+
+export const FINANCE_ROLES: Role[] = [
+  Role.ADMINISTRADOR,
+  Role.ADMINISTRADOR_VENDA,
+  Role.ADMINISTRADOR_ALUGUEL,
+  Role.FINANCEIRO_VENDA,
+  Role.FINANCEIRO_ALUGUEL,
+];
+export const SALE_ROLES: Role[] = [
+  Role.ADMINISTRADOR,
+  Role.ADMINISTRADOR_VENDA,
+  Role.FINANCEIRO_VENDA,
+  Role.CORRETOR_VENDA,
+];
+export const RENT_ROLES: Role[] = [
+  Role.ADMINISTRADOR,
+  Role.ADMINISTRADOR_ALUGUEL,
+  Role.FINANCEIRO_ALUGUEL,
+  Role.CORRETOR_ALUGUEL,
+];
 
 export function getRequestSession(req: NextRequest): SessionPayload | null {
   const cookieToken = req.cookies.get("connect_platz_token")?.value;
@@ -28,7 +52,23 @@ export function getRequestSession(req: NextRequest): SessionPayload | null {
 }
 
 export function isAdmin(role: Role | string): boolean {
+  return (
+    role === Role.ADMINISTRADOR ||
+    role === Role.ADMINISTRADOR_VENDA ||
+    role === Role.ADMINISTRADOR_ALUGUEL
+  );
+}
+
+export function isSuperAdmin(role: Role | string): boolean {
   return role === Role.ADMINISTRADOR;
+}
+
+export function isSaleAdmin(role: Role | string): boolean {
+  return role === Role.ADMINISTRADOR || role === Role.ADMINISTRADOR_VENDA;
+}
+
+export function isRentalAdmin(role: Role | string): boolean {
+  return role === Role.ADMINISTRADOR || role === Role.ADMINISTRADOR_ALUGUEL;
 }
 
 export function isFinanceiro(role: Role | string): boolean {
@@ -40,16 +80,30 @@ export function isCorretor(role: Role | string): boolean {
 }
 
 export function canManageSaleValues(role: Role | string): boolean {
-  return role === Role.ADMINISTRADOR || role === Role.FINANCEIRO_VENDA;
+  return (
+    role === Role.ADMINISTRADOR ||
+    role === Role.ADMINISTRADOR_VENDA ||
+    role === Role.FINANCEIRO_VENDA
+  );
 }
 
 export function canManageRentalValues(role: Role | string): boolean {
-  return role === Role.ADMINISTRADOR || role === Role.FINANCEIRO_ALUGUEL;
+  return (
+    role === Role.ADMINISTRADOR ||
+    role === Role.ADMINISTRADOR_ALUGUEL ||
+    role === Role.FINANCEIRO_ALUGUEL
+  );
 }
 
 export function getUserModality(role: Role | string): "VENDA" | "ALUGUEL" | "AMBOS" {
   if (role === Role.ADMINISTRADOR) return "AMBOS";
-  if (role === Role.FINANCEIRO_VENDA || role === Role.CORRETOR_VENDA) return "VENDA";
+  if (
+    role === Role.ADMINISTRADOR_VENDA ||
+    role === Role.FINANCEIRO_VENDA ||
+    role === Role.CORRETOR_VENDA
+  ) {
+    return "VENDA";
+  }
   return "ALUGUEL";
 }
 

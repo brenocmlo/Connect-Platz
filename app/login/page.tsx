@@ -2,11 +2,13 @@
 
 import React, { useState } from "react";
 import { Lock, Mail, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ForgotPasswordModal } from "@/components/auth/ForgotPasswordModal";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,9 +111,18 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1">
-                Protegido por hash bcrypt salt rounds 12.
-              </p>
+              <div className="flex items-center justify-between mt-1.5">
+                <p className="text-[10px] sm:text-[11px] text-slate-500">
+                  Protegido por hash bcrypt salt 12.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-[11px] text-[#D9BB4C] hover:text-[#F8DA56] font-semibold hover:underline cursor-pointer"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
             </div>
 
             <button
@@ -134,6 +145,12 @@ export default function LoginPage() {
         <div className="text-center mt-5 sm:mt-6 text-[11px] sm:text-xs text-slate-500">
           Connect Platz Imobiliária © 2026 • Todos os direitos reservados
         </div>
+
+        <ForgotPasswordModal
+          isOpen={showForgotModal}
+          onClose={() => setShowForgotModal(false)}
+          defaultEmail={email}
+        />
       </div>
     </div>
   );

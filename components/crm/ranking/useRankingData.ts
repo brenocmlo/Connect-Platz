@@ -12,7 +12,10 @@ async function readError(res: Response, fallback: string): Promise<string> {
   return json?.error || fallback;
 }
 
-export function useRankingData(period: PeriodFilter) {
+export function useRankingData(
+  period: PeriodFilter,
+  customRange?: { start: string; end: string }
+) {
   const [ranking, setRanking] = useState<RankingResponse | null>(null);
   const [goals, setGoals] = useState<GoalIncentive[]>([]);
   const [canManageGoals, setCanManageGoals] = useState(false);
@@ -35,8 +38,13 @@ export function useRankingData(period: PeriodFilter) {
     setLoading(true);
     setError(null);
     try {
+      const params = new URLSearchParams({ period });
+      if (period === "personalizado" && customRange?.start && customRange?.end) {
+        params.set("startDate", customRange.start);
+        params.set("endDate", customRange.end);
+      }
       const [res] = await Promise.all([
-        fetch(`/api/ranking?period=${encodeURIComponent(period)}`, { cache: "no-store", signal: controller.signal }),
+        fetch(`/api/ranking?${params.toString()}`, { cache: "no-store", signal: controller.signal }),
         loadGoals(controller.signal),
       ]);
       if (!res.ok) throw new Error(await readError(res, "Não foi possível carregar o ranking."));
@@ -47,7 +55,7 @@ export function useRankingData(period: PeriodFilter) {
     } finally {
       if (controllerRef.current === controller) setLoading(false);
     }
-  }, [period, loadGoals]);
+  }, [period, customRange?.start, customRange?.end, loadGoals]);
 
   useEffect(() => {
     load();
