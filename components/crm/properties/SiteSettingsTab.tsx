@@ -12,15 +12,19 @@ import {
   ExternalLink,
   Sparkles,
   Building2,
+  Calculator,
+  Users,
 } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { SiteAppearanceSection } from "./SiteAppearanceSection";
 import { SiteHeroEditorSection } from "./SiteHeroEditorSection";
 import { SiteVitrineManagerSection } from "./SiteVitrineManagerSection";
 import { SiteContactBioSection } from "./SiteContactBioSection";
+import { SiteCreditSimulatorSection } from "./SiteCreditSimulatorSection";
+import { SiteAboutSection } from "./SiteAboutSection";
 import { PropertyCardData } from "./PropertyProductCard";
 
-type SubTab = "HERO" | "VITRINE" | "GERAL" | "APARENCIA" | "QUEM_SOU" | "CONTATO" | "PIXEL" | "LEGAL";
+type SubTab = "HERO" | "VITRINE" | "CREDITO" | "SOBRE" | "GERAL" | "APARENCIA" | "QUEM_SOU" | "CONTATO" | "PIXEL" | "LEGAL";
 
 interface SiteSettingsTabProps {
   properties?: PropertyCardData[];
@@ -58,6 +62,27 @@ export function SiteSettingsTab({
   const [email, setEmail] = useState("");
   const [pixelId, setPixelId] = useState("");
 
+  // Regras de Simulação de Crédito (Item 27)
+  const [simuladorTaxaAnual, setSimuladorTaxaAnual] = useState(0.105);
+  const [simuladorPrazoMeses, setSimuladorPrazoMeses] = useState(360);
+  const [simuladorComprometimento, setSimuladorComprometimento] = useState(0.3);
+  const [simuladorEntradaMinima, setSimuladorEntradaMinima] = useState(0.2);
+
+  // Sobre Nós Editável (Item 28)
+  const [sobreTitulo, setSobreTitulo] = useState("POR QUE A CONNECT PLATZ?");
+  const [sobreSubtitulo, setSobreSubtitulo] = useState(
+    "Comprar, vender ou alugar é uma decisão importante. Você merece a confiança de quem conhece a região."
+  );
+  const [sobreTexto, setSobreTexto] = useState(
+    "Somos especialistas no mercado imobiliário do Ceará, com foco em lançamentos, revendas e aluguel de temporada."
+  );
+  const [sobreEstatistica1Valor, setSobreEstatistica1Valor] = useState("120+");
+  const [sobreEstatistica1Rotulo, setSobreEstatistica1Rotulo] = useState("imóveis ativos");
+  const [sobreEstatistica2Valor, setSobreEstatistica2Valor] = useState("8");
+  const [sobreEstatistica2Rotulo, setSobreEstatistica2Rotulo] = useState("cidades do Ceará");
+  const [sobreEstatistica3Valor, setSobreEstatistica3Valor] = useState("45+");
+  const [sobreEstatistica3Rotulo, setSobreEstatistica3Rotulo] = useState("temporada no litoral");
+
   useEffect(() => {
     async function fetchSettings() {
       try {
@@ -81,6 +106,19 @@ export function SiteSettingsTab({
             setEmail(s.email || "");
             if (s.pixelId !== undefined) setPixelId(s.pixelId);
             if (s.siteAtivo !== undefined) setSiteAtivo(s.siteAtivo);
+            if (typeof s.simuladorTaxaAnual === "number") setSimuladorTaxaAnual(s.simuladorTaxaAnual);
+            if (typeof s.simuladorPrazoMeses === "number") setSimuladorPrazoMeses(s.simuladorPrazoMeses);
+            if (typeof s.simuladorComprometimento === "number") setSimuladorComprometimento(s.simuladorComprometimento);
+            if (typeof s.simuladorEntradaMinima === "number") setSimuladorEntradaMinima(s.simuladorEntradaMinima);
+            if (s.sobreTitulo) setSobreTitulo(s.sobreTitulo);
+            if (s.sobreSubtitulo) setSobreSubtitulo(s.sobreSubtitulo);
+            if (s.sobreTexto) setSobreTexto(s.sobreTexto);
+            if (s.sobreEstatistica1Valor) setSobreEstatistica1Valor(s.sobreEstatistica1Valor);
+            if (s.sobreEstatistica1Rotulo) setSobreEstatistica1Rotulo(s.sobreEstatistica1Rotulo);
+            if (s.sobreEstatistica2Valor) setSobreEstatistica2Valor(s.sobreEstatistica2Valor);
+            if (s.sobreEstatistica2Rotulo) setSobreEstatistica2Rotulo(s.sobreEstatistica2Rotulo);
+            if (s.sobreEstatistica3Valor) setSobreEstatistica3Valor(s.sobreEstatistica3Valor);
+            if (s.sobreEstatistica3Rotulo) setSobreEstatistica3Rotulo(s.sobreEstatistica3Rotulo);
           }
         }
       } catch (err) {
@@ -109,6 +147,19 @@ export function SiteSettingsTab({
         email,
         pixelId,
         siteAtivo,
+        simuladorTaxaAnual,
+        simuladorPrazoMeses,
+        simuladorComprometimento,
+        simuladorEntradaMinima,
+        sobreTitulo,
+        sobreSubtitulo,
+        sobreTexto,
+        sobreEstatistica1Valor,
+        sobreEstatistica1Rotulo,
+        sobreEstatistica2Valor,
+        sobreEstatistica2Rotulo,
+        sobreEstatistica3Valor,
+        sobreEstatistica3Rotulo,
       };
 
       const res = await fetch("/api/site-settings", {
@@ -136,6 +187,8 @@ export function SiteSettingsTab({
   const subTabs = [
     { id: "HERO", label: "Hero & Capa do Site", icon: Sparkles },
     { id: "VITRINE", label: "Imóveis na Vitrine", icon: Building2 },
+    { id: "CREDITO", label: "Simulador de Crédito", icon: Calculator },
+    { id: "SOBRE", label: "Sobre Nós", icon: Users },
     { id: "GERAL", label: "Identidade & SEO", icon: Globe },
     { id: "APARENCIA", label: "Cores & Tema", icon: Palette },
     { id: "QUEM_SOU", label: "Quem Sou Eu", icon: User },
@@ -241,6 +294,42 @@ export function SiteSettingsTab({
             properties={properties}
             onToggleLandingPage={onToggleLandingPage}
             onOpenEditImage={onOpenEditImage}
+          />
+        )}
+
+        {activeSubTab === "CREDITO" && (
+          <SiteCreditSimulatorSection
+            taxaAnual={simuladorTaxaAnual}
+            setTaxaAnual={setSimuladorTaxaAnual}
+            prazoMeses={simuladorPrazoMeses}
+            setPrazoMeses={setSimuladorPrazoMeses}
+            comprometimento={simuladorComprometimento}
+            setComprometimento={setSimuladorComprometimento}
+            entradaMinima={simuladorEntradaMinima}
+            setEntradaMinima={setSimuladorEntradaMinima}
+          />
+        )}
+
+        {activeSubTab === "SOBRE" && (
+          <SiteAboutSection
+            sobreTitulo={sobreTitulo}
+            setSobreTitulo={setSobreTitulo}
+            sobreSubtitulo={sobreSubtitulo}
+            setSobreSubtitulo={setSobreSubtitulo}
+            sobreTexto={sobreTexto}
+            setSobreTexto={setSobreTexto}
+            sobreEstatistica1Valor={sobreEstatistica1Valor}
+            setSobreEstatistica1Valor={setSobreEstatistica1Valor}
+            sobreEstatistica1Rotulo={sobreEstatistica1Rotulo}
+            setSobreEstatistica1Rotulo={setSobreEstatistica1Rotulo}
+            sobreEstatistica2Valor={sobreEstatistica2Valor}
+            setSobreEstatistica2Valor={setSobreEstatistica2Valor}
+            sobreEstatistica2Rotulo={sobreEstatistica2Rotulo}
+            setSobreEstatistica2Rotulo={setSobreEstatistica2Rotulo}
+            sobreEstatistica3Valor={sobreEstatistica3Valor}
+            setSobreEstatistica3Valor={setSobreEstatistica3Valor}
+            sobreEstatistica3Rotulo={sobreEstatistica3Rotulo}
+            setSobreEstatistica3Rotulo={setSobreEstatistica3Rotulo}
           />
         )}
 

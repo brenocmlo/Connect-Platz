@@ -20,13 +20,20 @@ export async function GET(req: NextRequest) {
   const { session } = auth;
 
   try {
-    const period = resolvePeriod(parsePeriod(req.nextUrl.searchParams.get("period")));
+    const periodParam = parsePeriod(req.nextUrl.searchParams.get("period"));
+    const startDate = req.nextUrl.searchParams.get("startDate");
+    const endDate = req.nextUrl.searchParams.get("endDate");
+    const modalityParam = req.nextUrl.searchParams.get("modality")?.toUpperCase();
+    const modality: "TODOS" | "VENDA" | "ALUGUEL" =
+      modalityParam === "VENDA" || modalityParam === "ALUGUEL" ? modalityParam : "TODOS";
+
+    const period = resolvePeriod(periodParam, new Date(), { start: startDate, end: endDate });
     const scope = buildScope(session);
 
     const [financial, cashFlow, operational, salesSeries, funnels, hotLeads, appointments, team, activities] =
       await Promise.all([
-        loadFinancial(scope, period),
-        loadCashFlow(scope, period),
+        loadFinancial(scope, period, modality),
+        loadCashFlow(scope, period, modality),
         loadOperational(scope, period),
         loadSalesSeries(scope),
         buildFunnelReports(scope.organizationId, {

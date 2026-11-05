@@ -81,16 +81,19 @@ export default function EmpreendimentosPage() {
     }
   };
 
-  const handleDeleteProperty = async (id: string) => {
+  const handleDeleteProperty = async (id: string, permanent = false) => {
     if (!canManage) return notify("Apenas administradores podem excluir imóveis.");
-    if (!confirm("Deseja realmente remover este imóvel do catálogo?")) return;
+    const confirmMsg = permanent
+      ? "ATENÇÃO: Deseja realmente APAGAR DEFINITIVAMENTE este imóvel do sistema? Todo o histórico vinculado a este imóvel será desvinculado e esta ação não poderá ser desfeita."
+      : "Deseja realmente remover este imóvel do catálogo?";
+    if (!confirm(confirmMsg)) return;
     try {
-      const res = await fetch(`/api/properties/${id}`, { method: "DELETE" });
+      const url = permanent ? `/api/properties/${id}?permanent=true` : `/api/properties/${id}`;
+      const res = await fetch(url, { method: "DELETE" });
       if (!res.ok) throw new Error(await readError(res, "Não foi possível excluir o imóvel."));
       const data = await res.json();
-      // Desativado (vendas vinculadas) ou excluído: em ambos os casos sai do catálogo ativo
       setProperties((prev) => prev.filter((p) => p.id !== id));
-      notify(data.deactivated ? data.message : "Imóvel excluído com sucesso!", data.deactivated ? 6000 : 3000);
+      notify(data.message || (permanent ? "Imóvel apagado definitivamente!" : "Imóvel excluído com sucesso!"), 4000);
     } catch (err: any) {
       notify(err.message || "Não foi possível excluir o imóvel.");
     }
@@ -203,7 +206,8 @@ export default function EmpreendimentosPage() {
           onOpenNewEmpModal={canManage ? () => setIsNewEmpModalOpen(true) : undefined}
           onOpenNewAvulsoModal={canManage ? () => setIsNewAvulsoModalOpen(true) : undefined}
           onToggleLandingPage={handleToggleLandingPage}
-          onDeleteProperty={canManage ? handleDeleteProperty : undefined}
+          onDeleteProperty={canManage ? (id) => handleDeleteProperty(id, false) : undefined}
+          onPermanentDeleteProperty={canManage ? (id) => handleDeleteProperty(id, true) : undefined}
         />
       ) : (
         <SiteSettingsTab

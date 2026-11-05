@@ -17,6 +17,9 @@ export const PROPERTY_TYPES = [
   { value: "Casa", label: "Casa / Villa" },
   { value: "Cobertura", label: "Cobertura" },
   { value: "Beach", label: "Casa de praia" },
+  { value: "Chacara", label: "Chácara / Sítio" },
+  { value: "Terreno", label: "Terreno / Lote" },
+  { value: "Comercial", label: "Comercial / Sala" },
 ];
 
 export const BEDROOM_OPTIONS = [
@@ -78,6 +81,7 @@ export function isTemporada(prop: PropertyItem) {
 // Infere o tipo de imóvel a partir de um texto do diretório ("Casas à venda em ...").
 export function inferPropertyType(text: string) {
   const t = text.toLowerCase();
+  if (t.includes("chácara") || t.includes("chacara") || t.includes("sítio") || t.includes("sitio") || t.includes("fazenda")) return "Chacara";
   if (t.includes("cobertura")) return "Cobertura";
   if (t.includes("praia")) return "Beach";
   if (t.includes("casa")) return "Casa";
@@ -100,8 +104,18 @@ export function matchesFilters(p: PropertyItem, filters: PortalFilters) {
 
   if (filters.tipoImovel !== "TODOS") {
     const termo = filters.tipoImovel.toLowerCase();
-    const texto = `${p.nome || ""} ${p.descricao || ""}`.toLowerCase();
-    if (!texto.includes(termo)) return false;
+    const texto = `${p.nome || ""} ${p.descricao || ""} ${(p.caracteristicas as any)?.tipo || ""}`.toLowerCase();
+    if (termo === "chacara") {
+      const isChacara =
+        texto.includes("chácara") ||
+        texto.includes("chacara") ||
+        texto.includes("sítio") ||
+        texto.includes("sitio") ||
+        texto.includes("fazenda");
+      if (!isChacara) return false;
+    } else if (!texto.includes(termo)) {
+      return false;
+    }
   }
 
   if (filters.quartosMin !== "TODOS") {

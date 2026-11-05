@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, Info, MessageCircle, TriangleAlert } from "lucide-react";
 import { Reveal } from "./PortalUI";
 import { formatBRL } from "./portalUtils";
-import { useWaLink } from "./PortalSettingsContext";
+import { useWaLink, usePortalSettings } from "./PortalSettingsContext";
 import { PortalQuickLeadModal } from "./PortalQuickLeadModal";
 
 // Premissas fixas e públicas da estimativa (100% determinística, sem consulta externa).
@@ -43,20 +43,26 @@ function MoneyField({ id, label, value, onChange, hint }: { id: string; label: s
 
 export function PortalCreditSimulator() {
   const waLink = useWaLink();
+  const settings = usePortalSettings();
   const [modalOpen, setModalOpen] = useState(false);
   const [regime, setRegime] = useState(REGIMES[0]);
   const [valorImovel, setValorImovel] = useState(800000);
   const [renda, setRenda] = useState(16000);
   const [entrada, setEntrada] = useState(160000);
 
+  const taxaAnual = settings.simuladorTaxaAnual ?? TAXA_ANUAL;
+  const prazoMeses = settings.simuladorPrazoMeses ?? PRAZO_MESES;
+  const comprometimento = settings.simuladorComprometimento ?? COMPROMETIMENTO;
+  const entradaMinima = settings.simuladorEntradaMinima ?? ENTRADA_MINIMA;
+
   const sim = useMemo(() => {
     const financiado = Math.max(valorImovel - entrada, 0);
-    const i = Math.pow(1 + TAXA_ANUAL, 1 / 12) - 1;
-    const parcela = financiado > 0 ? (financiado * i) / (1 - Math.pow(1 + i, -PRAZO_MESES)) : 0;
-    const parcelaMaxima = renda * COMPROMETIMENTO;
-    const entradaOk = valorImovel > 0 && entrada >= valorImovel * ENTRADA_MINIMA;
+    const i = Math.pow(1 + taxaAnual, 1 / 12) - 1;
+    const parcela = financiado > 0 ? (financiado * i) / (1 - Math.pow(1 + i, -prazoMeses)) : 0;
+    const parcelaMaxima = renda * comprometimento;
+    const entradaOk = valorImovel > 0 && entrada >= valorImovel * entradaMinima;
     return { financiado, parcela, parcelaMaxima, entradaOk, cabeNaRenda: parcela > 0 && parcela <= parcelaMaxima };
-  }, [valorImovel, renda, entrada]);
+  }, [valorImovel, renda, entrada, taxaAnual, prazoMeses, comprometimento, entradaMinima]);
 
   const aprovavel = sim.entradaOk && sim.cabeNaRenda;
   const mensagem =

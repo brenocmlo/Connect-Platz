@@ -2,9 +2,9 @@
 // Resolução determinística de períodos (?period=) e comparação com o período anterior equivalente.
 // Compartilhado por /api/dashboard, /api/relatorios, /api/ranking e /api/metas.
 
-export type PeriodKey = "hoje" | "7d" | "mes" | "30d" | "ano" | "todos";
+export type PeriodKey = "hoje" | "7d" | "mes" | "30d" | "ano" | "todos" | "personalizado";
 
-const VALID_PERIODS: PeriodKey[] = ["hoje", "7d", "mes", "30d", "ano", "todos"];
+const VALID_PERIODS: PeriodKey[] = ["hoje", "7d", "mes", "30d", "ano", "todos", "personalizado"];
 
 export interface DateRange {
   start: Date;
@@ -29,6 +29,7 @@ export const PERIOD_LABELS: Record<PeriodKey, string> = {
   "30d": "Últimos 30 dias",
   ano: "Ano atual",
   todos: "Todo o período",
+  personalizado: "Personalizado",
 };
 
 export function parsePeriod(raw: string | null | undefined): PeriodKey {
@@ -42,8 +43,26 @@ function startOfDay(date: Date): Date {
   return d;
 }
 
-export function resolvePeriod(key: PeriodKey, now: Date = new Date()): PeriodRange {
-  const label = PERIOD_LABELS[key];
+export function resolvePeriod(
+  key: PeriodKey,
+  now: Date = new Date(),
+  customRange?: { start?: string | null; end?: string | null }
+): PeriodRange {
+  const label = PERIOD_LABELS[key] || "Mês atual";
+
+  if (key === "personalizado" && customRange?.start && customRange?.end) {
+    const start = new Date(`${customRange.start}T00:00:00.000`);
+    const end = new Date(`${customRange.end}T23:59:59.999`);
+    const durationMs = end.getTime() - start.getTime() + 1;
+    const prevStart = new Date(start.getTime() - durationMs);
+    const prevEnd = new Date(start.getTime() - 1);
+    return {
+      key,
+      label: `De ${customRange.start} até ${customRange.end}`,
+      current: { start, end },
+      previous: { start: prevStart, end: prevEnd },
+    };
+  }
 
   switch (key) {
     case "hoje": {

@@ -16,9 +16,9 @@ import { RankingTable } from "@/components/crm/ranking/RankingTable";
 import type { GoalInput } from "@/components/crm/ranking/types";
 
 export default function RankingGamificacaoPage() {
-  const { selectedPeriod, setActionMessage } = useCrm();
+  const { selectedPeriod, customDateRange, setActionMessage } = useCrm();
   const { ranking, goals, canManageGoals, loading, error, reload, createGoal, updateGoal, deleteGoal } =
-    useRankingData(selectedPeriod);
+    useRankingData(selectedPeriod, customDateRange);
   const [selectedBrokerId, setSelectedBrokerId] = useState<string | null>(null);
 
   // "Corretor do Mês" abre sempre no líder real do período carregado

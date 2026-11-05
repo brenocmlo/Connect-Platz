@@ -21,6 +21,7 @@ export interface DirectoryCity {
 // Tipo do imóvel no plural, inferido do campo `tipo` das características ou do nome.
 function tipoPlural(p: DirectorySource): string {
   const tipo = String((p.caracteristicas as any)?.tipo || p.nome || "").toLowerCase();
+  if (tipo.includes("chácara") || tipo.includes("chacara") || tipo.includes("sítio") || tipo.includes("sitio")) return "Chácaras e sítios";
   if (tipo.includes("cobertura")) return "Coberturas";
   if (tipo.includes("studio") || tipo.includes("flat") || tipo.includes("kitnet")) return "Studios e flats";
   if (tipo.includes("sala") || tipo.includes("comercial")) return "Salas comerciais";

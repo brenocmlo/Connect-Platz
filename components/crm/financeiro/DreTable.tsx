@@ -25,8 +25,21 @@ export function DreTable({ entries }: DreTableProps) {
   const months = useMemo(() => availableMonths(entries), [entries]);
   const [month, setMonth] = useState<string>("TODOS");
   const [regime, setRegime] = useState<DreRegime>("COMPETENCIA");
+  const [customRange, setCustomRange] = useState<{ start: string; end: string }>(() => {
+    const d = new Date();
+    d.setDate(1);
+    const start = d.toISOString().slice(0, 10);
+    const endObj = new Date();
+    endObj.setMonth(endObj.getMonth() + 1);
+    endObj.setDate(0);
+    const end = endObj.toISOString().slice(0, 10);
+    return { start, end };
+  });
 
-  const r = useMemo(() => computeDre(entries, month, regime), [entries, month, regime]);
+  const r = useMemo(
+    () => computeDre(entries, month as any, regime, customRange),
+    [entries, month, regime, customRange]
+  );
 
   const fmt = (v: number) =>
     hideValues ? "••••••" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -78,6 +91,7 @@ export function DreTable({ entries }: DreTableProps) {
               className="bg-muted/60 border border-border rounded-lg px-3 py-2 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue cursor-pointer"
             >
               <option value="TODOS">Todos os períodos</option>
+              <option value="PERSONALIZADO">Personalizado (Intervalo de datas)</option>
               {months.map((m) => (
                 <option key={m} value={m}>
                   {monthLabel(m)}
@@ -86,6 +100,25 @@ export function DreTable({ entries }: DreTableProps) {
             </select>
           </div>
         </div>
+
+        {month === "PERSONALIZADO" && (
+          <div className="flex items-center gap-2 bg-muted/40 border border-border rounded-xl p-2.5 text-xs animate-in fade-in-0 duration-200">
+            <span className="text-[11px] font-semibold text-muted-foreground">Período personalizado:</span>
+            <input
+              type="date"
+              value={customRange.start}
+              onChange={(e) => setCustomRange((prev) => ({ ...prev, start: e.target.value }))}
+              className="bg-background border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus:ring-2 focus:ring-connect-blue"
+            />
+            <span className="text-muted-foreground">até</span>
+            <input
+              type="date"
+              value={customRange.end}
+              onChange={(e) => setCustomRange((prev) => ({ ...prev, end: e.target.value }))}
+              className="bg-background border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus:ring-2 focus:ring-connect-blue"
+            />
+          </div>
+        )}
 
         <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-3">
           <span>Conta</span>

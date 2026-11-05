@@ -11,7 +11,7 @@ import {
   PropertySidebar,
   PropertySpecs,
 } from "@/components/portal/PropertyDetailView";
-import { getGoogleMapsNavigationUrl, getWazeNavigationUrl } from "@/lib/services/location";
+import { getGoogleMapsNavigationUrl, getWazeNavigationUrl, REGIONAL_POIS } from "@/lib/services/location";
 
 export const revalidate = 3600; // ISR: revalidação a cada 1 hora
 
@@ -118,6 +118,12 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
 
   const gmapsUrl = getGoogleMapsNavigationUrl({ latitude: lat, longitude: lng, address: enderecoCompleto });
   const wazeUrl = getWazeNavigationUrl({ latitude: lat, longitude: lng, address: enderecoCompleto });
+
+  const customPois = (property.caracteristicas as any)?.pontosDeInteresse as Array<{ nome: string; distancia: string }> | undefined;
+  const regionalPois = property.bairro ? REGIONAL_POIS[property.bairro] : undefined;
+  const pois = customPois
+    ? customPois.map((p) => ({ label: `${p.nome} (${p.distancia})` }))
+    : regionalPois || [];
 
   const waMensagem = encodeURIComponent(
     `Olá! Gostaria de mais informações sobre o imóvel: ${property.nome} (${property.cidade || "Fortaleza"}). Link: ${baseUrl}/imoveis/${property.slug}`
@@ -242,6 +248,7 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
             gmapsUrl={gmapsUrl}
             wazeUrl={wazeUrl}
             waUrl={waUrl}
+            pois={pois}
           />
         </div>
       </main>

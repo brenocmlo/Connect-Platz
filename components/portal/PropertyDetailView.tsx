@@ -144,6 +144,7 @@ interface PropertySidebarProps {
   gmapsUrl: string;
   wazeUrl: string;
   waUrl: string;
+  pois?: Array<{ label: string; iconType?: string }>;
 }
 
 export function PropertySidebar({
@@ -151,6 +152,7 @@ export function PropertySidebar({
   gmapsUrl,
   wazeUrl,
   waUrl,
+  pois,
 }: PropertySidebarProps) {
   return (
     <div className="space-y-6">
@@ -162,6 +164,22 @@ export function PropertySidebar({
         <p className="text-xs text-muted-foreground leading-relaxed">
           {enderecoCompleto}
         </p>
+
+        {pois && pois.length > 0 && (
+          <div className="pt-2 border-t border-border space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+              📍 Pontos de Interesse por Perto:
+            </span>
+            <div className="space-y-1.5">
+              {pois.map((poi, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-xs text-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-connect-blue shrink-0" />
+                  <span>{poi.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2 pt-2">
           <a

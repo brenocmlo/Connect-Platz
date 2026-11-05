@@ -104,6 +104,10 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
     }
 
+    const isPermanent =
+      req.nextUrl.searchParams.get("permanent") === "true" ||
+      req.nextUrl.searchParams.get("definitivo") === "true";
+
     const vinculos = property._count.sales + property._count.bookings;
     const auditBase = {
       req,
@@ -116,7 +120,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       dadosAntes: auditSnapshot(property as any),
     };
 
-    if (vinculos > 0) {
+    if (vinculos > 0 && !isPermanent) {
       await prisma.property.update({
         where: { id: property.id },
         data: { isActive: false, exibirNaLandingPage: false },
@@ -132,13 +136,25 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         {
           success: true,
           deactivated: true,
-          message: `"${property.nome}" possui ${motivo} e foi desativado (oculto do catálogo e da vitrine) em vez de excluído.`,
+          message: `"${property.nome}" possui ${motivo} e foi desativado (oculto do catálogo e da vitrine). Para apagar definitivamente com histórico, use a opção de exclusão definitiva.`,
         },
         { status: 200 }
       );
     }
 
-    await prisma.property.delete({ where: { id: property.id } });
+    if (isPermanent) {
+      await prisma.$transaction([
+        prisma.sale.deleteMany({ where: { propertyId: property.id } }),
+        prisma.seasonBooking.deleteMany({ where: { propertyId: property.id } }),
+        prisma.rentalContract.deleteMany({ where: { propertyId: property.id } }),
+        prisma.appointment.updateMany({ where: { propertyId: property.id }, data: { propertyId: null } }),
+        prisma.propertyUnit.deleteMany({ where: { propertyId: property.id } }),
+        prisma.propertyMaterial.deleteMany({ where: { propertyId: property.id } }),
+        prisma.property.delete({ where: { id: property.id } }),
+      ]);
+    } else {
+      await prisma.property.delete({ where: { id: property.id } });
+    }
 
     // Remove os arquivos físicos dos materiais (registros já caíram em cascata)
     await Promise.all(
@@ -150,13 +166,20 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     await recordAudit({
       ...auditBase,
-      acao: "Excluiu imóvel",
+      acao: isPermanent ? "Apagou definitivamente o imóvel" : "Excluiu imóvel",
       tipoAcao: "DELETE",
-      descricao: `${session.nome} excluiu "${property.nome}" do catálogo.`,
+      descricao: `${session.nome} ${isPermanent ? "apagou definitivamente" : "excluiu"} "${property.nome}" do catálogo.`,
     });
 
     return NextResponse.json(
-      { success: true, deleted: true, message: "Imóvel excluído com sucesso." },
+      {
+        success: true,
+        deleted: true,
+        permanent: isPermanent,
+        message: isPermanent
+          ? "Imóvel apagado definitivamente com sucesso."
+          : "Imóvel excluído com sucesso.",
+      },
       { status: 200 }
     );
   } catch (error: any) {
