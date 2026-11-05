@@ -5,4 +5,6 @@ export * from "./AgendaWeekView";
 export * from "./AgendaMonthView";
 export * from "./AppointmentCard";
 export * from "./NewAppointmentModal";
+export * from "./EditAppointmentModal";
+export * from "./AgendaTodosView";
 export * from "./VisitOutcomeModal";

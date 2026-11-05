@@ -6,8 +6,8 @@ import { APPOINTMENT_TYPE_CONFIG } from "./types";
 
 interface AgendaHeaderProps {
   currentDate: Date;
-  viewMode: "dia" | "semana" | "mes";
-  setViewMode: (mode: "dia" | "semana" | "mes") => void;
+  viewMode: "dia" | "semana" | "mes" | "todos" | "personalizado";
+  setViewMode: (mode: "dia" | "semana" | "mes" | "todos" | "personalizado") => void;
   selectedType: string;
   setSelectedType: (type: string) => void;
   onNavigate: (direction: "prev" | "today" | "next") => void;
@@ -103,19 +103,19 @@ export function AgendaHeader({
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-          {/* View Mode Toggle: Dia | Semana | Mês */}
-          <div className="flex-1 sm:flex-initial flex bg-muted border border-border rounded-xl p-1 text-xs font-semibold justify-center">
-            {(["dia", "semana", "mes"] as const).map((mode) => (
+          {/* View Mode Toggle: Dia | Semana | Mês | Todos | Personalizado */}
+          <div className="flex-1 sm:flex-initial flex flex-wrap bg-muted border border-border rounded-xl p-1 text-xs font-semibold justify-center gap-0.5">
+            {(["dia", "semana", "mes", "todos", "personalizado"] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg capitalize transition-all duration-200 text-center ${
+                className={`px-2.5 py-1.5 rounded-lg capitalize transition-all duration-200 text-center ${
                   viewMode === mode
                     ? "bg-connect-blue text-white shadow-sm font-bold"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                {mode}
+                {mode === "todos" ? "Todos" : mode === "personalizado" ? "Personalizado" : mode}
               </button>
             ))}
           </div>

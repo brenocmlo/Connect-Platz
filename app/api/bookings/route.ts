@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSession } from "@/lib/auth/session";
 import { RLSUserContext } from "@/lib/db/rls";
-import { PaymentMethod } from "@prisma/client";
+import { PaymentMethod, BookingStatus } from "@prisma/client";
+import { prisma } from "@/lib/db/prisma";
 import { container } from "@/lib/container";
 import { z } from "zod";
+
+export const dynamic = "force-dynamic";
 
 function getSessionContext(req: NextRequest): RLSUserContext | null {
   const session = getRequestSession(req);
@@ -31,6 +34,74 @@ const BookingSchema = z.object({
   ]),
   observacoes: z.string().optional(),
 });
+
+/**
+ * GET: Listagem de Reservas de Temporada e Veraneio
+ * Resolve o gargalo de dados persistidos no banco e no caixa, permitindo carregamento dinâmico no CRM.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const context = getSessionContext(req);
+    if (!context) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
+
+    if (
+      context.role === "ADMINISTRADOR_VENDA" ||
+      context.role === "FINANCEIRO_VENDA" ||
+      context.role === "CORRETOR_VENDA"
+    ) {
+      return NextResponse.json(
+        { error: "Acesso restrito ao departamento de Aluguel e Locações. Vendas não pode acessar reservas." },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const statusParam = searchParams.get("status");
+
+    const bookings = await prisma.seasonBooking.findMany({
+      where: {
+        organizationId: context.organizationId,
+        ...(statusParam ? { status: statusParam as BookingStatus } : {}),
+      },
+      include: {
+        property: { select: { id: true, nome: true, bairro: true, endereco: true } },
+        lead: { select: { id: true, nome: true, telefone: true, email: true } },
+        corretor: { select: { id: true, nome: true } },
+      },
+      orderBy: { checkInDate: "desc" },
+    });
+
+    const serialized = bookings.map((b) => ({
+      id: b.id,
+      propertyId: b.propertyId,
+      leadId: b.leadId,
+      imovelNome: b.property?.nome || "Imóvel",
+      locatarioNome: b.lead?.nome || "Hóspede",
+      locatarioTelefone: b.lead?.telefone || null,
+      corretorNome: b.corretor?.nome || null,
+      checkIn: b.checkInDate.toISOString().slice(0, 10),
+      checkOut: b.checkOutDate.toISOString().slice(0, 10),
+      diarias: b.totalNights,
+      valorDiaria: Number(b.valorDiarias) / Math.max(1, b.totalNights),
+      taxaLimpeza: Number(b.taxaLimpeza),
+      valorTotal: Number(b.valorTotal),
+      meioPagamento: b.meioPagamento,
+      status: b.status,
+      observacoes: b.observacoes || null,
+      createdAt: b.createdAt.toISOString(),
+    }));
+
+    return NextResponse.json({ bookings: serialized }, { status: 200 });
+  } catch (error: any) {
+    console.error("[BOOKINGS] Erro ao listar reservas:", error);
+    return NextResponse.json(
+      { error: error?.message || "Erro ao listar reservas de veraneio." },
+      { status: 500 }
+    );
+  }
+}
 
 /**
  * POST: Criação de Reserva de Veraneio (Temporada)
@@ -75,7 +146,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, booking }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || "Erro ao registrar reserva de veraneio." },
+      { error: error?.message || "Erro ao registrar reserva de veraneio." },
       { status: 500 }
     );
   }

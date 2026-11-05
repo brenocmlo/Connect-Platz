@@ -7,6 +7,9 @@ export interface AppointmentItem {
   status: "AGENDADO" | "CONCLUIDO" | "CANCELADO" | "NAO_COMPARECEU";
   resultadoVisita?: string | null;
   observacoes?: string | null;
+  leadId?: string | null;
+  propertyId?: string | null;
+  userId?: string | null;
   lead?: { id: string; nome: string; telefone: string } | null;
   property?: { id: string; nome: string; endereco?: string | null; bairro?: string | null } | null;
   user?: { id: string; nome: string; avatarUrl?: string; photoUrl?: string | null };

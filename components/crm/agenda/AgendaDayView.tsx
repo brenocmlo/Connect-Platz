@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, User, MapPin, CheckCircle2, Calendar } from "lucide-react";
+import { Clock, User, MapPin, CheckCircle2, Calendar, Pencil, Trash2 } from "lucide-react";
 import { AppointmentItem, getTypeConfig, localDateKey } from "./types";
 
 interface AgendaDayViewProps {
@@ -9,6 +9,8 @@ interface AgendaDayViewProps {
   currentDate: Date;
   onOpenOutcomeModal: (app: AppointmentItem) => void;
   onNewAppointment: () => void;
+  onEdit?: (app: AppointmentItem) => void;
+  onDelete?: (app: AppointmentItem) => void;
 }
 
 export function AgendaDayView({
@@ -16,6 +18,8 @@ export function AgendaDayView({
   currentDate,
   onOpenOutcomeModal,
   onNewAppointment,
+  onEdit,
+  onDelete,
 }: AgendaDayViewProps) {
   // Filter appointments for the day
   const dateStr = localDateKey(currentDate);
@@ -152,15 +156,37 @@ export function AgendaDayView({
                   </span>
                 </div>
 
-                {app.status === "AGENDADO" && (
-                  <button
-                    onClick={() => onOpenOutcomeModal(app)}
-                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#111827] hover:bg-connect-blue hover:text-white border border-border text-foreground text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    Registrar Parecer
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {onEdit && (
+                    <button
+                      type="button"
+                      onClick={() => onEdit(app)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-connect-blue hover:bg-connect-blue/10 border border-border transition-colors"
+                      title="Editar compromisso"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      onClick={() => onDelete(app)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 border border-border transition-colors"
+                      title="Excluir compromisso"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {app.status === "AGENDADO" && (
+                    <button
+                      onClick={() => onOpenOutcomeModal(app)}
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#111827] hover:bg-connect-blue hover:text-white border border-border text-foreground text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      Registrar Parecer
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

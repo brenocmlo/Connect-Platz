@@ -21,6 +21,7 @@ const PatchSchema = z.object({
   dataPagamento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida.").optional(),
   meioPagamento: z.enum(paymentMethodValues).nullable().optional(),
   observacao: z.string().trim().max(500).optional(),
+  anexoUrl: z.string().trim().max(1000).optional().nullable(),
 });
 
 async function findEntry(id: string, organizationId: string) {
@@ -64,6 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           dataPagamento: paidAt,
           ...(meioPagamento !== undefined ? { meioPagamento } : {}),
           observacaoLiquidacao: status === "PAGO" ? observacao || null : null,
+          ...(parsed.data.anexoUrl !== undefined ? { anexoUrl: parsed.data.anexoUrl || null } : {}),
         },
       });
 
@@ -79,7 +81,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (sale && split) {
           await tx.commissionSplit.update({
             where: { id: split.id },
-            data: { status: status as PaymentStatus, dataPagamento: paidAt },
+            data: {
+              status: status as PaymentStatus,
+              dataPagamento: paidAt,
+              ...(parsed.data.anexoUrl ? { comprovanteUrl: parsed.data.anexoUrl } : {}),
+            },
           });
           const splits = sale.commissionSplits.map((sp) =>
             sp.id === split.id ? { ...sp, status: status as PaymentStatus } : sp

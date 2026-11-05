@@ -9,7 +9,9 @@ import {
   AgendaDayView,
   AgendaWeekView,
   AgendaMonthView,
+  AgendaTodosView,
   NewAppointmentModal,
+  EditAppointmentModal,
   VisitOutcomeModal,
   normalizeAppointmentType,
 } from "@/components/crm/agenda";
@@ -30,10 +32,23 @@ export default function AgendaPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
-  const [viewMode, setViewMode] = useState<"dia" | "semana" | "mes">("semana");
+  const [viewMode, setViewMode] = useState<"dia" | "semana" | "mes" | "todos" | "personalizado">("semana");
   const [selectedType, setSelectedType] = useState<string>("ALL");
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<AppointmentItem | null>(null);
   const [selectedForOutcome, setSelectedForOutcome] = useState<AppointmentItem | null>(null);
+
+  const [customStartDate, setCustomStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customEndDate, setCustomEndDate] = useState<string>(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    d.setDate(0);
+    return d.toISOString().slice(0, 10);
+  });
 
   const notify = useCallback(
     (msg: string) => {
@@ -78,7 +93,6 @@ export default function AgendaPage() {
     setCurrentDate(newDate);
   };
 
-  // O modal já persiste via API e devolve o compromisso real criado
   const handleCreated = (created: AppointmentItem) => {
     setAppointments((prev) =>
       [...prev, toItem(created)].sort(
@@ -88,13 +102,38 @@ export default function AgendaPage() {
     notify("Compromisso agendado com sucesso!");
   };
 
+  const handleUpdated = (updated: AppointmentItem) => {
+    setAppointments((prev) =>
+      prev
+        .map((a) => (a.id === updated.id ? toItem(updated) : a))
+        .sort((a, b) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime())
+    );
+    notify("Compromisso atualizado com sucesso!");
+  };
+
+  const handleDeleteAppointment = async (app: AppointmentItem) => {
+    if (!confirm(`Tem certeza que deseja excluir o compromisso "${app.titulo}"?`)) return;
+    const previous = appointments;
+    setAppointments((prev) => prev.filter((a) => a.id !== app.id));
+    try {
+      const res = await fetch(`/api/agenda/${app.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Erro ao excluir compromisso.");
+      }
+      notify("Compromisso excluído com sucesso!");
+    } catch (e: any) {
+      setAppointments(previous);
+      notify(e?.message || "Falha ao excluir compromisso.");
+    }
+  };
+
   const handleSaveOutcome = async (
     appId: string,
     status: "CONCLUIDO" | "NAO_COMPARECEU",
     resultado: string
   ) => {
     const previous = appointments;
-    // Atualização otimista com rollback em caso de falha
     setAppointments((prev) =>
       prev.map((a) => (a.id === appId ? { ...a, status, resultadoVisita: resultado } : a))
     );
@@ -154,6 +193,8 @@ export default function AgendaPage() {
               currentDate={currentDate}
               onOpenOutcomeModal={setSelectedForOutcome}
               onNewAppointment={() => setIsNewModalOpen(true)}
+              onEdit={setEditingAppointment}
+              onDelete={handleDeleteAppointment}
             />
           )}
           {viewMode === "semana" && (
@@ -162,6 +203,8 @@ export default function AgendaPage() {
               currentDate={currentDate}
               onOpenOutcomeModal={setSelectedForOutcome}
               onNewAppointment={() => setIsNewModalOpen(true)}
+              onEdit={setEditingAppointment}
+              onDelete={handleDeleteAppointment}
             />
           )}
           {viewMode === "mes" && (
@@ -175,6 +218,20 @@ export default function AgendaPage() {
               }}
             />
           )}
+          {(viewMode === "todos" || viewMode === "personalizado") && (
+            <AgendaTodosView
+              appointments={filteredAppointments}
+              isCustomRange={viewMode === "personalizado"}
+              startDate={customStartDate}
+              endDate={customEndDate}
+              onStartDateChange={setCustomStartDate}
+              onEndDateChange={setCustomEndDate}
+              onOpenOutcomeModal={setSelectedForOutcome}
+              onEdit={setEditingAppointment}
+              onDelete={handleDeleteAppointment}
+              onNewAppointment={() => setIsNewModalOpen(true)}
+            />
+          )}
         </>
       )}
 
@@ -183,6 +240,13 @@ export default function AgendaPage() {
         initialDate={currentDate}
         onClose={() => setIsNewModalOpen(false)}
         onSubmit={handleCreated}
+      />
+
+      <EditAppointmentModal
+        isOpen={Boolean(editingAppointment)}
+        app={editingAppointment}
+        onClose={() => setEditingAppointment(null)}
+        onUpdated={handleUpdated}
       />
 
       <VisitOutcomeModal

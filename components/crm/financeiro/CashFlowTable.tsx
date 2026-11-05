@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, RotateCcw, Clock, Trash2, Receipt } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, RotateCcw, Clock, Trash2, Receipt, Paperclip } from "lucide-react";
 import { ConfirmCashMovementModal } from "./ConfirmCashMovementModal";
 import { paymentMethodLabel, formatDateBr } from "./paymentMethods";
 
@@ -21,6 +21,7 @@ export interface CashFlowItem {
   observacaoLiquidacao?: string;
   centroCusto?: string;
   modalidade?: "VENDA" | "ALUGUEL";
+  anexoUrl?: string | null;
   saleId?: string | null;
   bookingId?: string | null;
   isRecorrente?: boolean;
@@ -34,7 +35,8 @@ interface CashFlowTableProps {
     item: CashFlowItem,
     dataEfetiva: string,
     meio: string,
-    observacao?: string
+    observacao?: string,
+    anexoUrl?: string
   ) => Promise<boolean>;
   onRevertMovement?: (item: CashFlowItem) => void;
   onDelete?: (item: CashFlowItem) => void;
@@ -61,10 +63,11 @@ export function CashFlowTable({
     item: CashFlowItem,
     dataEfetiva: string,
     meio: string,
-    observacao?: string
+    observacao?: string,
+    anexoUrl?: string
   ): Promise<boolean> => {
     if (!onConfirmMovement) return false;
-    return onConfirmMovement(item, dataEfetiva, meio, observacao);
+    return onConfirmMovement(item, dataEfetiva, meio, observacao, anexoUrl);
   };
 
   const visible = cashFlows.filter((c) => filterTipo === "TODOS" || c.tipo === filterTipo);
@@ -231,8 +234,19 @@ export function CashFlowTable({
                           </button>
                         ) : (
                           <>
-                            <span className="text-[11px] text-muted-foreground font-medium">
+                            <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
                               {cf.foiAntecipado ? "Antecipado ✓" : "Concluído ✓"}
+                              {cf.anexoUrl && (
+                                <a
+                                  href={cf.anexoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-connect-blue hover:text-connect-deep-blue p-0.5 rounded transition-colors"
+                                  title="Ver comprovante anexo"
+                                >
+                                  <Paperclip className="w-3.5 h-3.5" />
+                                </a>
+                              )}
                             </span>
                             {onRevertMovement && (
                               <button

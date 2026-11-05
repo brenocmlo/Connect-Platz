@@ -25,6 +25,7 @@ export function serializeCashFlow(c: CashFlow) {
     isRecorrente: c.isRecorrente,
     centroCusto: c.centroCusto,
     observacaoLiquidacao: c.observacaoLiquidacao,
+    anexoUrl: c.anexoUrl || null,
   };
 }
 
