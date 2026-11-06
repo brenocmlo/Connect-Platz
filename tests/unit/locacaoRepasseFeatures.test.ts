@@ -65,8 +65,12 @@ describe("Recursos de Locação Comum e Repasse", () => {
           cidade: "Fortaleza",
           modalidade: "REPASSE",
           valorRepasse: 120000,
+          entradaRepasse: 40000,
+          parcelasRepasse: 12,
+          valorParcelaRepasse: 6666.67,
           saldoDevedor: 250000,
           parcelaMensal: 2150.5,
+          titularOriginario: "Carlos Eduardo da Silva",
           valorAluguel: 3500,
           valorCondominio: 650,
           valorIptu: 180,
@@ -76,8 +80,12 @@ describe("Recursos de Locação Comum e Repasse", () => {
 
       expect(errors).toHaveLength(0);
       expect(data.valorRepasse).toBe(120000);
+      expect(data.entradaRepasse).toBe(40000);
+      expect(data.parcelasRepasse).toBe(12);
+      expect(data.valorParcelaRepasse).toBe(6666.67);
       expect(data.saldoDevedor).toBe(250000);
       expect(data.parcelaMensal).toBe(2150.5);
+      expect(data.titularOriginario).toBe("Carlos Eduardo da Silva");
       expect(data.valorAluguel).toBe(3500);
       expect(data.valorCondominio).toBe(650);
       expect(data.valorIptu).toBe(180);

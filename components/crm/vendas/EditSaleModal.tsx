@@ -43,7 +43,11 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
   const [meioPagamento, setMeioPagamento] = useState("TED");
   const [isRepasse, setIsRepasse] = useState(false);
   const [valorRepasse, setValorRepasse] = useState(0);
+  const [entradaRepasse, setEntradaRepasse] = useState(0);
+  const [parcelasRepasse, setParcelasRepasse] = useState(0);
+  const [valorParcelaRepasse, setValorParcelaRepasse] = useState(0);
   const [saldoDevedor, setSaldoDevedor] = useState(0);
+  const [titularOriginario, setTitularOriginario] = useState("");
   const [baseCalculoComissao, setBaseCalculoComissao] = useState<"REPASSE" | "VGV">("REPASSE");
   const [hasCorretor2, setHasCorretor2] = useState(false);
   const [participants, setParticipants] = useState<ParticipantsForm>({
@@ -65,7 +69,11 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
     setMeioPagamento(sale.meioPagamento || "TED");
     setIsRepasse(Boolean(sale.isRepasse));
     setValorRepasse(sale.valorRepasse || 0);
+    setEntradaRepasse(sale.entradaRepasse || 0);
+    setParcelasRepasse(sale.parcelasRepasse || 0);
+    setValorParcelaRepasse(sale.valorParcelaRepasse || 0);
     setSaldoDevedor(sale.saldoDevedor || 0);
+    setTitularOriginario(sale.titularOriginario || "");
     setBaseCalculoComissao((sale.baseCalculoComissao as any) || "REPASSE");
     setHasCorretor2(Boolean(sale.segundoCorretor));
 
@@ -165,7 +173,11 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
         meioPagamento,
         isRepasse,
         valorRepasse: isRepasse ? valorRepasse : null,
+        entradaRepasse: isRepasse ? entradaRepasse : null,
+        parcelasRepasse: isRepasse ? parcelasRepasse : null,
+        valorParcelaRepasse: isRepasse ? valorParcelaRepasse : null,
         saldoDevedor: isRepasse ? saldoDevedor : null,
+        titularOriginario: isRepasse ? titularOriginario : null,
         baseCalculoComissao: isRepasse ? baseCalculoComissao : null,
         participants: ROLES.filter((r) => participants[r]?.userId && participants[r]?.percentual > 0).map((role) => ({
           role,
@@ -312,8 +324,16 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
                 setIsRepasse={setIsRepasse}
                 valorRepasse={valorRepasse}
                 setValorRepasse={setValorRepasse}
+                entradaRepasse={entradaRepasse}
+                setEntradaRepasse={setEntradaRepasse}
+                parcelasRepasse={parcelasRepasse}
+                setParcelasRepasse={setParcelasRepasse}
+                valorParcelaRepasse={valorParcelaRepasse}
+                setValorParcelaRepasse={setValorParcelaRepasse}
                 saldoDevedor={saldoDevedor}
                 setSaldoDevedor={setSaldoDevedor}
+                titularOriginario={titularOriginario}
+                setTitularOriginario={setTitularOriginario}
                 baseCalculoComissao={baseCalculoComissao}
                 setBaseCalculoComissao={setBaseCalculoComissao}
                 vgv={vgv}

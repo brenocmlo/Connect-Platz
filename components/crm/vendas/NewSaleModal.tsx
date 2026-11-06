@@ -7,12 +7,7 @@ import { useCrmLookups } from "@/components/crm/agenda/useCrmLookups";
 import { localDateKey } from "@/components/crm/agenda/types";
 import { SaleItem } from "./types";
 import { SaleCalculationsTab } from "./SaleCalculationsTab";
-import {
-  SaleParticipantsSection,
-  ParticipantsForm,
-  ParticipantFormState,
-  EMPTY_PARTICIPANT,
-} from "./SaleParticipantsSection";
+import { SaleParticipantsSection, ParticipantsForm, ParticipantFormState, EMPTY_PARTICIPANT } from "./SaleParticipantsSection";
 import { SaleAttachmentsTab, SaleAttachment } from "./SaleAttachmentsTab";
 import { SaleDealFields, SaleDealState } from "./SaleDealFields";
 import { calculateSaleValues, ParticipantRole } from "./saleSplitHelper";
@@ -20,7 +15,6 @@ import { calculateSaleValues, ParticipantRole } from "./saleSplitHelper";
 interface NewSaleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Chamado somente após a API confirmar o registro, com a venda real retornada. */
   onSubmit: (sale: SaleItem) => void;
   preselectedLead?: {
     id: string;
@@ -59,7 +53,6 @@ function initialDeal(preselectedLead?: NewSaleModalProps["preselectedLead"]): Sa
 }
 
 function initialParticipants(): ParticipantsForm {
-  // Gestor e Captador começam em 0% (opcionais) — sem super-alocação por padrão
   return {
     CORRETOR_1: { ...EMPTY_PARTICIPANT, percentual: 50 },
     CORRETOR_2: { ...EMPTY_PARTICIPANT },
@@ -245,9 +238,15 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
           dataPrevistaPagamento: deal.dataPrevistaPagamento || undefined,
           vgv: deal.vgv,
           isRepasse: Boolean(deal.isRepasse),
-          valorRepasse: deal.isRepasse ? deal.valorRepasse : undefined,
-          saldoDevedor: deal.isRepasse ? deal.saldoDevedor : undefined,
-          baseCalculoComissao: deal.isRepasse ? deal.baseCalculoComissao : undefined,
+          ...(deal.isRepasse ? {
+            valorRepasse: deal.valorRepasse,
+            entradaRepasse: deal.entradaRepasse,
+            parcelasRepasse: deal.parcelasRepasse,
+            valorParcelaRepasse: deal.valorParcelaRepasse,
+            saldoDevedor: deal.saldoDevedor,
+            titularOriginario: deal.titularOriginario,
+            baseCalculoComissao: deal.baseCalculoComissao,
+          } : {}),
           percentualComissao: deal.percentualComissao,
           impostoPercentual: deal.impostoPercentual,
           meioPagamento: deal.meioPagamento,

@@ -97,9 +97,14 @@ export function PortalPropertyCard({ property, onSelect, className = "" }: Porta
       <div className="flex flex-1 flex-col p-4">
         <div>
           <p className="text-lg font-bold text-portal-ink">{price}</p>
+          {isRepasse(property) && property.entradaRepasse && (
+            <p className="text-xs text-purple-600 dark:text-purple-400 font-semibold">
+              Entrada R$ {Number(property.entradaRepasse).toLocaleString("pt-BR")}{property.parcelasRepasse ? ` + ${property.parcelasRepasse}x` : ""}
+            </p>
+          )}
           {isRepasse(property) && property.saldoDevedor && (
             <p className="text-xs text-portal-slate font-medium">
-              + Saldo: R$ {Number(property.saldoDevedor).toLocaleString("pt-BR")}
+              + Saldo financiado: R$ {Number(property.saldoDevedor).toLocaleString("pt-BR")}
             </p>
           )}
           {isLocacao(property) && (property.valorCondominio || property.valorIptu) && (

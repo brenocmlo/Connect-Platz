@@ -85,6 +85,9 @@ export function parsePropertyBody(body: any, partial: boolean): ParsedProperty {
     "valorCondominio",
     "valorIptu",
     "valorRepasse",
+    "entradaRepasse",
+    "parcelasRepasse",
+    "valorParcelaRepasse",
     "saldoDevedor",
     "parcelaMensal",
   ] as const) {
@@ -94,7 +97,7 @@ export function parsePropertyBody(body: any, partial: boolean): ParsedProperty {
     else data[key] = n;
   }
 
-  for (const key of ["estagioObra", "endereco", "bairro", "cidade", "estado", "zona", "construtora"] as const) {
+  for (const key of ["estagioObra", "endereco", "bairro", "cidade", "estado", "zona", "construtora", "titularOriginario"] as const) {
     if (take(key)) data[key] = toText(body?.[key], key === "endereco" ? 300 : 120);
   }
   if (take("descricao")) data.descricao = toText(body?.descricao, 10000);

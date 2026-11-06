@@ -12,8 +12,12 @@ export interface PropertyItem {
   valorCondominio?: number | null;
   valorIptu?: number | null;
   valorRepasse?: number | null;
+  entradaRepasse?: number | null;
+  parcelasRepasse?: number | null;
+  valorParcelaRepasse?: number | null;
   saldoDevedor?: number | null;
   parcelaMensal?: number | null;
+  titularOriginario?: string | null;
   cidade: string;
   estado: string;
   bairro: string;

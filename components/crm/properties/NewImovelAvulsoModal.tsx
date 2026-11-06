@@ -31,8 +31,12 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
   const [valorCondominio, setValorCondominio] = useState("");
   const [valorIptu, setValorIptu] = useState("");
   const [valorRepasse, setValorRepasse] = useState("");
+  const [entradaRepasse, setEntradaRepasse] = useState("");
+  const [parcelasRepasse, setParcelasRepasse] = useState("");
+  const [valorParcelaRepasse, setValorParcelaRepasse] = useState("");
   const [saldoDevedor, setSaldoDevedor] = useState("");
   const [parcelaMensal, setParcelaMensal] = useState("");
+  const [titularOriginario, setTitularOriginario] = useState("");
   const [location, setLocation] = useState(EMPTY_LOCATION);
   const [tipologia, setTipologia] = useState(EMPTY_TIPOLOGIA);
   const [fotos, setFotos] = useState<string[]>([]);
@@ -95,8 +99,12 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
           valorCondominio: valorCondominio !== "" ? Number(valorCondominio) : null,
           valorIptu: valorIptu !== "" ? Number(valorIptu) : null,
           valorRepasse: modalidade === "REPASSE" && valorRepasse !== "" ? Number(valorRepasse) : null,
+          entradaRepasse: modalidade === "REPASSE" && entradaRepasse !== "" ? Number(entradaRepasse) : null,
+          parcelasRepasse: modalidade === "REPASSE" && parcelasRepasse !== "" ? Number(parcelasRepasse) : null,
+          valorParcelaRepasse: modalidade === "REPASSE" && valorParcelaRepasse !== "" ? Number(valorParcelaRepasse) : null,
           saldoDevedor: modalidade === "REPASSE" && saldoDevedor !== "" ? Number(saldoDevedor) : null,
           parcelaMensal: modalidade === "REPASSE" && parcelaMensal !== "" ? Number(parcelaMensal) : null,
+          titularOriginario: modalidade === "REPASSE" && titularOriginario.trim() ? titularOriginario.trim() : null,
           ...locationPayload(location),
           descricao: descricao || null,
           fotos,
@@ -218,22 +226,30 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
               <div>
                 <label htmlFor="av-repasse" className={fieldLabel}>Valor do Repasse / Ágio (R$) *</label>
                 <input id="av-repasse" type="number" min="0" required value={valorRepasse} onChange={(e) => setValorRepasse(e.target.value)} placeholder="Ex.: 95000" className={fieldInput} />
-                <span className="text-[10px] text-muted-foreground">Valor pago ao vendedor em mãos</span>
+                <span className="text-[10px] text-muted-foreground">Valor total do ágio</span>
               </div>
               <div>
                 <label htmlFor="av-saldo" className={fieldLabel}>Saldo Devedor a Assumir (R$) *</label>
                 <input id="av-saldo" type="number" min="0" required value={saldoDevedor} onChange={(e) => setSaldoDevedor(e.target.value)} placeholder="Ex.: 240000" className={fieldInput} />
-                <span className="text-[10px] text-muted-foreground">Saldo financiado ou com construtora</span>
+                <span className="text-[10px] text-muted-foreground">Saldo do financiamento ativo</span>
               </div>
               <div>
-                <label htmlFor="av-parcela" className={fieldLabel}>Parcela Mensal Estimada (R$)</label>
+                <label htmlFor="av-entrada" className={fieldLabel}>Entrada do Ágio (R$)</label>
+                <input id="av-entrada" type="number" min="0" value={entradaRepasse} onChange={(e) => setEntradaRepasse(e.target.value)} placeholder="Ex.: 30000" className={fieldInput} />
+                <span className="text-[10px] text-muted-foreground">Entrada sugerida/negociada</span>
+              </div>
+              <div>
+                <label htmlFor="av-parcelas-qtd" className={fieldLabel}>Qtd. Parcelas do Ágio</label>
+                <input id="av-parcelas-qtd" type="number" min="0" max="60" value={parcelasRepasse} onChange={(e) => setParcelasRepasse(e.target.value)} placeholder="Ex.: 12" className={fieldInput} />
+              </div>
+              <div>
+                <label htmlFor="av-parcela" className={fieldLabel}>Parcela do Financiamento (R$)</label>
                 <input id="av-parcela" type="number" min="0" value={parcelaMensal} onChange={(e) => setParcelaMensal(e.target.value)} placeholder="Ex.: 1850" className={fieldInput} />
+                <span className="text-[10px] text-muted-foreground">Parcela assumida do titular</span>
               </div>
               <div>
-                <label className={fieldLabel}>VGV Total Comercial</label>
-                <div className="px-3 py-2 rounded-lg bg-background border border-border font-mono font-bold text-xs text-foreground">
-                  {(Number(valorRepasse || 0) + Number(saldoDevedor || 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </div>
+                <label htmlFor="av-titular" className={fieldLabel}>Titular Originário (Gaveta)</label>
+                <input id="av-titular" type="text" value={titularOriginario} onChange={(e) => setTitularOriginario(e.target.value)} placeholder="Nome do financista originário" className={fieldInput} />
               </div>
             </>
           )}

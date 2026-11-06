@@ -417,8 +417,12 @@ model Property {
   valorCondominio     Decimal?         @db.Decimal(10, 2)
   valorIptu           Decimal?         @db.Decimal(10, 2)
   valorRepasse        Decimal?         @db.Decimal(14, 2) // Valor do ágio / chave em mãos
+  entradaRepasse      Decimal?         @db.Decimal(14, 2) // Entrada negociada do repasse
+  parcelasRepasse     Int? // Qtd de parcelas do ágio (se parcelado)
+  valorParcelaRepasse Decimal?         @db.Decimal(12, 2) // Parcela do repasse
   saldoDevedor        Decimal?         @db.Decimal(14, 2) // Saldo restante assumido
   parcelaMensal       Decimal?         @db.Decimal(10, 2) // Parcela mensal estimada
+  titularOriginario   String? // Titular originário do financiamento ativo
   endereco            String?
   bairro              String?
   cidade              String?
@@ -554,8 +558,12 @@ model Sale {
   valorComissaoTotal Decimal  @db.Decimal(14, 2)
   percentualComissao Decimal  @db.Decimal(5, 2)
   isRepasse          Boolean  @default(false)
-  valorRepasse       Decimal? @db.Decimal(14, 2) // Valor do ágio / entrada em mãos
+  valorRepasse       Decimal? @db.Decimal(14, 2) // Valor do ágio / repasse total
+  entradaRepasse     Decimal? @db.Decimal(14, 2) // Entrada do repasse
+  parcelasRepasse    Int? // Qtd de parcelas do repasse
+  valorParcelaRepasse Decimal? @db.Decimal(12, 2) // Valor da parcela do repasse
   saldoDevedor       Decimal? @db.Decimal(14, 2) // Saldo restante assumido pelo comprador
+  titularOriginario  String? // Titular original em nome de quem corre o financiamento
   baseCalculoComissao String?  @default("REPASSE") // "REPASSE" (sobre o ágio) ou "VGV" (sobre o VGV total)
 
   meioPagamento  PaymentMethod @default(TED)

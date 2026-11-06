@@ -23,7 +23,12 @@ export interface SaleDealState {
   meioPagamento: string;
   isRepasse?: boolean;
   valorRepasse?: number;
+  tipoPagamentoRepasse?: "A_VISTA" | "PARCELADO";
+  entradaRepasse?: number;
+  parcelasRepasse?: number;
+  valorParcelaRepasse?: number;
   saldoDevedor?: number;
+  titularOriginario?: string;
   baseCalculoComissao?: "REPASSE" | "VGV";
 }
 

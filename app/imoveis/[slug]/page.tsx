@@ -289,8 +289,12 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
               valorCondominio={property.valorCondominio ? Number(property.valorCondominio) : null}
               valorIptu={property.valorIptu ? Number(property.valorIptu) : null}
               valorRepasse={property.valorRepasse ? Number(property.valorRepasse) : null}
+              entradaRepasse={property.entradaRepasse ? Number(property.entradaRepasse) : null}
+              parcelasRepasse={property.parcelasRepasse || null}
+              valorParcelaRepasse={property.valorParcelaRepasse ? Number(property.valorParcelaRepasse) : null}
               saldoDevedor={property.saldoDevedor ? Number(property.saldoDevedor) : null}
               parcelaMensal={property.parcelaMensal ? Number(property.parcelaMensal) : null}
+              titularOriginario={property.titularOriginario || null}
             />
 
             <PropertySpecs
