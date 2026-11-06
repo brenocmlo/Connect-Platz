@@ -5,6 +5,7 @@ import { Building2, UserPlus, Users } from "lucide-react";
 import { SearchCombobox } from "@/components/crm/agenda/SearchCombobox";
 import { LookupLead, LookupProperty } from "@/components/crm/agenda/useCrmLookups";
 import { NumericInput } from "@/components/crm/primitives/NumericInput";
+import { SaleRepasseFields } from "./SaleRepasseFields";
 
 export interface SaleDealState {
   propertyId: string | null;
@@ -20,6 +21,10 @@ export interface SaleDealState {
   percentualComissao: number;
   impostoPercentual: number;
   meioPagamento: string;
+  isRepasse?: boolean;
+  valorRepasse?: number;
+  saldoDevedor?: number;
+  baseCalculoComissao?: "REPASSE" | "VGV";
 }
 
 interface SaleDealFieldsProps {
@@ -213,42 +218,13 @@ export function SaleDealFields({ deal, onChange, leads, properties, loading, pre
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div className="col-span-2 sm:col-span-1">
-          <label className={labelClass}>VGV da Venda (R$) *</label>
-          <NumericInput
-            required
-            min={1}
-            value={deal.vgv}
-            onChange={(vgv) => onChange({ vgv })}
-            placeholder="0,00"
-            className={`${fieldClass} font-mono font-bold`}
-          />
-        </div>
-        <div>
-          <label className={labelClass}>% Comissão Bruta *</label>
-          <NumericInput
-            required
-            min={0.01}
-            max={100}
-            value={deal.percentualComissao}
-            onChange={(percentualComissao) => onChange({ percentualComissao })}
-            placeholder="0"
-            className={`${fieldClass} font-mono font-bold`}
-          />
-        </div>
-        <div>
-          <label className={labelClass}>% Imposto</label>
-          <NumericInput
-            min={0}
-            max={100}
-            value={deal.impostoPercentual}
-            onChange={(impostoPercentual) => onChange({ impostoPercentual })}
-            placeholder="0"
-            className={`${fieldClass} font-mono`}
-          />
-        </div>
-      </div>
+      {/* CAMPOS FINANCEIROS E REPASSE */}
+      <SaleRepasseFields
+        deal={deal}
+        onChange={onChange}
+        fieldClass={fieldClass}
+        labelClass={labelClass}
+      />
     </div>
   );
 }

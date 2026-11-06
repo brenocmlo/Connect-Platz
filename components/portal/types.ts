@@ -1,13 +1,19 @@
-export type Modalidade = "TODOS" | "VENDA" | "VERANEIO";
+export type Modalidade = "TODOS" | "VENDA" | "ALUGUEL" | "VERANEIO" | "REPASSE";
 
 export interface PropertyItem {
   id: string;
   nome: string;
   slug: string;
-  modalidade: "VENDA" | "VERANEIO_TEMPORADA" | "AMBOS";
+  modalidade: "VENDA" | "VERANEIO_TEMPORADA" | "LOCACAO_ANUAL" | "AMBOS" | "REPASSE" | string;
   faixaPreco?: string;
   valorVenda?: number | null;
   valorDiaria?: number | null;
+  valorAluguel?: number | null;
+  valorCondominio?: number | null;
+  valorIptu?: number | null;
+  valorRepasse?: number | null;
+  saldoDevedor?: number | null;
+  parcelaMensal?: number | null;
   cidade: string;
   estado: string;
   bairro: string;
@@ -50,4 +56,4 @@ export interface PortalFilters {
   faixaPreco: string;
 }
 
-export type NavigateFn = (modalidade: "VENDA" | "VERANEIO", cidade?: string) => void;
+export type NavigateFn = (modalidade: Modalidade, cidade?: string) => void;

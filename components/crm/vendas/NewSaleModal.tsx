@@ -51,6 +51,10 @@ function initialDeal(preselectedLead?: NewSaleModalProps["preselectedLead"]): Sa
     percentualComissao: 5,
     impostoPercentual: 6,
     meioPagamento: "TED",
+    isRepasse: false,
+    valorRepasse: 0,
+    saldoDevedor: 0,
+    baseCalculoComissao: "REPASSE",
   };
 }
 
@@ -151,6 +155,10 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
     vgvValue: deal.vgv,
     percentualComissao: deal.percentualComissao,
     impostoPercentual: deal.impostoPercentual,
+    isRepasse: deal.isRepasse,
+    valorRepasse: deal.valorRepasse,
+    saldoDevedor: deal.saldoDevedor,
+    baseCalculoComissao: deal.baseCalculoComissao,
     participants: activeRoles.map((role) => ({
       role,
       userId: participants[role].userId,
@@ -236,6 +244,10 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
           dataVenda: deal.dataVenda,
           dataPrevistaPagamento: deal.dataPrevistaPagamento || undefined,
           vgv: deal.vgv,
+          isRepasse: Boolean(deal.isRepasse),
+          valorRepasse: deal.isRepasse ? deal.valorRepasse : undefined,
+          saldoDevedor: deal.isRepasse ? deal.saldoDevedor : undefined,
+          baseCalculoComissao: deal.isRepasse ? deal.baseCalculoComissao : undefined,
           percentualComissao: deal.percentualComissao,
           impostoPercentual: deal.impostoPercentual,
           meioPagamento: deal.meioPagamento,

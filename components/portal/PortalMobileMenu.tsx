@@ -17,7 +17,9 @@ interface PortalMobileMenuProps {
 
 const GROUPS = [
   { label: "Comprar", modalidade: "VENDA" as const },
+  { label: "Alugar", modalidade: "ALUGUEL" as const },
   { label: "Temporada", modalidade: "VERANEIO" as const },
+  { label: "Repasses", modalidade: "REPASSE" as const },
 ];
 
 export function PortalMobileMenu({ open, onClose, cities, onNavigate }: PortalMobileMenuProps) {

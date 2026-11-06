@@ -139,6 +139,113 @@ export function PropertySpecs({ caracteristicas, diferenciais, descricao }: Prop
   );
 }
 
+interface PropertyFinancialInfoProps {
+  modalidade?: string;
+  valorVenda?: number | null;
+  valorAluguel?: number | null;
+  valorCondominio?: number | null;
+  valorIptu?: number | null;
+  valorRepasse?: number | null;
+  saldoDevedor?: number | null;
+  parcelaMensal?: number | null;
+}
+
+export function PropertyFinancialInfo({
+  modalidade,
+  valorVenda,
+  valorAluguel,
+  valorCondominio,
+  valorIptu,
+  valorRepasse,
+  saldoDevedor,
+  parcelaMensal,
+}: PropertyFinancialInfoProps) {
+  const isRepasse = modalidade === "REPASSE" || Boolean(valorRepasse);
+  const isLocacao = modalidade === "LOCACAO_ANUAL" || Boolean(valorAluguel);
+
+  if (!isRepasse && !isLocacao) return null;
+
+  const brl = (val?: number | null) =>
+    val ? `R$ ${Number(val).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—";
+
+  return (
+    <div className="bg-card rounded-2xl p-6 border border-border shadow-sm space-y-4">
+      <h2 className="text-lg font-bold flex items-center gap-2">
+        <Compass className="w-5 h-5 text-connect-blue" />
+        {isRepasse ? "Condições Financeiras do Repasse" : "Encargos e Condições de Locação"}
+      </h2>
+
+      {isRepasse && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
+            <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider block">
+              Ágio / Repasse à Vista
+            </span>
+            <span className="text-lg font-extrabold text-foreground block mt-1">
+              {brl(valorRepasse || valorVenda)}
+            </span>
+            <span className="text-[11px] text-muted-foreground">Pago ao cedente/vendedor</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-muted/60 border border-border">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+              Saldo Devedor a Assumir
+            </span>
+            <span className="text-lg font-extrabold text-foreground block mt-1">
+              {brl(saldoDevedor)}
+            </span>
+            <span className="text-[11px] text-muted-foreground">Com a construtora ou banco</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-muted/60 border border-border">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+              Parcela Mensal Estimada
+            </span>
+            <span className="text-lg font-extrabold text-foreground block mt-1">
+              {parcelaMensal ? brl(parcelaMensal) : "Sob consulta"}
+            </span>
+            <span className="text-[11px] text-muted-foreground">Valor atual do financiamento</span>
+          </div>
+        </div>
+      )}
+
+      {isLocacao && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
+              Aluguel Mensal
+            </span>
+            <span className="text-lg font-extrabold text-foreground block mt-1">
+              {brl(valorAluguel)}
+            </span>
+            <span className="text-[11px] text-muted-foreground">Locação contrato padrão</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-muted/60 border border-border">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+              Condomínio Estimado
+            </span>
+            <span className="text-lg font-extrabold text-foreground block mt-1">
+              {valorCondominio ? brl(valorCondominio) : "Incluso ou sob consulta"}
+            </span>
+            <span className="text-[11px] text-muted-foreground">Variação conforme condomínio</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-muted/60 border border-border">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+              IPTU / Mensal
+            </span>
+            <span className="text-lg font-extrabold text-foreground block mt-1">
+              {valorIptu ? brl(valorIptu) : "Sob consulta"}
+            </span>
+            <span className="text-[11px] text-muted-foreground">Ou cota única anual</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface PropertySidebarProps {
   enderecoCompleto: string;
   gmapsUrl: string;

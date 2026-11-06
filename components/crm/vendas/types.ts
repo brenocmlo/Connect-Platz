@@ -33,6 +33,10 @@ export interface SaleItem {
   dataVendaIso: string;
   vgv: number;
   valorAvaliacao?: number | null;
+  isRepasse?: boolean;
+  valorRepasse?: number | null;
+  saldoDevedor?: number | null;
+  baseCalculoComissao?: string | null;
   comissaoTotal: number;
   percentualComissao?: number;
   impostoValor: number;

@@ -15,7 +15,7 @@ import { usePortalProperties } from "@/components/portal/usePortalProperties";
 import { PortalSettingsProvider } from "@/components/portal/PortalSettingsContext";
 import { cityLabel, inferPropertyType, isTemporada, scrollToId } from "@/components/portal/portalUtils";
 import { FaqJsonLd } from "@/components/seo/FaqJsonLd";
-import type { PortalFilters, PropertyItem } from "@/components/portal/types";
+import type { Modalidade, PortalFilters, PropertyItem } from "@/components/portal/types";
 
 // Portal público inspirado na estrutura do remax.com.br, com a identidade Connect Platz.
 export default function LandingPage() {
@@ -46,14 +46,25 @@ export default function LandingPage() {
     scrollToId("vitrine");
   };
 
-  const navigateTo = (modalidade: "VENDA" | "VERANEIO", cidade?: string) =>
+  const navigateTo = (modalidade: Modalidade, cidade?: string) =>
     showResults({ modalidade, localizacao: cidade ?? "" });
 
   const comprarLocations = React.useMemo(() => {
     return Array.from(
       new Set(
         properties
-          .filter((p) => p.modalidade !== "VERANEIO_TEMPORADA")
+          .filter((p) => p.modalidade === "VENDA" || p.modalidade === "AMBOS")
+          .map((p) => p.bairro || p.cidade)
+          .filter(Boolean) as string[]
+      )
+    ).sort();
+  }, [properties]);
+
+  const alugarLocations = React.useMemo(() => {
+    return Array.from(
+      new Set(
+        properties
+          .filter((p) => p.modalidade === "LOCACAO_ANUAL" || p.modalidade === "AMBOS" || Boolean(p.valorAluguel))
           .map((p) => p.bairro || p.cidade)
           .filter(Boolean) as string[]
       )
@@ -71,6 +82,17 @@ export default function LandingPage() {
     ).sort();
   }, [properties]);
 
+  const repasseLocations = React.useMemo(() => {
+    return Array.from(
+      new Set(
+        properties
+          .filter((p) => p.modalidade === "REPASSE" || Boolean(p.valorRepasse))
+          .map((p) => p.bairro || p.cidade)
+          .filter(Boolean) as string[]
+      )
+    ).sort();
+  }, [properties]);
+
   return (
     <PortalSettingsProvider>
       <FaqJsonLd />
@@ -78,7 +100,9 @@ export default function LandingPage() {
       <PortalHeader
         cities={portal.directoryCities}
         comprarLocations={comprarLocations}
+        alugarLocations={alugarLocations}
         temporadaLocations={temporadaLocations}
+        repasseLocations={repasseLocations}
         onNavigate={navigateTo}
       />
 

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Bath, BedDouble, Car, ChevronLeft, ChevronRight, MapPin, MessageCircle, Ruler } from "lucide-react";
 import type { PropertyItem } from "./types";
-import { FALLBACK_PHOTO, formatPrice, isTemporada } from "./portalUtils";
+import { FALLBACK_PHOTO, formatPrice, isLocacao, isRepasse, isTemporada } from "./portalUtils";
 import { useWaLink } from "./PortalSettingsContext";
 
 export type { PropertyItem } from "./types";
@@ -33,10 +33,22 @@ function PhotoSlider({ property, onSelect }: { property: PropertyItem; onSelect:
 
       <span
         className={`absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-semibold shadow-sm ${
-          temporada ? "bg-platz-gold text-portal-navy" : "bg-connect-blue/90 text-white"
+          isRepasse(property)
+            ? "bg-purple-600 text-white"
+            : isLocacao(property)
+            ? "bg-emerald-600 text-white"
+            : temporada
+            ? "bg-platz-gold text-portal-navy"
+            : "bg-connect-blue/90 text-white"
         }`}
       >
-        {temporada ? "Temporada" : "Venda"}
+        {isRepasse(property)
+          ? "Repasse"
+          : isLocacao(property)
+          ? "Aluguel"
+          : temporada
+          ? "Temporada"
+          : "Venda"}
       </span>
 
       {fotos.length > 1 && (
@@ -83,7 +95,24 @@ export function PortalPropertyCard({ property, onSelect, className = "" }: Porta
       <PhotoSlider property={property} onSelect={() => onSelect(property)} />
 
       <div className="flex flex-1 flex-col p-4">
-        <p className="text-lg font-bold text-portal-ink">{price}</p>
+        <div>
+          <p className="text-lg font-bold text-portal-ink">{price}</p>
+          {isRepasse(property) && property.saldoDevedor && (
+            <p className="text-xs text-portal-slate font-medium">
+              + Saldo: R$ {Number(property.saldoDevedor).toLocaleString("pt-BR")}
+            </p>
+          )}
+          {isLocacao(property) && (property.valorCondominio || property.valorIptu) && (
+            <p className="text-xs text-portal-slate">
+              {[
+                property.valorCondominio ? `Cond: R$ ${Number(property.valorCondominio).toLocaleString("pt-BR")}` : null,
+                property.valorIptu ? `IPTU: R$ ${Number(property.valorIptu).toLocaleString("pt-BR")}` : null,
+              ]
+                .filter(Boolean)
+                .join(" • ")}
+            </p>
+          )}
+        </div>
 
         {specs.length > 0 && (
           <ul className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-portal-slate">

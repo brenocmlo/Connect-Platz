@@ -83,6 +83,7 @@ enum PropertyModality {
   VERANEIO_TEMPORADA
   LOCACAO_ANUAL
   AMBOS
+  REPASSE
 }
 
 enum PriceRange {
@@ -412,6 +413,12 @@ model Property {
   valorVenda          Decimal?         @db.Decimal(14, 2)
   valorDiaria         Decimal?         @db.Decimal(12, 2) // Para aluguel de veraneio
   taxaLimpeza         Decimal?         @db.Decimal(10, 2)
+  valorAluguel        Decimal?         @db.Decimal(12, 2) // Locação comum mensal
+  valorCondominio     Decimal?         @db.Decimal(10, 2)
+  valorIptu           Decimal?         @db.Decimal(10, 2)
+  valorRepasse        Decimal?         @db.Decimal(14, 2) // Valor do ágio / chave em mãos
+  saldoDevedor        Decimal?         @db.Decimal(14, 2) // Saldo restante assumido
+  parcelaMensal       Decimal?         @db.Decimal(10, 2) // Parcela mensal estimada
   endereco            String?
   bairro              String?
   cidade              String?
@@ -546,6 +553,10 @@ model Sale {
   valorAvaliacao     Decimal? @db.Decimal(14, 2) // Valor de Avaliação Bancária
   valorComissaoTotal Decimal  @db.Decimal(14, 2)
   percentualComissao Decimal  @db.Decimal(5, 2)
+  isRepasse          Boolean  @default(false)
+  valorRepasse       Decimal? @db.Decimal(14, 2) // Valor do ágio / entrada em mãos
+  saldoDevedor       Decimal? @db.Decimal(14, 2) // Saldo restante assumido pelo comprador
+  baseCalculoComissao String?  @default("REPASSE") // "REPASSE" (sobre o ágio) ou "VGV" (sobre o VGV total)
 
   meioPagamento  PaymentMethod @default(TED)
   status         String        @default("ativa") // ativa, cancelada

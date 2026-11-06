@@ -104,6 +104,9 @@ export function SaleCalculationsTab({ calculated, impostoPercentual, nameByRole 
           comissaoTotal={calculated.comissaoTotalBruta}
           impostoValor={calculated.impostoEstimado}
           impostoPercentual={impostoPercentual}
+          isRepasse={calculated.isRepasse}
+          valorRepasse={calculated.valorRepasse}
+          saldoDevedor={calculated.saldoDevedor}
           splits={[
             ...calculated.participants.map((p) => ({
               id: p.role,

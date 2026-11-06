@@ -71,7 +71,15 @@ export function PropertyDetailsModal({ property, onClose, onOpenMaterials }: Pro
           <div className="space-y-1.5 border-b border-border pb-4 pr-10">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-connect-blue px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                {p.modalidade === "VERANEIO_TEMPORADA" ? "Temporada" : p.modalidade === "AMBOS" ? "Venda e Temporada" : "Venda"}
+                {p.modalidade === "REPASSE"
+                  ? "🔄 Repasse"
+                  : p.modalidade === "LOCACAO_ANUAL"
+                  ? "🔑 Locação Comum"
+                  : p.modalidade === "VERANEIO_TEMPORADA"
+                  ? "🏖️ Temporada"
+                  : p.modalidade === "AMBOS"
+                  ? "Venda e Temporada"
+                  : "🏢 Venda"}
               </span>
               {p.estagioObra && (
                 <span className="rounded-full border border-platz-gold/40 bg-platz-gold/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-platz-gold">

@@ -23,10 +23,16 @@ const DIFERENCIAIS = ["Piscina Privativa", "Vista Mar", "Mobiliado", "Varanda Go
 
 export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAvulsoModalProps) {
   const [nome, setNome] = useState("");
-  const [modalidade, setModalidade] = useState<"VENDA" | "VERANEIO_TEMPORADA">("VENDA");
+  const [modalidade, setModalidade] = useState<"VENDA" | "VERANEIO_TEMPORADA" | "LOCACAO_ANUAL" | "REPASSE">("VENDA");
   const [valorVenda, setValorVenda] = useState("");
   const [valorDiaria, setValorDiaria] = useState("");
   const [taxaLimpeza, setTaxaLimpeza] = useState("");
+  const [valorAluguel, setValorAluguel] = useState("");
+  const [valorCondominio, setValorCondominio] = useState("");
+  const [valorIptu, setValorIptu] = useState("");
+  const [valorRepasse, setValorRepasse] = useState("");
+  const [saldoDevedor, setSaldoDevedor] = useState("");
+  const [parcelaMensal, setParcelaMensal] = useState("");
   const [location, setLocation] = useState(EMPTY_LOCATION);
   const [tipologia, setTipologia] = useState(EMPTY_TIPOLOGIA);
   const [fotos, setFotos] = useState<string[]>([]);
@@ -43,6 +49,12 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
     setValorVenda("");
     setValorDiaria("");
     setTaxaLimpeza("");
+    setValorAluguel("");
+    setValorCondominio("");
+    setValorIptu("");
+    setValorRepasse("");
+    setSaldoDevedor("");
+    setParcelaMensal("");
     setLocation(EMPTY_LOCATION);
     setTipologia(EMPTY_TIPOLOGIA);
     setFotos([]);
@@ -59,8 +71,14 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const temporada = modalidade === "VERANEIO_TEMPORADA";
     try {
+      const vVenda =
+        modalidade === "VENDA" && valorVenda !== ""
+          ? Number(valorVenda)
+          : modalidade === "REPASSE" && valorRepasse !== ""
+          ? Number(valorRepasse) + Number(saldoDevedor || 0)
+          : null;
+
       const res = await fetch("/api/properties", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,9 +88,15 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
           exibirNaLandingPage,
           modalidade,
           estagioObra: "Pronto para Morar",
-          valorVenda: !temporada && valorVenda !== "" ? Number(valorVenda) : null,
-          valorDiaria: temporada && valorDiaria !== "" ? Number(valorDiaria) : null,
-          taxaLimpeza: temporada && taxaLimpeza !== "" ? Number(taxaLimpeza) : null,
+          valorVenda: vVenda,
+          valorDiaria: modalidade === "VERANEIO_TEMPORADA" && valorDiaria !== "" ? Number(valorDiaria) : null,
+          taxaLimpeza: modalidade === "VERANEIO_TEMPORADA" && taxaLimpeza !== "" ? Number(taxaLimpeza) : null,
+          valorAluguel: modalidade === "LOCACAO_ANUAL" && valorAluguel !== "" ? Number(valorAluguel) : null,
+          valorCondominio: valorCondominio !== "" ? Number(valorCondominio) : null,
+          valorIptu: valorIptu !== "" ? Number(valorIptu) : null,
+          valorRepasse: modalidade === "REPASSE" && valorRepasse !== "" ? Number(valorRepasse) : null,
+          saldoDevedor: modalidade === "REPASSE" && saldoDevedor !== "" ? Number(saldoDevedor) : null,
+          parcelaMensal: modalidade === "REPASSE" && parcelaMensal !== "" ? Number(parcelaMensal) : null,
           ...locationPayload(location),
           descricao: descricao || null,
           fotos,
@@ -131,12 +155,18 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
       )}
 
       <form id="novo-avulso-form" onSubmit={handleSubmit} className="space-y-4 text-xs">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <button type="button" onClick={() => setModalidade("VENDA")} className={modalidadeBtn(modalidade === "VENDA")}>
-            Imóvel para Venda
+            🏢 Venda
+          </button>
+          <button type="button" onClick={() => setModalidade("LOCACAO_ANUAL")} className={modalidadeBtn(modalidade === "LOCACAO_ANUAL")}>
+            🔑 Locação Comum
           </button>
           <button type="button" onClick={() => setModalidade("VERANEIO_TEMPORADA")} className={modalidadeBtn(modalidade === "VERANEIO_TEMPORADA")}>
-            Temporada / Veraneio
+            🏖️ Temporada
+          </button>
+          <button type="button" onClick={() => setModalidade("REPASSE")} className={modalidadeBtn(modalidade === "REPASSE")}>
+            🔄 Repasse
           </button>
         </div>
 
@@ -145,12 +175,32 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
             <label htmlFor="av-nome" className={fieldLabel}>Título do Imóvel *</label>
             <input id="av-nome" type="text" required value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Cobertura Duplex 3 Suítes" className={fieldInput} />
           </div>
-          {modalidade === "VENDA" ? (
-            <div>
+
+          {modalidade === "VENDA" && (
+            <div className="sm:col-span-2">
               <label htmlFor="av-valor" className={fieldLabel}>Valor de Venda (R$) *</label>
               <input id="av-valor" type="number" min="0" required value={valorVenda} onChange={(e) => setValorVenda(e.target.value)} placeholder="Ex.: 750000" className={fieldInput} />
             </div>
-          ) : (
+          )}
+
+          {modalidade === "LOCACAO_ANUAL" && (
+            <>
+              <div>
+                <label htmlFor="av-aluguel" className={fieldLabel}>Aluguel Mensal (R$) *</label>
+                <input id="av-aluguel" type="number" min="0" required value={valorAluguel} onChange={(e) => setValorAluguel(e.target.value)} placeholder="Ex.: 3200" className={fieldInput} />
+              </div>
+              <div>
+                <label htmlFor="av-condominio" className={fieldLabel}>Condomínio (R$)</label>
+                <input id="av-condominio" type="number" min="0" value={valorCondominio} onChange={(e) => setValorCondominio(e.target.value)} placeholder="Ex.: 650" className={fieldInput} />
+              </div>
+              <div>
+                <label htmlFor="av-iptu" className={fieldLabel}>IPTU Mensal/Anual (R$)</label>
+                <input id="av-iptu" type="number" min="0" value={valorIptu} onChange={(e) => setValorIptu(e.target.value)} placeholder="Ex.: 150" className={fieldInput} />
+              </div>
+            </>
+          )}
+
+          {modalidade === "VERANEIO_TEMPORADA" && (
             <>
               <div>
                 <label htmlFor="av-diaria" className={fieldLabel}>Valor da Diária (R$) *</label>
@@ -159,6 +209,31 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
               <div>
                 <label htmlFor="av-limpeza" className={fieldLabel}>Taxa de Limpeza (R$)</label>
                 <input id="av-limpeza" type="number" min="0" value={taxaLimpeza} onChange={(e) => setTaxaLimpeza(e.target.value)} className={fieldInput} />
+              </div>
+            </>
+          )}
+
+          {modalidade === "REPASSE" && (
+            <>
+              <div>
+                <label htmlFor="av-repasse" className={fieldLabel}>Valor do Repasse / Ágio (R$) *</label>
+                <input id="av-repasse" type="number" min="0" required value={valorRepasse} onChange={(e) => setValorRepasse(e.target.value)} placeholder="Ex.: 95000" className={fieldInput} />
+                <span className="text-[10px] text-muted-foreground">Valor pago ao vendedor em mãos</span>
+              </div>
+              <div>
+                <label htmlFor="av-saldo" className={fieldLabel}>Saldo Devedor a Assumir (R$) *</label>
+                <input id="av-saldo" type="number" min="0" required value={saldoDevedor} onChange={(e) => setSaldoDevedor(e.target.value)} placeholder="Ex.: 240000" className={fieldInput} />
+                <span className="text-[10px] text-muted-foreground">Saldo financiado ou com construtora</span>
+              </div>
+              <div>
+                <label htmlFor="av-parcela" className={fieldLabel}>Parcela Mensal Estimada (R$)</label>
+                <input id="av-parcela" type="number" min="0" value={parcelaMensal} onChange={(e) => setParcelaMensal(e.target.value)} placeholder="Ex.: 1850" className={fieldInput} />
+              </div>
+              <div>
+                <label className={fieldLabel}>VGV Total Comercial</label>
+                <div className="px-3 py-2 rounded-lg bg-background border border-border font-mono font-bold text-xs text-foreground">
+                  {(Number(valorRepasse || 0) + Number(saldoDevedor || 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </div>
               </div>
             </>
           )}

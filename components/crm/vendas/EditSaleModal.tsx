@@ -13,6 +13,7 @@ import {
 } from "./SaleParticipantsSection";
 import { NumericInput } from "@/components/crm/primitives/NumericInput";
 import { calculateSaleValues, ParticipantRole } from "./saleSplitHelper";
+import { EditSaleRepasseSection } from "./EditSaleRepasseSection";
 
 interface EditSaleModalProps {
   sale: SaleItem | null;
@@ -40,6 +41,10 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
   const [percentualComissao, setPercentualComissao] = useState(5);
   const [impostoPercentual, setImpostoPercentual] = useState(6);
   const [meioPagamento, setMeioPagamento] = useState("TED");
+  const [isRepasse, setIsRepasse] = useState(false);
+  const [valorRepasse, setValorRepasse] = useState(0);
+  const [saldoDevedor, setSaldoDevedor] = useState(0);
+  const [baseCalculoComissao, setBaseCalculoComissao] = useState<"REPASSE" | "VGV">("REPASSE");
   const [hasCorretor2, setHasCorretor2] = useState(false);
   const [participants, setParticipants] = useState<ParticipantsForm>({
     CORRETOR_1: { ...EMPTY_PARTICIPANT },
@@ -58,6 +63,10 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
     setPercentualComissao(sale.percentualComissao || 5);
     setImpostoPercentual(sale.impostoPercentual || 0);
     setMeioPagamento(sale.meioPagamento || "TED");
+    setIsRepasse(Boolean(sale.isRepasse));
+    setValorRepasse(sale.valorRepasse || 0);
+    setSaldoDevedor(sale.saldoDevedor || 0);
+    setBaseCalculoComissao((sale.baseCalculoComissao as any) || "REPASSE");
     setHasCorretor2(Boolean(sale.segundoCorretor));
 
     // Mapeia splits existentes para os papéis do formulário
@@ -113,6 +122,10 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
         vgvValue: vgv,
         percentualComissao,
         impostoPercentual,
+        isRepasse,
+        valorRepasse,
+        saldoDevedor,
+        baseCalculoComissao,
         participants: ROLES.map((role) => ({
           role,
           userId: participants[role]?.userId,
@@ -122,7 +135,7 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
           bonus: participants[role]?.bonus || 0,
         })),
       }),
-    [vgv, percentualComissao, impostoPercentual, participants, nameByRole]
+    [vgv, percentualComissao, impostoPercentual, isRepasse, valorRepasse, saldoDevedor, baseCalculoComissao, participants, nameByRole]
   );
 
   if (!isOpen || !sale) return null;
@@ -150,6 +163,10 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
         percentualComissao,
         impostoPercentual,
         meioPagamento,
+        isRepasse,
+        valorRepasse: isRepasse ? valorRepasse : null,
+        saldoDevedor: isRepasse ? saldoDevedor : null,
+        baseCalculoComissao: isRepasse ? baseCalculoComissao : null,
         participants: ROLES.filter((r) => participants[r]?.userId && participants[r]?.percentual > 0).map((role) => ({
           role,
           userId: participants[role].userId,
@@ -288,6 +305,20 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
                   />
                 </div>
               </div>
+
+              {/* Seção de Repasse */}
+              <EditSaleRepasseSection
+                isRepasse={isRepasse}
+                setIsRepasse={setIsRepasse}
+                valorRepasse={valorRepasse}
+                setValorRepasse={setValorRepasse}
+                saldoDevedor={saldoDevedor}
+                setSaldoDevedor={setSaldoDevedor}
+                baseCalculoComissao={baseCalculoComissao}
+                setBaseCalculoComissao={setBaseCalculoComissao}
+                vgv={vgv}
+                setVgv={setVgv}
+              />
 
               <div className="pt-2">
                 <SaleParticipantsSection

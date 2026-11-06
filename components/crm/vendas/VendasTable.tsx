@@ -174,8 +174,13 @@ export function VendasTable({
 
                     {/* Empreendimento */}
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="font-medium text-slate-800 dark:text-slate-200">
-                        {sale.imovelNome}
+                      <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <span>{sale.imovelNome}</span>
+                        {sale.isRepasse && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-connect-blue/15 text-connect-blue border border-connect-blue/30">
+                            🔄 Repasse
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-400">
                         {[sale.construtora, sale.unidadeNumero && `Unid. ${sale.unidadeNumero}`]
@@ -185,8 +190,15 @@ export function VendasTable({
                     </td>
 
                     {/* VGV (Verde) */}
-                    <td className="py-3 px-4 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                      {formatCurrency(sale.vgv)}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {formatCurrency(sale.vgv)}
+                      </div>
+                      {sale.isRepasse && sale.valorRepasse != null && (
+                        <div className="text-[10px] text-connect-blue font-semibold">
+                          Ágio: {formatCurrency(sale.valorRepasse)}
+                        </div>
+                      )}
                     </td>
 
                     {/* Imposto */}

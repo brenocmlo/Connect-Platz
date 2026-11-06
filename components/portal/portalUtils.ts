@@ -44,6 +44,20 @@ export const PRICE_RANGES = {
     { value: "500-1000", label: "R$ 500 a 1.000 / noite" },
     { value: "1000-", label: "Acima de R$ 1.000 / noite" },
   ],
+  ALUGUEL: [
+    { value: "TODOS", label: "Aluguel mensal" },
+    { value: "0-2000", label: "Até R$ 2.000 / mês" },
+    { value: "2000-4000", label: "R$ 2.000 a R$ 4.000" },
+    { value: "4000-7000", label: "R$ 4.000 a R$ 7.000" },
+    { value: "7000-", label: "Acima de R$ 7.000" },
+  ],
+  REPASSE: [
+    { value: "TODOS", label: "Valor do repasse (ágio)" },
+    { value: "0-50000", label: "Até R$ 50 mil" },
+    { value: "50000-100000", label: "R$ 50 mil a 100 mil" },
+    { value: "100000-200000", label: "R$ 100 mil a 200 mil" },
+    { value: "200000-", label: "Acima de R$ 200 mil" },
+  ],
 };
 
 export const ANCHOR_LINKS = [
@@ -67,15 +81,31 @@ export function formatBRL(value: number) {
 }
 
 export function formatPrice(prop: PropertyItem) {
-  if (prop.modalidade === "VERANEIO_TEMPORADA" && prop.valorDiaria) {
-    return `${brl(prop.valorDiaria)} / noite`;
+  if (prop.modalidade === "REPASSE" && prop.valorRepasse) {
+    return `Repasse ${brl(prop.valorRepasse, 0)}`;
   }
-  if (prop.valorVenda) return brl(prop.valorVenda);
+  if (prop.modalidade === "LOCACAO_ANUAL" && prop.valorAluguel) {
+    return `${brl(prop.valorAluguel, 0)} / mês`;
+  }
+  if (prop.modalidade === "VERANEIO_TEMPORADA" && prop.valorDiaria) {
+    return `${brl(prop.valorDiaria, 2)} / noite`;
+  }
+  if (prop.valorVenda) return brl(prop.valorVenda, 0);
+  if (prop.valorAluguel) return `${brl(prop.valorAluguel, 0)} / mês`;
+  if (prop.valorDiaria) return `${brl(prop.valorDiaria, 2)} / noite`;
   return "Consulte";
 }
 
 export function isTemporada(prop: PropertyItem) {
   return prop.modalidade === "VERANEIO_TEMPORADA";
+}
+
+export function isLocacao(prop: PropertyItem) {
+  return prop.modalidade === "LOCACAO_ANUAL";
+}
+
+export function isRepasse(prop: PropertyItem) {
+  return prop.modalidade === "REPASSE";
 }
 
 // Infere o tipo de imóvel a partir de um texto do diretório ("Casas à venda em ...").
@@ -92,15 +122,26 @@ export function inferPropertyType(text: string) {
 function matchesPrice(p: PropertyItem, filters: PortalFilters) {
   if (filters.faixaPreco === "TODOS") return true;
   const [min, max] = filters.faixaPreco.split("-");
-  const value = filters.modalidade === "VERANEIO" ? p.valorDiaria : p.valorVenda;
+  let value: number | null | undefined;
+  if (filters.modalidade === "VERANEIO") value = p.valorDiaria;
+  else if (filters.modalidade === "ALUGUEL") value = p.valorAluguel;
+  else if (filters.modalidade === "REPASSE") value = p.valorRepasse || p.valorVenda;
+  else value = p.valorVenda;
   if (!value) return false;
   if (value < Number(min)) return false;
   return max === "" || value <= Number(max);
 }
 
 export function matchesFilters(p: PropertyItem, filters: PortalFilters) {
-  if (filters.modalidade === "VENDA" && p.modalidade === "VERANEIO_TEMPORADA") return false;
-  if (filters.modalidade === "VERANEIO" && p.modalidade === "VENDA") return false;
+  if (filters.modalidade === "VENDA") {
+    if (p.modalidade !== "VENDA" && p.modalidade !== "AMBOS") return false;
+  } else if (filters.modalidade === "ALUGUEL") {
+    if (p.modalidade !== "LOCACAO_ANUAL" && p.modalidade !== "AMBOS" && !p.valorAluguel) return false;
+  } else if (filters.modalidade === "VERANEIO") {
+    if (p.modalidade !== "VERANEIO_TEMPORADA" && p.modalidade !== "AMBOS" && !p.valorDiaria) return false;
+  } else if (filters.modalidade === "REPASSE") {
+    if (p.modalidade !== "REPASSE" && !p.valorRepasse) return false;
+  }
 
   if (filters.tipoImovel !== "TODOS") {
     const termo = filters.tipoImovel.toLowerCase();

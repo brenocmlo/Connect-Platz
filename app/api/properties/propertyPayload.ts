@@ -77,7 +77,17 @@ export function parsePropertyBody(body: any, partial: boolean): ParsedProperty {
     else data.faixaPreco = faixa;
   }
 
-  for (const key of ["valorVenda", "valorDiaria", "taxaLimpeza"] as const) {
+  for (const key of [
+    "valorVenda",
+    "valorDiaria",
+    "taxaLimpeza",
+    "valorAluguel",
+    "valorCondominio",
+    "valorIptu",
+    "valorRepasse",
+    "saldoDevedor",
+    "parcelaMensal",
+  ] as const) {
     if (!take(key)) continue;
     const n = toNumberOrNull(body?.[key]);
     if (n !== null && n < 0) errors.push(`${key} não pode ser negativo.`);

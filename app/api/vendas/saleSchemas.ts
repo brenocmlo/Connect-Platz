@@ -31,9 +31,22 @@ export const CreateSaleSchema = z
     valorAvaliacao: z.number().nonnegative().optional(),
     percentualComissao: z.number().positive("Informe a % de comissão.").max(100),
     impostoPercentual: z.number().min(0).max(100).default(6),
+    isRepasse: z.boolean().default(false),
+    valorRepasse: z.number().nonnegative().optional(),
+    saldoDevedor: z.number().nonnegative().optional(),
+    baseCalculoComissao: z.enum(["REPASSE", "VGV"]).default("REPASSE"),
     meioPagamento: z.nativeEnum(PaymentMethod).default(PaymentMethod.TED),
     participants: z.array(ParticipantSchema).min(1, "Informe o corretor titular."),
   })
+  .refine(
+    (d) =>
+      !d.isRepasse ||
+      (d.valorRepasse !== undefined && d.valorRepasse > 0 && d.saldoDevedor !== undefined),
+    {
+      message: "Para vendas de repasse, informe o valor do repasse (ágio) e o saldo devedor.",
+      path: ["valorRepasse"],
+    }
+  )
   .refine((d) => Boolean(d.leadId) !== Boolean(d.novoComprador), {
     message: "Selecione um cliente cadastrado ou informe os dados do novo comprador.",
     path: ["leadId"],

@@ -23,10 +23,13 @@ export interface PropertyCardData {
   nome: string;
   slug?: string;
   tipoCadastro?: "EMPREENDIMENTO" | "AVULSO" | string;
-  modalidade?: "VENDA" | "VERANEIO_TEMPORADA" | "AMBOS" | string;
+  modalidade?: "VENDA" | "VERANEIO_TEMPORADA" | "LOCACAO_ANUAL" | "AMBOS" | "REPASSE" | string;
   estagioObra?: string | null;
   valorVenda?: number | null;
   valorDiaria?: number | null;
+  valorAluguel?: number | null;
+  valorRepasse?: number | null;
+  saldoDevedor?: number | null;
   endereco?: string | null;
   bairro?: string | null;
   cidade?: string | null;
@@ -85,6 +88,16 @@ export function PropertyProductCard({
 
   // Preço formatado
   const formatPrice = () => {
+    if (property.modalidade === "REPASSE" && property.valorRepasse) {
+      return `Repasse R$ ${Number(property.valorRepasse).toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+      })}`;
+    }
+    if (property.modalidade === "LOCACAO_ANUAL" && property.valorAluguel) {
+      return `R$ ${Number(property.valorAluguel).toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+      })} / mês`;
+    }
     if (isTemporada && property.valorDiaria) {
       return `R$ ${Number(property.valorDiaria).toLocaleString("pt-BR", {
         minimumFractionDigits: 2,
@@ -196,13 +209,21 @@ export function PropertyProductCard({
               >
                 {estagio}
               </span>
-              {isTemporada ? (
+              {property.modalidade === "REPASSE" ? (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-600 text-white shadow">
+                  🔄 Repasse
+                </span>
+              ) : property.modalidade === "LOCACAO_ANUAL" ? (
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow">
+                  🔑 Locação
+                </span>
+              ) : isTemporada ? (
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/90 text-white shadow">
-                  🏖️ Aluguel
+                  🏖️ Temporada
                 </span>
               ) : property.modalidade === "AMBOS" ? (
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow">
-                  Venda & Aluguel
+                  Venda & Temporada
                 </span>
               ) : (
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-connect-blue text-white shadow">

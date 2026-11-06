@@ -8,8 +8,13 @@ const brl = (v: number, digits = 0) =>
 export function formatPropertyPrice(p: PropertyCardData): string {
   const venda = p.valorVenda != null ? Number(p.valorVenda) : null;
   const diaria = p.valorDiaria != null ? Number(p.valorDiaria) : null;
+  const aluguel = p.valorAluguel != null ? Number(p.valorAluguel) : null;
+  const repasse = p.valorRepasse != null ? Number(p.valorRepasse) : null;
+  if (p.modalidade === "REPASSE" && repasse) return `Repasse ${brl(repasse, 0)}`;
+  if (p.modalidade === "LOCACAO_ANUAL" && aluguel) return `${brl(aluguel, 0)}/mês`;
   if (p.modalidade === "VERANEIO_TEMPORADA" && diaria) return `${brl(diaria, 2)}/dia`;
   if (venda) return brl(venda);
+  if (aluguel) return `${brl(aluguel, 0)}/mês`;
   if (diaria) return `${brl(diaria, 2)}/dia`;
   return "Consulte valores";
 }

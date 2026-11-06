@@ -14,6 +14,9 @@ interface SaleFinancialRepasseCardProps {
   proprietarioNome?: string;
   /** Permite compactar a exibição em cards de detalhe ou tabelas */
   compact?: boolean;
+  isRepasse?: boolean;
+  valorRepasse?: number;
+  saldoDevedor?: number;
 }
 
 const brl = (n: number) =>
@@ -29,11 +32,15 @@ export function SaleFinancialRepasseCard({
   splits = [],
   proprietarioNome = "Proprietário / Vendedor",
   compact = false,
+  isRepasse = false,
+  valorRepasse,
+  saldoDevedor,
 }: SaleFinancialRepasseCardProps) {
   // Cálculo determinístico do Repasse
-  // 1. Líquido do Proprietário / Vendedor = VGV - Comissão Bruta
-  const repasseProprietario = Math.max(0, vgv - comissaoTotal);
-  const pctProprietario = vgv > 0 ? (repasseProprietario / vgv) * 100 : 0;
+  // 1. Líquido do Proprietário / Vendedor / Cedente = (Repasse ou VGV) - Comissão Bruta
+  const baseVendedor = isRepasse && valorRepasse != null && valorRepasse > 0 ? valorRepasse : vgv;
+  const repasseProprietario = Math.max(0, baseVendedor - comissaoTotal);
+  const pctProprietario = baseVendedor > 0 ? (repasseProprietario / baseVendedor) * 100 : 0;
 
   // 2. Corretores (Titular + Segundo Corretor / Co-corretor)
   const corretoresSplits = splits.filter(
@@ -96,7 +103,7 @@ export function SaleFinancialRepasseCard({
             {brl(repasseProprietario)}
           </div>
           <span className="text-[10px] text-muted-foreground block mt-0.5">
-            VGV líquido a repassar
+            {isRepasse ? "Repasse líquido ao cedente" : "VGV líquido a repassar"}
           </span>
         </div>
 
@@ -158,6 +165,18 @@ export function SaleFinancialRepasseCard({
           </span>
         </div>
       </div>
+
+      {isRepasse && saldoDevedor != null && saldoDevedor > 0 && (
+        <div className="p-2.5 rounded-lg bg-connect-blue/5 border border-connect-blue/20 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
+          <span className="text-muted-foreground flex items-center gap-1.5">
+            <span className="px-1.5 py-0.5 rounded-md bg-connect-blue text-white font-bold text-[10px]">
+              REPASSE
+            </span>
+            Saldo devedor assumido pelo comprador junto à construtora/banco:
+          </span>
+          <span className="font-mono font-bold text-connect-blue">{brl(saldoDevedor)}</span>
+        </div>
+      )}
 
       {!compact && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground pt-1 border-t border-border/60">

@@ -47,6 +47,10 @@ const UpdateSaleSchema = z.object({
   valorAvaliacao: z.number().nonnegative().optional().nullable(),
   percentualComissao: z.number().positive().max(100).optional(),
   impostoPercentual: z.number().min(0).max(100).optional().default(0),
+  isRepasse: z.boolean().optional(),
+  valorRepasse: z.number().nonnegative().optional().nullable(),
+  saldoDevedor: z.number().nonnegative().optional().nullable(),
+  baseCalculoComissao: z.enum(["REPASSE", "VGV"]).optional().nullable(),
   meioPagamento: z.nativeEnum(PaymentMethod).optional(),
   unidadeNumero: z.string().trim().max(40).optional().nullable(),
   participants: z.array(ParticipantSchema).min(1).optional(),
@@ -184,6 +188,23 @@ export async function PATCH(
     const vgvValue = input.vgv ?? Number(existing.valorVendaVGV);
     const percentualComissao = input.percentualComissao ?? Number(existing.percentualComissao);
     const impostoPercentual = input.impostoPercentual ?? 0;
+    const isRepasse = input.isRepasse !== undefined ? input.isRepasse : Boolean(existing.isRepasse);
+    const valorRepasse =
+      input.valorRepasse !== undefined
+        ? (input.valorRepasse ?? undefined)
+        : existing.valorRepasse
+        ? Number(existing.valorRepasse)
+        : undefined;
+    const saldoDevedor =
+      input.saldoDevedor !== undefined
+        ? (input.saldoDevedor ?? undefined)
+        : existing.saldoDevedor
+        ? Number(existing.saldoDevedor)
+        : undefined;
+    const baseCalculoComissao =
+      input.baseCalculoComissao !== undefined
+        ? (input.baseCalculoComissao ?? "REPASSE")
+        : (existing.baseCalculoComissao as any) || "REPASSE";
     const dataVenda = input.dataVenda ? new Date(`${input.dataVenda}T00:00:00Z`) : existing.dataVenda;
 
     let participantsToCalculate = input.participants;
@@ -205,6 +226,10 @@ export async function PATCH(
           vgvValue,
           percentualComissao,
           impostoPercentual,
+          isRepasse,
+          valorRepasse,
+          saldoDevedor,
+          baseCalculoComissao,
           participants: participantsToCalculate.map((p) => ({
             role: p.role as ParticipantRole,
             userId: p.userId,
@@ -228,6 +253,10 @@ export async function PATCH(
         data: {
           dataVenda,
           valorVendaVGV: vgvValue,
+          isRepasse,
+          valorRepasse: isRepasse ? valorRepasse : null,
+          saldoDevedor: isRepasse ? saldoDevedor : null,
+          baseCalculoComissao: isRepasse ? baseCalculoComissao : null,
           ...(input.valorAvaliacao !== undefined ? { valorAvaliacao: input.valorAvaliacao } : {}),
           ...(calc ? { valorComissaoTotal: calc.comissaoTotalBruta } : {}),
           percentualComissao,

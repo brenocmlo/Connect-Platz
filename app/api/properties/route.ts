@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     if (!portal && session) {
       const userModality = getUserModality(session.role);
       if (userModality === "VENDA") {
-        where.modalidade = { in: [PropertyModality.VENDA, PropertyModality.AMBOS] };
+        where.modalidade = { in: [PropertyModality.VENDA, PropertyModality.AMBOS, PropertyModality.REPASSE] };
       } else if (userModality === "ALUGUEL") {
         where.modalidade = {
           in: [PropertyModality.VERANEIO_TEMPORADA, PropertyModality.LOCACAO_ANUAL, PropertyModality.AMBOS],
@@ -62,7 +62,13 @@ export async function GET(req: NextRequest) {
     } else {
       if (modalidade === "VENDA") {
         where.modalidade = { in: [PropertyModality.VENDA, PropertyModality.AMBOS] };
-      } else if (modalidade === "VERANEIO" || modalidade === "VERANEIO_TEMPORADA" || modalidade === "ALUGUEL") {
+      } else if (modalidade === "REPASSE") {
+        where.modalidade = PropertyModality.REPASSE;
+      } else if (modalidade === "LOCACAO" || modalidade === "LOCACAO_ANUAL") {
+        where.modalidade = { in: [PropertyModality.LOCACAO_ANUAL, PropertyModality.AMBOS] };
+      } else if (modalidade === "VERANEIO" || modalidade === "VERANEIO_TEMPORADA") {
+        where.modalidade = { in: [PropertyModality.VERANEIO_TEMPORADA, PropertyModality.AMBOS] };
+      } else if (modalidade === "ALUGUEL") {
         where.modalidade = {
           in: [PropertyModality.VERANEIO_TEMPORADA, PropertyModality.LOCACAO_ANUAL, PropertyModality.AMBOS],
         };

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { ChevronDown, Menu, MessageCircle } from "lucide-react";
-import type { DirectoryCity, NavigateFn } from "./types";
+import type { DirectoryCity, Modalidade, NavigateFn } from "./types";
 import { PortalLogo } from "./PortalUI";
 import { PortalMobileMenu } from "./PortalMobileMenu";
 import { PortalThemeToggle } from "./PortalThemeToggle";
@@ -14,7 +14,9 @@ import { PortalBairrosSelector } from "./PortalBairrosSelector";
 interface PortalHeaderProps {
   cities: DirectoryCity[];
   comprarLocations?: string[];
+  alugarLocations?: string[];
   temporadaLocations?: string[];
+  repasseLocations?: string[];
   onNavigate: NavigateFn;
 }
 
@@ -25,7 +27,7 @@ function NavDropdown({
   onNavigate,
 }: {
   label: string;
-  modalidade: "VENDA" | "VERANEIO";
+  modalidade: Modalidade;
   locations: string[];
   onNavigate: NavigateFn;
 }) {
@@ -67,20 +69,25 @@ function NavDropdown({
 export function PortalHeader({
   cities,
   comprarLocations,
+  alugarLocations,
   temporadaLocations,
+  repasseLocations,
   onNavigate,
 }: PortalHeaderProps) {
   const waLink = useWaLink();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const defaultComprar = ["Aquiraz", "Fortaleza"];
-  const defaultTemporada = ["Aquiraz", "Fortaleza"];
+  const defaultLocations = ["Aquiraz", "Fortaleza"];
 
   const finalComprar =
-    comprarLocations && comprarLocations.length > 0 ? comprarLocations : defaultComprar;
+    comprarLocations && comprarLocations.length > 0 ? comprarLocations : defaultLocations;
+  const finalAlugar =
+    alugarLocations && alugarLocations.length > 0 ? alugarLocations : defaultLocations;
   const finalTemporada =
-    temporadaLocations && temporadaLocations.length > 0 ? temporadaLocations : defaultTemporada;
+    temporadaLocations && temporadaLocations.length > 0 ? temporadaLocations : defaultLocations;
+  const finalRepasse =
+    repasseLocations && repasseLocations.length > 0 ? repasseLocations : defaultLocations;
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-portal-navy shadow-lg shadow-portal-navy-deep/20">
@@ -91,7 +98,9 @@ export function PortalHeader({
 
         <nav aria-label="Principal" className="hidden items-center lg:flex">
           <NavDropdown label="Comprar" modalidade="VENDA" locations={finalComprar} onNavigate={onNavigate} />
+          <NavDropdown label="Alugar" modalidade="ALUGUEL" locations={finalAlugar} onNavigate={onNavigate} />
           <NavDropdown label="Temporada" modalidade="VERANEIO" locations={finalTemporada} onNavigate={onNavigate} />
+          <NavDropdown label="Repasses" modalidade="REPASSE" locations={finalRepasse} onNavigate={onNavigate} />
           {ANCHOR_LINKS.map((link) => {
             if (link.id === "diretorio") {
               return (

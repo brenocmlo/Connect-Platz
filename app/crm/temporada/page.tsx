@@ -16,6 +16,7 @@ import { CountUpNumber } from "@/components/crm/CountUpNumber";
 import { BookingItem } from "@/components/crm/temporada/types";
 import { NewBookingModal } from "@/components/crm/temporada/NewBookingModal";
 import { EditBookingModal } from "@/components/crm/temporada/EditBookingModal";
+import { NewRentalContractModal } from "@/components/crm/temporada/NewRentalContractModal";
 import { SeasonBookingsList } from "@/components/crm/temporada/SeasonBookingsList";
 import { RentalContractsList, RentalContractItem } from "@/components/crm/temporada/RentalContractsList";
 
@@ -34,6 +35,7 @@ export default function TemporadaVeraneioPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [isNewBookingModalOpen, setIsNewBookingModalOpen] = useState(false);
+  const [isNewRentalModalOpen, setIsNewRentalModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<BookingItem | null>(null);
 
   const notify = useCallback(
@@ -111,8 +113,24 @@ export default function TemporadaVeraneioPage() {
       <PageHeader
         title="Gestão de Aluguel & Temporada"
         subtitle="Controle de diárias, locação anual, bloqueio determinístico de calendário e prevenção de overbooking."
-        actionLabel={canManageRental && activeTab === "temporada" ? "Nova Reserva" : undefined}
-        onActionClick={canManageRental && activeTab === "temporada" ? () => setIsNewBookingModalOpen(true) : undefined}
+        actionLabel={
+          canManageRental
+            ? activeTab === "temporada"
+              ? "Nova Reserva"
+              : activeTab === "anual"
+              ? "Novo Contrato de Aluguel"
+              : undefined
+            : undefined
+        }
+        onActionClick={
+          canManageRental
+            ? activeTab === "temporada"
+              ? () => setIsNewBookingModalOpen(true)
+              : activeTab === "anual"
+              ? () => setIsNewRentalModalOpen(true)
+              : undefined
+            : undefined
+        }
         showPeriodSelector={true}
         showExportButton={true}
       />
@@ -307,6 +325,15 @@ export default function TemporadaVeraneioPage() {
         isOpen={isNewBookingModalOpen}
         onClose={() => setIsNewBookingModalOpen(false)}
         onSubmit={handleBookingCreated}
+      />
+
+      <NewRentalContractModal
+        isOpen={isNewRentalModalOpen}
+        onClose={() => setIsNewRentalModalOpen(false)}
+        onCreated={(contract) => {
+          setRentals((prev) => [contract, ...prev]);
+          notify(`Contrato ${contract.codigoContrato} firmado com sucesso para ${contract.locatarioNome}!`);
+        }}
       />
 
       <EditBookingModal
