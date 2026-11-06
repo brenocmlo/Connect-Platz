@@ -9,8 +9,12 @@ if [ -n "$DATABASE_URL" ]; then
   echo "🔁 Migrando perfis legados (Diretor/Gerente) para Administrador/Corretor..."
   prisma db execute --file prisma/02-migrate-data.sql --schema prisma/schema.prisma || echo "⚠️ Migração de dados de perfis não aplicada. Continuando..."
 
-  echo "📦 Sincronizando schema do banco de dados via Prisma..."
-  prisma db push --skip-generate --accept-data-loss || echo "⚠️ Banco ainda não acessível ou sincronizado. Continuando inicialização..."
+  echo "📦 Aplicando migrações do banco de dados via Prisma Migrate..."
+  prisma migrate deploy || {
+    echo "⚠️ Verificando baseline de migrações existentes..."
+    prisma migrate resolve --applied 0_init 2>/dev/null || true
+    prisma migrate deploy || echo "⚠️ Banco ainda não acessível ou sincronizado. Continuando inicialização..."
+  }
   
   if [ -f "prisma/seed.js" ] || [ -f "/app/prisma/seed.js" ]; then
     echo "🌱 Verificando e executando seed inicial de dados..."

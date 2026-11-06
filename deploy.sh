@@ -48,11 +48,15 @@ until [ "$(docker inspect -f {{.State.Health.Status}} connect_platz_db 2>/dev/nu
 done
 echo -e "\n${GREEN}✓ PostgreSQL pronto e respondendo!${NC}"
 
-# 5. Sincronizar schema Prisma
-echo -e "${BLUE}Garantindo enums e sincronizando tabelas com Prisma (db push)...${NC}"
+# 5. Aplicar migrações do banco de dados com Prisma Migrate
+echo -e "${BLUE}Garantindo enums e aplicando migrações com Prisma Migrate...${NC}"
 docker compose exec app npx prisma db execute --file prisma/01-ensure-enums.sql --schema prisma/schema.prisma || true
 docker compose exec app npx prisma db execute --file prisma/02-migrate-data.sql --schema prisma/schema.prisma || true
-docker compose exec app npx prisma db push --accept-data-loss
+docker compose exec app npx prisma migrate deploy || {
+  echo -e "${YELLOW}Verificando baseline de migrações existentes...${NC}"
+  docker compose exec app npx prisma migrate resolve --applied 0_init 2>/dev/null || true
+  docker compose exec app npx prisma migrate deploy
+}
 
 # 6. Popular dados iniciais (Seed)
 echo -e "${BLUE}Executando Seed de dados iniciais (Organização, Usuário Admin, Funis)...${NC}"
