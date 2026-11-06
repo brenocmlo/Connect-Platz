@@ -300,7 +300,7 @@ O sistema possui 4 níveis hierárquicos de acesso:
 5. **Executar as Migrações e Sincronizar o Prisma**:
    ```bash
    npm run prisma:generate
-   npm run prisma:push
+   npm run prisma:deploy
    ```
 
 6. **Popular Dados Iniciais (Seed)**:
@@ -343,7 +343,7 @@ O script realiza automaticamente:
 2. Criação do arquivo `.env` seguro com chave criptográfica randômica para `JWT_SECRET`;
 3. Build da imagem Docker da aplicação em modo `standalone`;
 4. Inicialização do PostgreSQL 16 Alpine com healthcheck ativo;
-5. Execução do `prisma db push` e `prisma db seed`;
+5. Execução do `prisma migrate deploy` e `prisma db seed`;
 6. Disponibilização da aplicação na porta `3000`.
 
 ### 2. Orquestração com Docker Compose
@@ -462,8 +462,9 @@ Connect-Platz/
 | `npm run start` | Inicia a aplicação compilada em modo de produção |
 | `npm run lint` | Executa o linter do Next.js para análise estática de código |
 | `npm run prisma:generate` | Gera o Prisma Client com base no arquivo `schema.prisma` |
-| `npm run prisma:push` | Sincroniza o schema diretamente com o banco de dados sem migrações |
-| `npm run prisma:migrate` | Aplica migrações pendentes em ambiente de produção |
+| `npm run prisma:dev` | Cria e aplica nova migração em ambiente de desenvolvimento (`prisma migrate dev`) |
+| `npm run prisma:deploy` | Aplica migrações versionadas em produção sem risco de data-loss (`prisma migrate deploy`) |
+| `npm run prisma:status` | Verifica o status e integridade das migrações do banco de dados |
 | `npm run prisma:seed` | Executa o script `prisma/seed.ts` para popular a base de dados |
 
 ---
