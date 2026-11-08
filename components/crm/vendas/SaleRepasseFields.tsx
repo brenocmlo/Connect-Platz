@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, Clock, RefreshCw, ShieldAlert } from "lucide-react";
+import { RefreshCw, RotateCcw, ShieldAlert } from "lucide-react";
 import { NumericInput } from "@/components/crm/primitives/NumericInput";
 import { SaleDealState } from "./SaleDealFields";
+import { DEFAULT_CLAUSULA_REPASSE } from "./saleSplitHelper";
 
 interface SaleRepasseFieldsProps {
   deal: SaleDealState;
@@ -59,6 +60,7 @@ export function SaleRepasseFields({
                 vgv: repasse + saldo,
                 tipoPagamentoRepasse: deal.tipoPagamentoRepasse || "A_VISTA",
                 baseCalculoComissao: deal.baseCalculoComissao || "REPASSE",
+                clausulaRepasse: deal.clausulaRepasse || DEFAULT_CLAUSULA_REPASSE,
               });
             }}
             className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
@@ -282,15 +284,30 @@ export function SaleRepasseFields({
             </div>
           </div>
 
-          {/* CALLOUT LEGAL & OPERACIONAL DO REPASSE */}
-          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-start gap-2.5">
-            <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-900 dark:text-amber-200 space-y-0.5">
-              <span className="font-bold block">Regra do Repasse & Cláusula de Retomada:</span>
-              <p className="text-[11px] leading-relaxed opacity-90">
-                O imóvel permanece registrado em nome do titular originário. O adquirente assume o pagamento contínuo das parcelas. Se houver atraso superior a <strong>3 meses (90 dias)</strong>, haverá <strong>quebra de contrato com perda integral dos valores pagos</strong> e retomada do imóvel.
-              </p>
+          {/* CLÁUSULA EDITÁVEL DE REPASSE & RETOMADA (ADMIN / FINANCEIRO) */}
+          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/25 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs text-amber-900 dark:text-amber-200 font-bold">
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Cláusula Contratual de Repasse e Inadimplência (Editável pelo Admin/Financeiro)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onChange({ clausulaRepasse: DEFAULT_CLAUSULA_REPASSE })}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300 hover:underline shrink-0"
+                title="Restaurar texto da cláusula padrão de 3 meses"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Restaurar padrão
+              </button>
             </div>
+            <textarea
+              rows={3}
+              value={deal.clausulaRepasse ?? DEFAULT_CLAUSULA_REPASSE}
+              onChange={(e) => onChange({ clausulaRepasse: e.target.value })}
+              placeholder={DEFAULT_CLAUSULA_REPASSE}
+              className="w-full rounded-lg border border-amber-500/30 bg-background/90 p-2 text-[11px] leading-relaxed text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
           </div>
         </div>
       ) : (

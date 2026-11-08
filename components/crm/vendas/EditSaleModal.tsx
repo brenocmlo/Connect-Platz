@@ -12,7 +12,7 @@ import {
   EMPTY_PARTICIPANT,
 } from "./SaleParticipantsSection";
 import { NumericInput } from "@/components/crm/primitives/NumericInput";
-import { calculateSaleValues, ParticipantRole } from "./saleSplitHelper";
+import { calculateSaleValues, DEFAULT_CLAUSULA_REPASSE, ParticipantRole } from "./saleSplitHelper";
 import { EditSaleRepasseSection } from "./EditSaleRepasseSection";
 
 interface EditSaleModalProps {
@@ -48,6 +48,7 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
   const [valorParcelaRepasse, setValorParcelaRepasse] = useState(0);
   const [saldoDevedor, setSaldoDevedor] = useState(0);
   const [titularOriginario, setTitularOriginario] = useState("");
+  const [clausulaRepasse, setClausulaRepasse] = useState(DEFAULT_CLAUSULA_REPASSE);
   const [baseCalculoComissao, setBaseCalculoComissao] = useState<"REPASSE" | "VGV">("REPASSE");
   const [hasCorretor2, setHasCorretor2] = useState(false);
   const [participants, setParticipants] = useState<ParticipantsForm>({
@@ -74,6 +75,7 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
     setValorParcelaRepasse(sale.valorParcelaRepasse || 0);
     setSaldoDevedor(sale.saldoDevedor || 0);
     setTitularOriginario(sale.titularOriginario || "");
+    setClausulaRepasse(sale.clausulaRepasse || DEFAULT_CLAUSULA_REPASSE);
     setBaseCalculoComissao((sale.baseCalculoComissao as any) || "REPASSE");
     setHasCorretor2(Boolean(sale.segundoCorretor));
 
@@ -91,15 +93,7 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
       else if (sp.tipo === "CO_CORRETOR") role = "CORRETOR_2";
       else if (sp.tipo === "SOCIO_GESTOR") role = "GESTOR";
       else if (sp.tipo === "CAPTACAO") role = "CAPTADOR";
-
-      if (role) {
-        nextParts[role] = {
-          userId: sp.userId || "",
-          percentual: sp.percentual || 0,
-          desconto: 0,
-          bonus: 0,
-        };
-      }
+      if (role) nextParts[role] = { userId: sp.userId || "", percentual: sp.percentual || 0, desconto: 0, bonus: 0 };
     });
 
     setParticipants(nextParts);
@@ -178,6 +172,7 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
         valorParcelaRepasse: isRepasse ? valorParcelaRepasse : null,
         saldoDevedor: isRepasse ? saldoDevedor : null,
         titularOriginario: isRepasse ? titularOriginario : null,
+        clausulaRepasse: isRepasse ? clausulaRepasse : null,
         baseCalculoComissao: isRepasse ? baseCalculoComissao : null,
         participants: ROLES.filter((r) => participants[r]?.userId && participants[r]?.percentual > 0).map((role) => ({
           role,
@@ -334,6 +329,8 @@ export function EditSaleModal({ sale, isOpen, onClose, onSaleUpdated }: EditSale
                 setSaldoDevedor={setSaldoDevedor}
                 titularOriginario={titularOriginario}
                 setTitularOriginario={setTitularOriginario}
+                clausulaRepasse={clausulaRepasse}
+                setClausulaRepasse={setClausulaRepasse}
                 baseCalculoComissao={baseCalculoComissao}
                 setBaseCalculoComissao={setBaseCalculoComissao}
                 vgv={vgv}

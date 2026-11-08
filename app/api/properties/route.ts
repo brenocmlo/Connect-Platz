@@ -12,7 +12,7 @@ import {
   resolvePublicOrganizationId,
   toNumberOrNull,
 } from "./propertyPayload";
-import { buildDirectory } from "./propertyDirectory";
+import { buildDirectory, resolveBairro } from "./propertyDirectory";
 
 export const dynamic = "force-dynamic";
 
@@ -93,15 +93,20 @@ export async function GET(req: NextRequest) {
       }),
       prisma.property.findMany({
         where: baseWhere,
-        select: { nome: true, cidade: true, estado: true, bairro: true, modalidade: true, caracteristicas: true },
+        select: { nome: true, cidade: true, estado: true, bairro: true, endereco: true, modalidade: true, caracteristicas: true },
       }),
     ]);
 
+    const enrichedProperties = properties.map((p) => ({
+      ...p,
+      bairro: resolveBairro(p) || p.bairro,
+    }));
+
     const cidades = Array.from(new Set(allActive.map((p) => p.cidade).filter(Boolean))) as string[];
-    const bairros = Array.from(new Set(allActive.map((p) => p.bairro).filter(Boolean))) as string[];
+    const bairros = Array.from(new Set(allActive.map((p) => resolveBairro(p)).filter(Boolean))) as string[];
 
     return NextResponse.json(
-      { properties, cidades, bairros, total: properties.length, directory: buildDirectory(allActive) },
+      { properties: enrichedProperties, cidades, bairros, total: enrichedProperties.length, directory: buildDirectory(allActive) },
       { status: 200, headers: { "Cache-Control": cacheHeader } }
     );
   } catch (error: any) {

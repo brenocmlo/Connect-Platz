@@ -10,7 +10,7 @@ import { SaleCalculationsTab } from "./SaleCalculationsTab";
 import { SaleParticipantsSection, ParticipantsForm, ParticipantFormState, EMPTY_PARTICIPANT } from "./SaleParticipantsSection";
 import { SaleAttachmentsTab, SaleAttachment } from "./SaleAttachmentsTab";
 import { SaleDealFields, SaleDealState } from "./SaleDealFields";
-import { calculateSaleValues, ParticipantRole } from "./saleSplitHelper";
+import { calculateSaleValues, DEFAULT_CLAUSULA_REPASSE, ParticipantRole } from "./saleSplitHelper";
 
 interface NewSaleModalProps {
   isOpen: boolean;
@@ -48,6 +48,7 @@ function initialDeal(preselectedLead?: NewSaleModalProps["preselectedLead"]): Sa
     isRepasse: false,
     valorRepasse: 0,
     saldoDevedor: 0,
+    clausulaRepasse: DEFAULT_CLAUSULA_REPASSE,
     baseCalculoComissao: "REPASSE",
   };
 }
@@ -226,13 +227,7 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
           propertyId: deal.propertyId,
           unidadeNumero: deal.unidadeNumero || undefined,
           ...(deal.novoComprador
-            ? {
-                novoComprador: {
-                  nome: deal.compradorNome,
-                  telefone: deal.compradorTelefone,
-                  email: deal.compradorEmail || undefined,
-                },
-              }
+            ? { novoComprador: { nome: deal.compradorNome, telefone: deal.compradorTelefone, email: deal.compradorEmail || undefined } }
             : { leadId: deal.leadId }),
           dataVenda: deal.dataVenda,
           dataPrevistaPagamento: deal.dataPrevistaPagamento || undefined,
@@ -245,6 +240,7 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
             valorParcelaRepasse: deal.valorParcelaRepasse,
             saldoDevedor: deal.saldoDevedor,
             titularOriginario: deal.titularOriginario,
+            clausulaRepasse: deal.clausulaRepasse,
             baseCalculoComissao: deal.baseCalculoComissao,
           } : {}),
           percentualComissao: deal.percentualComissao,

@@ -148,6 +148,11 @@ export async function POST(req: NextRequest) {
           status: RentalContractStatus.ATIVO,
           observacoes: data.observacoes || null,
         },
+        include: {
+          property: { select: { id: true, nome: true, bairro: true, endereco: true } },
+          lead: { select: { id: true, nome: true, telefone: true, email: true } },
+          corretorTitular: { select: { id: true, nome: true } },
+        },
       });
 
       // Lançamento das mensalidades de taxa de administração no fluxo de caixa (RECEITA)
@@ -191,11 +196,146 @@ export async function POST(req: NextRequest) {
       descricao: `Contrato de locação anual ${contract.codigoContrato} validado e firmado por ${context.role}.`,
     });
 
-    return NextResponse.json({ success: true, contract }, { status: 201 });
+    const serializedContract = {
+      id: contract.id,
+      codigoContrato: contract.codigoContrato,
+      propertyId: contract.propertyId,
+      imovelNome: contract.property?.nome || "Imóvel",
+      imovelBairro: contract.property?.bairro || null,
+      locatarioNome: contract.lead?.nome || "Locatário",
+      locatarioTelefone: contract.lead?.telefone || null,
+      corretorNome: contract.corretorTitular?.nome || "Corretor",
+      valorAluguelMensal: Number(contract.valorAluguelMensal),
+      taxaAdministracaoPerc: Number(contract.taxaAdministracaoPerc),
+      taxaAdministracaoValor: taxaAdmValor,
+      diaVencimento: contract.diaVencimento,
+      duracaoMeses: contract.duracaoMeses,
+      dataInicio: contract.dataInicio.toISOString().slice(0, 10),
+      dataFim: contract.dataFim.toISOString().slice(0, 10),
+      tipoGarantia: contract.tipoGarantia,
+      valorGarantia: contract.valorGarantia ? Number(contract.valorGarantia) : null,
+      status: contract.status,
+      observacoes: contract.observacoes,
+    };
+
+    return NextResponse.json({ success: true, contract: serializedContract }, { status: 201 });
   } catch (error: any) {
     console.error("[RENTALS] Erro ao cadastrar contrato:", error);
     return NextResponse.json(
       { error: error?.message || "Erro ao registrar contrato de aluguel." },
+      { status: 500 }
+    );
+  }
+}
+
+const PatchRentalSchema = z.object({
+  id: z.string().uuid("Identificador do contrato inválido."),
+  status: z.nativeEnum(RentalContractStatus).optional(),
+  valorAluguelMensal: z.number().positive().optional(),
+  taxaAdministracaoPerc: z.number().min(0).max(100).optional(),
+  diaVencimento: z.number().int().min(1).max(31).optional(),
+  observacoes: z.string().trim().max(5000).optional().nullable(),
+});
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const context = getSessionContext(req);
+    if (!context) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+
+    if (
+      context.role === "ADMINISTRADOR_VENDA" ||
+      context.role === "FINANCEIRO_VENDA" ||
+      context.role === "CORRETOR_VENDA"
+    ) {
+      return NextResponse.json(
+        { error: "Acesso restrito ao departamento de Aluguel." },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json();
+    const input = PatchRentalSchema.parse(body);
+
+    const existing = await prisma.rentalContract.findFirst({
+      where: {
+        id: input.id,
+        organizationId: context.organizationId,
+        ...(context.role === "CORRETOR_ALUGUEL" ? { corretorId: context.userId } : {}),
+      },
+      include: {
+        property: { select: { id: true, nome: true, bairro: true } },
+        lead: { select: { id: true, nome: true, telefone: true } },
+        corretorTitular: { select: { id: true, nome: true } },
+      },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Contrato de locação não encontrado." }, { status: 404 });
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const nextContract = await tx.rentalContract.update({
+        where: { id: existing.id },
+        data: {
+          ...(input.status ? { status: input.status } : {}),
+          ...(input.valorAluguelMensal !== undefined ? { valorAluguelMensal: input.valorAluguelMensal } : {}),
+          ...(input.taxaAdministracaoPerc !== undefined ? { taxaAdministracaoPerc: input.taxaAdministracaoPerc } : {}),
+          ...(input.diaVencimento !== undefined ? { diaVencimento: input.diaVencimento } : {}),
+          ...(input.observacoes !== undefined ? { observacoes: input.observacoes } : {}),
+        },
+        include: {
+          property: { select: { id: true, nome: true, bairro: true } },
+          lead: { select: { id: true, nome: true, telefone: true } },
+          corretorTitular: { select: { id: true, nome: true } },
+        },
+      });
+
+      if (input.status === RentalContractStatus.CANCELADO) {
+        await tx.cashFlow.updateMany({
+          where: { rentalContractId: existing.id, status: PaymentStatus.PENDENTE },
+          data: { status: PaymentStatus.CANCELADO },
+        });
+      } else if (input.status === RentalContractStatus.ATIVO && existing.status === RentalContractStatus.CANCELADO) {
+        await tx.cashFlow.updateMany({
+          where: { rentalContractId: existing.id, status: PaymentStatus.CANCELADO },
+          data: { status: PaymentStatus.PENDENTE },
+        });
+      }
+
+      return nextContract;
+    });
+
+    const valorAluguel = Number(updated.valorAluguelMensal);
+    const taxaPerc = Number(updated.taxaAdministracaoPerc);
+
+    return NextResponse.json({
+      success: true,
+      contract: {
+        id: updated.id,
+        codigoContrato: updated.codigoContrato,
+        propertyId: updated.propertyId,
+        imovelNome: updated.property?.nome || "Imóvel",
+        imovelBairro: updated.property?.bairro || null,
+        locatarioNome: updated.lead?.nome || "Locatário",
+        locatarioTelefone: updated.lead?.telefone || null,
+        corretorNome: updated.corretorTitular?.nome || "Corretor",
+        valorAluguelMensal: valorAluguel,
+        taxaAdministracaoPerc: taxaPerc,
+        taxaAdministracaoValor: (valorAluguel * taxaPerc) / 100,
+        diaVencimento: updated.diaVencimento,
+        duracaoMeses: updated.duracaoMeses,
+        dataInicio: updated.dataInicio.toISOString().slice(0, 10),
+        dataFim: updated.dataFim.toISOString().slice(0, 10),
+        tipoGarantia: updated.tipoGarantia,
+        valorGarantia: updated.valorGarantia ? Number(updated.valorGarantia) : null,
+        status: updated.status,
+        observacoes: updated.observacoes,
+      },
+    });
+  } catch (error: any) {
+    console.error("[RENTALS] Erro ao atualizar contrato:", error);
+    return NextResponse.json(
+      { error: error?.message || "Erro ao atualizar contrato de locação." },
       { status: 500 }
     );
   }

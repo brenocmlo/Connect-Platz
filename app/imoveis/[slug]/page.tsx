@@ -295,6 +295,7 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
               saldoDevedor={property.saldoDevedor ? Number(property.saldoDevedor) : null}
               parcelaMensal={property.parcelaMensal ? Number(property.parcelaMensal) : null}
               titularOriginario={property.titularOriginario || null}
+              clausulaRepasse={property.clausulaRepasse || null}
             />
 
             <PropertySpecs

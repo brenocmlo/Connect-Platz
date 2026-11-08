@@ -49,49 +49,59 @@ export default function LandingPage() {
   const navigateTo = (modalidade: Modalidade, cidade?: string) =>
     showResults({ modalidade, localizacao: cidade ?? "" });
 
+  const allApiBairros = React.useMemo(() => {
+    const fromBairros = portal.bairros.map((b) => b.trim()).filter(Boolean);
+    const fromProps = properties.map((p) => p.bairro?.trim()).filter(Boolean) as string[];
+    return Array.from(new Set([...fromBairros, ...fromProps])).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [portal.bairros, properties]);
+
   const comprarLocations = React.useMemo(() => {
-    return Array.from(
+    const list = Array.from(
       new Set(
         properties
           .filter((p) => p.modalidade === "VENDA" || p.modalidade === "AMBOS")
-          .map((p) => p.bairro || p.cidade)
+          .map((p) => p.bairro?.trim())
           .filter(Boolean) as string[]
       )
-    ).sort();
-  }, [properties]);
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return list.length > 0 ? list : allApiBairros;
+  }, [properties, allApiBairros]);
 
   const alugarLocations = React.useMemo(() => {
-    return Array.from(
+    const list = Array.from(
       new Set(
         properties
           .filter((p) => p.modalidade === "LOCACAO_ANUAL" || p.modalidade === "AMBOS" || Boolean(p.valorAluguel))
-          .map((p) => p.bairro || p.cidade)
+          .map((p) => p.bairro?.trim())
           .filter(Boolean) as string[]
       )
-    ).sort();
-  }, [properties]);
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return list.length > 0 ? list : allApiBairros;
+  }, [properties, allApiBairros]);
 
   const temporadaLocations = React.useMemo(() => {
-    return Array.from(
+    const list = Array.from(
       new Set(
         properties
           .filter((p) => isTemporada(p) || p.modalidade === "AMBOS")
-          .map((p) => p.bairro || p.cidade)
+          .map((p) => p.bairro?.trim())
           .filter(Boolean) as string[]
       )
-    ).sort();
-  }, [properties]);
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return list.length > 0 ? list : allApiBairros;
+  }, [properties, allApiBairros]);
 
   const repasseLocations = React.useMemo(() => {
-    return Array.from(
+    const list = Array.from(
       new Set(
         properties
           .filter((p) => p.modalidade === "REPASSE" || Boolean(p.valorRepasse))
-          .map((p) => p.bairro || p.cidade)
+          .map((p) => p.bairro?.trim())
           .filter(Boolean) as string[]
       )
-    ).sort();
-  }, [properties]);
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return list.length > 0 ? list : allApiBairros;
+  }, [properties, allApiBairros]);
 
   return (
     <PortalSettingsProvider>

@@ -88,6 +88,16 @@ export default function TemporadaVeraneioPage() {
     [bookings]
   );
 
+  const activeRentals = useMemo(
+    () => rentals.filter((r) => r.status !== "CANCELADO"),
+    [rentals]
+  );
+
+  const cancelledRentals = useMemo(
+    () => rentals.filter((r) => r.status === "CANCELADO"),
+    [rentals]
+  );
+
   const totals = useMemo(() => {
     const faturamento = activeBookings.reduce((acc, b) => acc + b.valorTotal, 0);
     const noites = activeBookings.reduce((acc, b) => acc + b.diarias, 0);
@@ -106,6 +116,29 @@ export default function TemporadaVeraneioPage() {
         ? `Reserva de ${updated.locatarioNome} cancelada. Datas liberadas no calendário!`
         : `Reserva de ${updated.locatarioNome} atualizada com sucesso!`
     );
+  };
+
+  const handleRentalStatusUpdate = async (id: string, status: "ATIVO" | "CANCELADO") => {
+    try {
+      const res = await fetch("/api/rentals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        notify(data?.error || "Erro ao atualizar contrato.");
+        return;
+      }
+      setRentals((prev) => prev.map((r) => (r.id === id ? data.contract : r)));
+      notify(
+        status === "CANCELADO"
+          ? `Contrato ${data.contract.codigoContrato} cancelado e movido para o Histórico de Cancelamentos!`
+          : `Contrato ${data.contract.codigoContrato} validado e ativado com sucesso!`
+      );
+    } catch {
+      notify("Falha de conexão ao atualizar contrato.");
+    }
   };
 
   return (
@@ -215,7 +248,7 @@ export default function TemporadaVeraneioPage() {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Locação Anual / Comum ({rentals.length})
+          Locação Anual / Comum ({activeRentals.length})
         </button>
         <button
           onClick={() => setActiveTab("overbooking")}
@@ -225,7 +258,7 @@ export default function TemporadaVeraneioPage() {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Histórico Overbooking & Canceladas ({cancelledBookings.length})
+          Histórico Overbooking & Canceladas ({cancelledBookings.length + cancelledRentals.length})
         </button>
       </div>
 
@@ -259,7 +292,13 @@ export default function TemporadaVeraneioPage() {
       ) : activeTab === "anual" ? (
         <div className="space-y-3">
           <SectionTitle>Contratos de Locação Anual / Comum</SectionTitle>
-          <RentalContractsList rentals={rentals} hideValues={hideValues} />
+          <RentalContractsList
+            rentals={activeRentals}
+            hideValues={hideValues}
+            canManageRental={canManageRental}
+            onNewContract={() => setIsNewRentalModalOpen(true)}
+            onUpdateStatus={handleRentalStatusUpdate}
+          />
         </div>
       ) : (
         <div className="space-y-3">
@@ -270,11 +309,11 @@ export default function TemporadaVeraneioPage() {
               Gestão Ativa de Disponibilidade
             </span>
             <p className="text-[11px] opacity-90">
-              Quando uma reserva é cancelada, o calendário é imediatamente liberado para permitir novas locações sem conflitos. Todos os cancelamentos ficam documentados aqui para fins de auditoria e controle de overbooking.
+              Quando uma reserva ou locação é cancelada, o calendário é imediatamente liberado para permitir novas locações sem conflitos. Todos os cancelamentos ficam documentados aqui para fins de auditoria e controle de overbooking.
             </p>
           </div>
 
-          {cancelledBookings.length === 0 ? (
+          {cancelledBookings.length === 0 && cancelledRentals.length === 0 ? (
             <div className="bg-card border border-border rounded-xl p-8 text-center text-xs text-muted-foreground">
               Nenhuma reserva cancelada ou registro de overbooking.
             </div>
@@ -289,7 +328,7 @@ export default function TemporadaVeraneioPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-foreground line-through opacity-75">{b.imovelNome}</span>
                       <span className="text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400 border border-red-300 dark:border-red-800 px-2 py-0.5 rounded-full">
-                        Cancelada
+                        Reserva Cancelada
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -315,6 +354,15 @@ export default function TemporadaVeraneioPage() {
                   </div>
                 </div>
               ))}
+
+              {cancelledRentals.length > 0 && (
+                <RentalContractsList
+                  rentals={cancelledRentals}
+                  hideValues={hideValues}
+                  canManageRental={canManageRental}
+                  onUpdateStatus={handleRentalStatusUpdate}
+                />
+              )}
             </div>
           )}
         </div>

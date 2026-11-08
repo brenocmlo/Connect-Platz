@@ -12,6 +12,10 @@ interface PortalMobileMenuProps {
   open: boolean;
   onClose: () => void;
   cities: DirectoryCity[];
+  comprarLocations?: string[];
+  alugarLocations?: string[];
+  temporadaLocations?: string[];
+  repasseLocations?: string[];
   onNavigate: NavigateFn;
 }
 
@@ -22,7 +26,16 @@ const GROUPS = [
   { label: "Repasses", modalidade: "REPASSE" as const },
 ];
 
-export function PortalMobileMenu({ open, onClose, cities, onNavigate }: PortalMobileMenuProps) {
+export function PortalMobileMenu({
+  open,
+  onClose,
+  cities,
+  comprarLocations = [],
+  alugarLocations = [],
+  temporadaLocations = [],
+  repasseLocations = [],
+  onNavigate,
+}: PortalMobileMenuProps) {
   const waLink = useWaLink();
   const [expanded, setExpanded] = useState<string | null>("Comprar");
 
@@ -81,6 +94,14 @@ export function PortalMobileMenu({ open, onClose, cities, onNavigate }: PortalMo
             <nav aria-label="Menu mobile" className="flex-1 overflow-y-auto px-4 py-4">
               {GROUPS.map((group) => {
                 const isOpen = expanded === group.label;
+                const groupLocations =
+                  group.modalidade === "VENDA"
+                    ? comprarLocations
+                    : group.modalidade === "ALUGUEL"
+                    ? alugarLocations
+                    : group.modalidade === "VERANEIO"
+                    ? temporadaLocations
+                    : repasseLocations;
                 return (
                   <div key={group.label} className="border-b border-white/10">
                     <button
@@ -94,14 +115,15 @@ export function PortalMobileMenu({ open, onClose, cities, onNavigate }: PortalMo
                     </button>
                     {isOpen && (
                       <div className="grid gap-1 pb-4">
-                        {cities.map((c) => (
+                        {groupLocations.map((loc) => (
                           <button
-                            key={c.cidade}
+                            key={loc}
                             type="button"
-                            onClick={() => go(() => onNavigate(group.modalidade, cityLabel(c.cidade)))}
-                            className="rounded-lg px-3 py-2.5 text-left text-sm text-white/80 active:bg-white/10"
+                            onClick={() => go(() => onNavigate(group.modalidade, loc))}
+                            className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-white/80 active:bg-white/10"
                           >
-                            {c.cidade}
+                            <MapPin className="h-3.5 w-3.5 text-platz-gold shrink-0" />
+                            <span>{loc}</span>
                           </button>
                         ))}
                         <button

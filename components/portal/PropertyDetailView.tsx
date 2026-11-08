@@ -152,6 +152,7 @@ interface PropertyFinancialInfoProps {
   saldoDevedor?: number | null;
   parcelaMensal?: number | null;
   titularOriginario?: string | null;
+  clausulaRepasse?: string | null;
 }
 
 export function PropertyFinancialInfo({
@@ -167,6 +168,7 @@ export function PropertyFinancialInfo({
   saldoDevedor,
   parcelaMensal,
   titularOriginario,
+  clausulaRepasse,
 }: PropertyFinancialInfoProps) {
   const isRepasse = modalidade === "REPASSE" || Boolean(valorRepasse);
   const isLocacao = modalidade === "LOCACAO_ANUAL" || Boolean(valorAluguel);
@@ -227,7 +229,8 @@ export function PropertyFinancialInfo({
               {titularOriginario && <span className="font-normal opacity-80">(Titular originário: {titularOriginario})</span>}
             </span>
             <p className="text-[11px] leading-relaxed opacity-90">
-              O imóvel continua registrado no nome do financista original até a liquidação final. O adquirente assume o pagamento regular das parcelas. <strong>Em caso de atraso superior a 3 meses consecutivos, haverá rescisão contratual com perda integral dos valores pagos</strong> e retomada do imóvel.
+              {clausulaRepasse ||
+                "O imóvel continua registrado no nome do financista original até a liquidação final. O adquirente assume o pagamento regular das parcelas. Em caso de atraso superior a 3 meses consecutivos, haverá rescisão contratual com perda integral dos valores pagos e retomada do imóvel."}
             </p>
           </div>
         </div>

@@ -8,8 +8,54 @@ interface DirectorySource {
   cidade: string | null;
   estado: string | null;
   bairro?: string | null;
+  endereco?: string | null;
   modalidade: PropertyModality;
   caracteristicas: unknown;
+}
+
+const KNOWN_BAIRROS = [
+  "Porto das Dunas",
+  "Meireles",
+  "Aldeota",
+  "Cocó",
+  "Mucuripe",
+  "Beira Mar",
+  "Praia de Iracema",
+  "Praia do Futuro",
+  "Guararapes",
+  "Papicu",
+  "Dionísio Torres",
+  "Fátima",
+  "Cumbuco",
+  "Flecheiras",
+  "Taíba",
+  "Prainha",
+  "Praia do Japão",
+  "Alphaville",
+  "Lagoa Redonda",
+  "Cambeba",
+  "Edson Queiroz",
+  "Varjota",
+];
+
+/**
+ * Resolve o bairro do imóvel: prioriza a coluna `bairro`, e caso esteja vazia em registros legados,
+ * extrai de `endereco` ou `nome` ou da cidade no formato "Cidade (Bairro)".
+ */
+export function resolveBairro(p: {
+  bairro?: string | null;
+  endereco?: string | null;
+  nome?: string | null;
+  cidade?: string | null;
+}): string | null {
+  if (p.bairro && p.bairro.trim()) return p.bairro.trim();
+  const parenMatch = p.cidade?.match(/\(([^)]+)\)/);
+  if (parenMatch?.[1]?.trim()) return parenMatch[1].trim();
+  const haystack = `${p.endereco || ""} ${p.nome || ""}`.toLowerCase();
+  for (const b of KNOWN_BAIRROS) {
+    if (haystack.includes(b.toLowerCase())) return b;
+  }
+  return null;
 }
 
 export interface DirectoryNeighborhood {
@@ -76,14 +122,12 @@ export function buildDirectory(items: DirectorySource[]): DirectoryCity[] {
       entry.alugar.add(`${tipo} para temporada em ${cidadeNome}`);
     }
 
-    if (p.bairro) {
-      const bairroNome = p.bairro.trim();
-      if (bairroNome) {
-        const bInfo = entry.bairrosMap.get(bairroNome) || { total: 0, modalidades: new Set<string>() };
-        bInfo.total += 1;
-        bInfo.modalidades.add(p.modalidade);
-        entry.bairrosMap.set(bairroNome, bInfo);
-      }
+    const resolvedBairro = resolveBairro(p);
+    if (resolvedBairro) {
+      const bInfo = entry.bairrosMap.get(resolvedBairro) || { total: 0, modalidades: new Set<string>() };
+      bInfo.total += 1;
+      bInfo.modalidades.add(p.modalidade);
+      entry.bairrosMap.set(resolvedBairro, bInfo);
     }
 
     byCity.set(cidadeNome, entry);

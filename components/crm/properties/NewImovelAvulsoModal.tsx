@@ -37,6 +37,9 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
   const [saldoDevedor, setSaldoDevedor] = useState("");
   const [parcelaMensal, setParcelaMensal] = useState("");
   const [titularOriginario, setTitularOriginario] = useState("");
+  const [clausulaRepasse, setClausulaRepasse] = useState(
+    "O imóvel permanece registrado em nome do titular originário. O adquirente assume o pagamento contínuo das parcelas. Se houver atraso superior a 3 meses (90 dias), haverá quebra de contrato com perda integral dos valores pagos e retomada do imóvel."
+  );
   const [location, setLocation] = useState(EMPTY_LOCATION);
   const [tipologia, setTipologia] = useState(EMPTY_TIPOLOGIA);
   const [fotos, setFotos] = useState<string[]>([]);
@@ -105,6 +108,7 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
           saldoDevedor: modalidade === "REPASSE" && saldoDevedor !== "" ? Number(saldoDevedor) : null,
           parcelaMensal: modalidade === "REPASSE" && parcelaMensal !== "" ? Number(parcelaMensal) : null,
           titularOriginario: modalidade === "REPASSE" && titularOriginario.trim() ? titularOriginario.trim() : null,
+          clausulaRepasse: modalidade === "REPASSE" && clausulaRepasse.trim() ? clausulaRepasse.trim() : null,
           ...locationPayload(location),
           descricao: descricao || null,
           fotos,
@@ -250,6 +254,10 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
               <div>
                 <label htmlFor="av-titular" className={fieldLabel}>Titular Originário (Gaveta)</label>
                 <input id="av-titular" type="text" value={titularOriginario} onChange={(e) => setTitularOriginario(e.target.value)} placeholder="Nome do financista originário" className={fieldInput} />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="av-clausula" className={fieldLabel}>Cláusula Contratual de Repasse (Editável)</label>
+                <textarea id="av-clausula" rows={2} value={clausulaRepasse} onChange={(e) => setClausulaRepasse(e.target.value)} className={fieldInput} />
               </div>
             </>
           )}

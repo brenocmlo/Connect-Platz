@@ -3,6 +3,7 @@
 import React from "react";
 import { Building2, Home, UserCheck, Target, Receipt, CheckCircle2 } from "lucide-react";
 import { SplitItem } from "./types";
+import { DEFAULT_CLAUSULA_REPASSE } from "./saleSplitHelper";
 
 interface SaleFinancialRepasseCardProps {
   vgv: number;
@@ -21,6 +22,7 @@ interface SaleFinancialRepasseCardProps {
   valorParcelaRepasse?: number;
   saldoDevedor?: number;
   titularOriginario?: string;
+  clausulaRepasse?: string;
 }
 
 const brl = (n: number) =>
@@ -43,6 +45,7 @@ export function SaleFinancialRepasseCard({
   valorParcelaRepasse,
   saldoDevedor,
   titularOriginario,
+  clausulaRepasse,
 }: SaleFinancialRepasseCardProps) {
   // Cálculo determinístico do Repasse
   // 1. Líquido do Proprietário / Vendedor / Cedente = (Repasse ou VGV) - Comissão Bruta
@@ -196,13 +199,13 @@ export function SaleFinancialRepasseCard({
             )}
           </div>
 
-          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-            <span>
+          <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 space-y-1">
+            <div>
               <strong>Titular Originário (Gaveta):</strong> {titularOriginario || "Não informado"}
-            </span>
-            <span className="text-[10px] text-amber-700 dark:text-amber-300">
-              ⚠️ Inadimplência superior a 3 meses gera quebra de contrato e perda dos valores.
-            </span>
+            </div>
+            <p className="text-[10px] text-amber-800 dark:text-amber-300 leading-relaxed">
+              <strong>Cláusula Contratual:</strong> {clausulaRepasse || DEFAULT_CLAUSULA_REPASSE}
+            </p>
           </div>
         </div>
       )}

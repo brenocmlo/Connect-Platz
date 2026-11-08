@@ -18,6 +18,7 @@ export interface PropertyItem {
   saldoDevedor?: number | null;
   parcelaMensal?: number | null;
   titularOriginario?: string | null;
+  clausulaRepasse?: string | null;
   cidade: string;
   estado: string;
   bairro: string;
