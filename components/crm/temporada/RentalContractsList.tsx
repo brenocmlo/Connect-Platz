@@ -23,6 +23,7 @@ interface RentalContractsListProps {
   rentals: RentalContractItem[];
   hideValues?: boolean;
   canManageRental?: boolean;
+  canApproveRental?: boolean;
   onNewContract?: () => void;
   onUpdateStatus?: (id: string, status: "ATIVO" | "CANCELADO") => void;
 }
@@ -31,9 +32,11 @@ export function RentalContractsList({
   rentals,
   hideValues,
   canManageRental,
+  canApproveRental,
   onNewContract,
   onUpdateStatus,
 }: RentalContractsListProps) {
+  const canValidate = canApproveRental ?? canManageRental;
   if (rentals.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-8 text-center text-xs text-muted-foreground space-y-3">
@@ -116,7 +119,7 @@ export function RentalContractsList({
 
               {canManageRental && onUpdateStatus && (
                 <div className="flex items-center gap-1.5">
-                  {isPendente && (
+                  {isPendente && canValidate && (
                     <button
                       type="button"
                       onClick={() => onUpdateStatus(c.id, "ATIVO")}
@@ -127,19 +130,21 @@ export function RentalContractsList({
                       Validar
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => onUpdateStatus(c.id, isCancelado ? "ATIVO" : "CANCELADO")}
-                    className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-                      isCancelado
-                        ? "border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
-                        : "border-red-500/30 text-red-600 hover:bg-red-500/10"
-                    }`}
-                    title={isCancelado ? "Reativar contrato" : "Cancelar contrato e enviar para histórico"}
-                  >
-                    <XCircle className="w-3.5 h-3.5" />
-                    {isCancelado ? "Reativar" : "Cancelar"}
-                  </button>
+                  {(!isCancelado || canValidate) && (
+                    <button
+                      type="button"
+                      onClick={() => onUpdateStatus(c.id, isCancelado ? "ATIVO" : "CANCELADO")}
+                      className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                        isCancelado
+                          ? "border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                          : "border-red-500/30 text-red-600 hover:bg-red-500/10"
+                      }`}
+                      title={isCancelado ? "Reativar contrato" : "Cancelar contrato e enviar para histórico"}
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      {isCancelado ? "Reativar" : "Cancelar"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

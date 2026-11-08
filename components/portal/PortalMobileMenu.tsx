@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, MapPin, MessageCircle, UserRound, X } from "lucide-react";
-import type { DirectoryCity, NavigateFn } from "./types";
+import type { DirectoryCity, Modalidade, NavigateFn } from "./types";
 import { PortalLogo } from "./PortalUI";
 import { ANCHOR_LINKS, cityLabel, scrollToId } from "./portalUtils";
 import { useWaLink } from "./PortalSettingsContext";
@@ -17,6 +17,7 @@ interface PortalMobileMenuProps {
   temporadaLocations?: string[];
   repasseLocations?: string[];
   onNavigate: NavigateFn;
+  onOpenAllBairros?: (modalidade?: Modalidade) => void;
 }
 
 const GROUPS = [
@@ -35,6 +36,7 @@ export function PortalMobileMenu({
   temporadaLocations = [],
   repasseLocations = [],
   onNavigate,
+  onOpenAllBairros,
 }: PortalMobileMenuProps) {
   const waLink = useWaLink();
   const [expanded, setExpanded] = useState<string | null>("Comprar");
@@ -115,23 +117,32 @@ export function PortalMobileMenu({
                     </button>
                     {isOpen && (
                       <div className="grid gap-1 pb-4">
-                        {groupLocations.map((loc) => (
+                        {groupLocations.slice(0, 20).map((loc) => (
                           <button
                             key={loc}
                             type="button"
                             onClick={() => go(() => onNavigate(group.modalidade, loc))}
-                            className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-white/80 active:bg-white/10"
+                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/80 active:bg-white/10"
                           >
                             <MapPin className="h-3.5 w-3.5 text-platz-gold shrink-0" />
                             <span>{loc}</span>
                           </button>
                         ))}
+                        {groupLocations.length > 20 && onOpenAllBairros && (
+                          <button
+                            type="button"
+                            onClick={() => go(() => onOpenAllBairros(group.modalidade))}
+                            className="rounded-lg px-3 py-2 text-left text-xs font-bold text-sky-400 active:bg-white/10"
+                          >
+                            Ver todos os {groupLocations.length} bairros →
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => go(() => onNavigate(group.modalidade))}
                           className="rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-platz-gold active:bg-white/10"
                         >
-                          Ver todos os imóveis
+                          Ver todos os imóveis em {group.label}
                         </button>
                       </div>
                     )}
@@ -189,6 +200,15 @@ export function PortalMobileMenu({
                               )}
                             </div>
                           ))}
+                          {onOpenAllBairros && (
+                            <button
+                              type="button"
+                              onClick={() => go(() => onOpenAllBairros("VENDA"))}
+                              className="block w-full text-center text-xs font-bold text-sky-400 py-1.5 hover:underline"
+                            >
+                              Abrir Seletor Completo com Busca →
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => go(() => scrollToId("diretorio"))}

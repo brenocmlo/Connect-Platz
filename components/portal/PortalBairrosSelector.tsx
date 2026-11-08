@@ -8,6 +8,7 @@ import { scrollToId } from "./portalUtils";
 interface PortalBairrosSelectorProps {
   cities: DirectoryCity[];
   onNavigate: NavigateFn;
+  onOpenAllBairros?: () => void;
 }
 
 interface FlattenedBairro {
@@ -17,7 +18,7 @@ interface FlattenedBairro {
   modalidades: string[];
 }
 
-export function PortalBairrosSelector({ cities, onNavigate }: PortalBairrosSelectorProps) {
+export function PortalBairrosSelector({ cities, onNavigate, onOpenAllBairros }: PortalBairrosSelectorProps) {
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
@@ -112,28 +113,26 @@ export function PortalBairrosSelector({ cities, onNavigate }: PortalBairrosSelec
           </div>
 
           {/* Busca rápida de Bairro */}
-          {allBairros.length > 5 && (
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar bairro..."
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-1.5 pl-8 pr-3 text-xs text-white placeholder-white/40 transition-colors focus:border-connect-blue focus:outline-none"
-              />
-            </div>
-          )}
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar bairro..."
+              className="w-full rounded-xl border border-white/10 bg-white/5 py-1.5 pl-8 pr-3 text-xs text-white placeholder-white/40 transition-colors focus:border-connect-blue focus:outline-none"
+            />
+          </div>
         </div>
 
-        {/* Lista de Bairros */}
+        {/* Lista de Bairros (máx 20 exibidos) */}
         <div className="no-scrollbar mt-3 max-h-56 overflow-y-auto space-y-1 pr-0.5">
           {filteredBairros.length === 0 ? (
             <div className="py-6 text-center text-xs text-white/50">
               Nenhum bairro cadastrado {selectedCity ? `em ${selectedCity}` : ""}.
             </div>
           ) : (
-            filteredBairros.map((b) => (
+            filteredBairros.slice(0, 20).map((b) => (
               <button
                 key={`${b.cidade}-${b.nome}`}
                 type="button"
@@ -158,23 +157,35 @@ export function PortalBairrosSelector({ cities, onNavigate }: PortalBairrosSelec
         </div>
 
         {/* Ações Rápidas no Rodapé */}
-        <div className="mt-2.5 flex items-center justify-between border-t border-white/10 pt-2 px-1 text-[11px]">
-          {selectedCity && (
+        <div className="mt-2.5 border-t border-white/10 pt-2 px-1 space-y-1.5 text-[11px]">
+          {onOpenAllBairros && (
             <button
               type="button"
-              onClick={() => handleSelectCityOnly(selectedCity)}
-              className="font-bold text-sky-400 transition-colors hover:text-white hover:underline"
+              onClick={onOpenAllBairros}
+              className="flex w-full items-center justify-between font-bold text-platz-gold transition-colors hover:text-white"
             >
-              Ver todos em {selectedCity}
+              <span>Ver todos os {allBairros.length} bairros</span>
+              <span>→</span>
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => scrollToId("diretorio")}
-            className="ml-auto font-medium text-white/60 transition-colors hover:text-platz-gold"
-          >
-            Guia de Bairros & Cidades ↓
-          </button>
+          <div className="flex items-center justify-between">
+            {selectedCity ? (
+              <button
+                type="button"
+                onClick={() => handleSelectCityOnly(selectedCity)}
+                className="font-bold text-sky-400 transition-colors hover:text-white hover:underline"
+              >
+                Ver todos em {selectedCity}
+              </button>
+            ) : <span />}
+            <button
+              type="button"
+              onClick={() => scrollToId("diretorio")}
+              className="font-medium text-white/60 transition-colors hover:text-platz-gold"
+            >
+              Guia completo ↓
+            </button>
+          </div>
         </div>
       </div>
     </div>

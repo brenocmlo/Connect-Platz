@@ -145,7 +145,7 @@ export function buildDirectory(items: DirectorySource[]): DirectoryCity[] {
           total: b.total,
           modalidades: Array.from(b.modalidades),
         }))
-        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+        .sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, "pt-BR")),
     }))
     .sort((a, b) => a.cidade.localeCompare(b.cidade, "pt-BR"));
 }

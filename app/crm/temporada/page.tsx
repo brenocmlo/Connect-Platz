@@ -22,11 +22,11 @@ import { RentalContractsList, RentalContractItem } from "@/components/crm/tempor
 
 export default function TemporadaVeraneioPage() {
   const { user, setActionMessage, hideValues } = useCrm();
-  const canManageRental =
+  const canApproveRental =
     user?.role === "ADMINISTRADOR" ||
     user?.role === "ADMINISTRADOR_ALUGUEL" ||
-    user?.role === "FINANCEIRO_ALUGUEL" ||
-    user?.role === "CORRETOR_ALUGUEL";
+    user?.role === "FINANCEIRO_ALUGUEL";
+  const canManageRental = canApproveRental || user?.role === "CORRETOR_ALUGUEL";
 
   const [activeTab, setActiveTab] = useState<"temporada" | "anual" | "overbooking">("temporada");
   const [bookings, setBookings] = useState<BookingItem[]>([]);
@@ -296,6 +296,7 @@ export default function TemporadaVeraneioPage() {
             rentals={activeRentals}
             hideValues={hideValues}
             canManageRental={canManageRental}
+            canApproveRental={canApproveRental}
             onNewContract={() => setIsNewRentalModalOpen(true)}
             onUpdateStatus={handleRentalStatusUpdate}
           />
@@ -360,6 +361,7 @@ export default function TemporadaVeraneioPage() {
                   rentals={cancelledRentals}
                   hideValues={hideValues}
                   canManageRental={canManageRental}
+                  canApproveRental={canApproveRental}
                   onUpdateStatus={handleRentalStatusUpdate}
                 />
               )}

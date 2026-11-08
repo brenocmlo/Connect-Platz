@@ -1,5 +1,5 @@
 // scripts/sync-membros-oficiais.ts
-// Sincroniza os 5 membros oficiais do Connect Platz CRM e remove usuários legados de teste.
+// Sincroniza os 7 membros oficiais do Connect Platz CRM e remove usuários legados de teste.
 
 import { PrismaClient, Role, CorretorStatus } from "@prisma/client";
 import { hashPassword } from "../lib/auth/password";
@@ -14,6 +14,20 @@ const OFICIAIS = [
     role: Role.ADMINISTRADOR,
     telefone: "(85) 99999-0001",
     creci: "00001-J",
+  },
+  {
+    nome: "Marcelo Rocha",
+    email: "admin.venda@connectplatz.com.br",
+    role: Role.ADMINISTRADOR_VENDA,
+    telefone: "(85) 99999-0010",
+    creci: "00002-J",
+  },
+  {
+    nome: "Patrícia Lima",
+    email: "admin.aluguel@connectplatz.com.br",
+    role: Role.ADMINISTRADOR_ALUGUEL,
+    telefone: "(85) 99999-0020",
+    creci: "00003-J",
   },
   {
     nome: "Beatriz Mendes",
@@ -46,7 +60,7 @@ const OFICIAIS = [
 ];
 
 async function main() {
-  console.log("🚀 Sincronizando os 5 membros oficiais do Connect Platz...");
+  console.log("🚀 Sincronizando os 7 membros oficiais do Connect Platz...");
 
   // 1. Organização
   let org = await prisma.organization.findFirst({
@@ -147,7 +161,7 @@ async function main() {
     }
   }
 
-  console.log("\n🎉 Concluído com sucesso! Os 5 perfis estão prontos para login com a senha: ConnectPlatz2026@");
+  console.log("\n🎉 Concluído com sucesso! Os 7 perfis estão prontos para login com a senha: ConnectPlatz2026@");
 }
 
 main()
