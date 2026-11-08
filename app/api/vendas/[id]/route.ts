@@ -3,14 +3,11 @@
 // Acesso restrito a administradores e gestores financeiros de venda.
 
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import {
-  Prisma,
-  Role,
   PaymentStatus,
   CashFlowType,
   CommissionBeneficiaryType,
-  PaymentMethod,
+  UnitStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireSession, canManageSaleValues } from "@/lib/auth/session";
@@ -24,33 +21,10 @@ import {
   saleInclude,
   serializeSale,
   splitCashFlowDescription,
-  computeStatusComissao,
 } from "../serialize";
+import { UUID_RE, UpdateSaleSchema } from "../saleSchemas";
 
 export const dynamic = "force-dynamic";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (AAAA-MM-DD).");
-
-const ParticipantSchema = z.object({
-  role: z.enum(["CORRETOR_1", "CORRETOR_2", "GESTOR", "CAPTADOR"]),
-  userId: z.string().uuid("Participante inválido."),
-  percentual: z.number().min(0).max(100),
-  desconto: z.number().nonnegative().optional().default(0),
-  bonus: z.number().nonnegative().optional().default(0),
-  documentoPix: z.string().trim().max(140).optional(),
-});
-
-const UpdateSaleSchema = z.object({
-  dataVenda: dateOnly.optional(),
-  vgv: z.number().positive("VGV deve ser positivo.").optional(),
-  valorAvaliacao: z.number().nonnegative().optional().nullable(),
-  percentualComissao: z.number().positive().max(100).optional(),
-  impostoPercentual: z.number().min(0).max(100).optional().default(0),
-  meioPagamento: z.nativeEnum(PaymentMethod).optional(),
-  unidadeNumero: z.string().trim().max(40).optional().nullable(),
-  participants: z.array(ParticipantSchema).min(1).optional(),
-});
 
 /**
  * DELETE /api/vendas/[id]
@@ -99,10 +73,25 @@ export async function DELETE(
         where: { saleId: sale.id },
       });
 
-      // 3. Remove a venda
-      await tx.sale.delete({
-        where: { id: sale.id },
-      });
+      // 3. Libera a unidade no Espelho de Vendas se vinculada
+      if (sale.unitId) {
+        await tx.propertyUnit.update({
+          where: { id: sale.unitId },
+          data: { status: UnitStatus.DISPONIVEL },
+        });
+      }
+
+      // 4. Remove a venda e restaura status financeiro do lead se não houver outra venda
+      await tx.sale.delete({ where: { id: sale.id } });
+      if (sale.leadId) {
+        const otherSales = await tx.sale.count({ where: { leadId: sale.leadId } });
+        if (otherSales === 0) {
+          await tx.lead.update({
+            where: { id: sale.leadId },
+            data: { financialApprovalStatus: "NONE" },
+          });
+        }
+      }
     });
 
     await recordAudit({
@@ -173,18 +162,39 @@ export async function PATCH(
       where: { id: params.id, organizationId: session.organizationId },
       include: {
         commissionSplits: true,
+        cashFlowEntries: true,
         property: { include: { units: true } },
       },
     });
-
-    if (!existing) {
-      return NextResponse.json({ error: "Venda não encontrada." }, { status: 404 });
-    }
+    if (!existing) return NextResponse.json({ error: "Venda não encontrada." }, { status: 404 });
 
     const vgvValue = input.vgv ?? Number(existing.valorVendaVGV);
     const percentualComissao = input.percentualComissao ?? Number(existing.percentualComissao);
-    const impostoPercentual = input.impostoPercentual ?? 0;
+    const totalPrevSplits = existing.commissionSplits.reduce((s, sp) => s + Number(sp.valor), 0);
+    const prevGross = Number(existing.valorComissaoTotal) || 0;
+    const inferredTaxPct =
+      prevGross > 0 && totalPrevSplits > 0 && totalPrevSplits < prevGross
+        ? Math.max(0, Number((((prevGross - totalPrevSplits) / prevGross) * 100).toFixed(2)))
+        : 0;
+    const impostoPercentual = input.impostoPercentual ?? inferredTaxPct;
+    const isRepasse = input.isRepasse !== undefined ? input.isRepasse : Boolean(existing.isRepasse);
+    const valorRepasse =
+      input.valorRepasse !== undefined ? (input.valorRepasse ?? undefined) : existing.valorRepasse ? Number(existing.valorRepasse) : undefined;
+    const saldoDevedor =
+      input.saldoDevedor !== undefined ? (input.saldoDevedor ?? undefined) : existing.saldoDevedor ? Number(existing.saldoDevedor) : undefined;
+    const baseCalculoComissao =
+      input.baseCalculoComissao !== undefined
+        ? (input.baseCalculoComissao ?? "REPASSE")
+        : (existing.baseCalculoComissao as any) || "REPASSE";
     const dataVenda = input.dataVenda ? new Date(`${input.dataVenda}T00:00:00Z`) : existing.dataVenda;
+    const targetUnit =
+      input.unidadeNumero !== undefined
+        ? input.unidadeNumero
+          ? existing.property?.units.find(
+              (u) => u.numeroUnidade.toLowerCase() === input.unidadeNumero!.toLowerCase()
+            ) || null
+          : null
+        : undefined;
 
     let participantsToCalculate = input.participants;
     let nameById = new Map<string, string>();
@@ -205,6 +215,10 @@ export async function PATCH(
           vgvValue,
           percentualComissao,
           impostoPercentual,
+          isRepasse,
+          valorRepasse,
+          saldoDevedor,
+          baseCalculoComissao,
           participants: participantsToCalculate.map((p) => ({
             role: p.role as ParticipantRole,
             userId: p.userId,
@@ -228,12 +242,31 @@ export async function PATCH(
         data: {
           dataVenda,
           valorVendaVGV: vgvValue,
+          isRepasse,
+          valorRepasse: isRepasse ? valorRepasse : null,
+          entradaRepasse: isRepasse ? (input.entradaRepasse !== undefined ? input.entradaRepasse : existing.entradaRepasse ? Number(existing.entradaRepasse) : null) : null,
+          parcelasRepasse: isRepasse ? (input.parcelasRepasse !== undefined ? input.parcelasRepasse : existing.parcelasRepasse) : null,
+          valorParcelaRepasse: isRepasse ? (input.valorParcelaRepasse !== undefined ? input.valorParcelaRepasse : existing.valorParcelaRepasse ? Number(existing.valorParcelaRepasse) : null) : null,
+          saldoDevedor: isRepasse ? saldoDevedor : null,
+          titularOriginario: isRepasse ? (input.titularOriginario !== undefined ? input.titularOriginario : existing.titularOriginario) : null,
+          clausulaRepasse: isRepasse ? (input.clausulaRepasse !== undefined ? input.clausulaRepasse : existing.clausulaRepasse) : null,
+          baseCalculoComissao: isRepasse ? baseCalculoComissao : null,
           ...(input.valorAvaliacao !== undefined ? { valorAvaliacao: input.valorAvaliacao } : {}),
           ...(calc ? { valorComissaoTotal: calc.comissaoTotalBruta } : {}),
+          ...(targetUnit !== undefined ? { unitId: targetUnit?.id || null } : {}),
           percentualComissao,
           ...(input.meioPagamento ? { meioPagamento: input.meioPagamento } : {}),
         },
       });
+
+      if (targetUnit !== undefined && targetUnit?.id !== existing.unitId) {
+        if (existing.unitId) {
+          await tx.propertyUnit.update({ where: { id: existing.unitId }, data: { status: UnitStatus.DISPONIVEL } });
+        }
+        if (targetUnit?.id) {
+          await tx.propertyUnit.update({ where: { id: targetUnit.id }, data: { status: UnitStatus.VENDIDA } });
+        }
+      }
 
       // Se os participantes/valores foram alterados, sincroniza splits e fluxo de caixa
       if (calc && participantsToCalculate) {
@@ -307,7 +340,10 @@ export async function PATCH(
           });
         }
 
-        // Receita da comissão no fluxo de caixa
+        // Receita da comissão no fluxo de caixa (preservando status se já recebida)
+        const prevRevenue = existing.cashFlowEntries.find(
+          (cf) => cf.tipo === CashFlowType.RECEITA && cf.categoria === "Comissão Venda"
+        );
         await tx.cashFlow.create({
           data: {
             organizationId: session.organizationId,
@@ -315,8 +351,10 @@ export async function PATCH(
             categoria: "Comissão Venda",
             descricao: `Comissão ${existing.codigoVenda} • ${existing.property?.nome || "Imóvel"}`,
             valor: calc.comissaoTotalBruta,
-            dataVencimento: new Date(dataVenda.getTime() + 30 * 86400000),
-            status: PaymentStatus.PENDENTE,
+            dataVencimento: prevRevenue?.dataVencimento || new Date(dataVenda.getTime() + 30 * 86400000),
+            status: prevRevenue?.status || PaymentStatus.PENDENTE,
+            dataPagamento: prevRevenue?.dataPagamento || null,
+            meioPagamento: input.meioPagamento || prevRevenue?.meioPagamento || existing.meioPagamento,
             modalidade: "VENDA",
             saleId: updated.id,
           },

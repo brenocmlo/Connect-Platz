@@ -29,6 +29,10 @@ export const BENEFICIARY_LABEL: Record<string, string> = {
   PARCEIRO_EXTERNO: "Parceiro Externo",
 };
 
+/** Cláusula padrão de inadimplência e rescisão para contratos de repasse (editável pelo Admin/Financeiro). */
+export const DEFAULT_CLAUSULA_REPASSE =
+  "O imóvel permanece registrado em nome do titular originário. O adquirente assume o pagamento contínuo das parcelas. Se houver atraso superior a 3 meses (90 dias), haverá quebra de contrato com perda integral dos valores pagos e retomada do imóvel.";
+
 export interface ParticipantInput {
   role: ParticipantRole;
   userId?: string | null;
@@ -40,9 +44,13 @@ export interface ParticipantInput {
 
 export interface SplitCalculationParams {
   vgvValue: number;
-  percentualComissao: number; // % bruta sobre o VGV
+  percentualComissao: number; // % bruta sobre a base de cálculo
   impostoPercentual: number; // % sobre a comissão bruta
   participants: ParticipantInput[];
+  isRepasse?: boolean;
+  valorRepasse?: number;
+  saldoDevedor?: number;
+  baseCalculoComissao?: "REPASSE" | "VGV";
 }
 
 export interface CalculatedParticipant extends ParticipantInput {
@@ -51,6 +59,12 @@ export interface CalculatedParticipant extends ParticipantInput {
 
 export interface SaleCalculation {
   vgv: number;
+  isRepasse?: boolean;
+  valorRepasse?: number;
+  saldoDevedor?: number;
+  baseCalculoComissao?: "REPASSE" | "VGV";
+  baseComissaoValor: number;
+  repasseLiquidoVendedor: number;
   comissaoTotalBruta: number;
   impostoEstimado: number;
   baseLiquida: number;
@@ -67,7 +81,14 @@ const round2 = (n: number) => Math.round((Number.isFinite(n) ? n : 0) * 100) / 1
 const safe = (n: number | undefined) => (Number.isFinite(n) ? Number(n) : 0);
 
 export function calculateSaleValues(params: SplitCalculationParams): SaleCalculation {
-  const comissaoTotalBruta = round2((safe(params.vgvValue) * safe(params.percentualComissao)) / 100);
+  const isRepasse = Boolean(params.isRepasse);
+  const baseCalculo = params.baseCalculoComissao || "REPASSE";
+  const baseParaComissao =
+    isRepasse && baseCalculo === "REPASSE" && params.valorRepasse != null && params.valorRepasse > 0
+      ? params.valorRepasse
+      : params.vgvValue;
+
+  const comissaoTotalBruta = round2((safe(baseParaComissao) * safe(params.percentualComissao)) / 100);
   const impostoEstimado = round2((comissaoTotalBruta * safe(params.impostoPercentual)) / 100);
   const baseLiquida = round2(comissaoTotalBruta - impostoEstimado);
 
@@ -80,8 +101,18 @@ export function calculateSaleValues(params: SplitCalculationParams): SaleCalcula
   const restante = round2(baseLiquida - somaParticipantes);
   const isOverAllocated = restante < -0.004 || participants.some((p) => p.valor < 0);
 
+  const repasseLiquidoVendedor = isRepasse
+    ? Math.max(0, round2(safe(params.valorRepasse) - comissaoTotalBruta))
+    : Math.max(0, round2(safe(params.vgvValue) - comissaoTotalBruta));
+
   return {
     vgv: safe(params.vgvValue),
+    isRepasse,
+    valorRepasse: params.valorRepasse,
+    saldoDevedor: params.saldoDevedor,
+    baseCalculoComissao: baseCalculo,
+    baseComissaoValor: safe(baseParaComissao),
+    repasseLiquidoVendedor,
     comissaoTotalBruta,
     impostoEstimado,
     baseLiquida,

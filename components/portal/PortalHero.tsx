@@ -2,16 +2,20 @@
 
 import React, { FormEvent, useEffect, useState } from "react";
 import { motion, useReducedMotion, type MotionProps } from "framer-motion";
-import { ChevronDown, Search, Tag, Waves } from "lucide-react";
-import type { PortalFilters } from "./types";
+import { ChevronDown, Key, RefreshCw, Search, Tag, Waves } from "lucide-react";
+import type { Modalidade, PortalFilters } from "./types";
 import { BEDROOM_OPTIONS, PRICE_RANGES, PROPERTY_TYPES } from "./portalUtils";
 
 const HERO_PHOTO =
   "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2000&q=80";
 
-const TABS = [
-  { id: "VENDA" as const, label: "Comprar", icon: Tag },
-  { id: "VERANEIO" as const, label: "Temporada", icon: Waves },
+type HeroTab = "VENDA" | "ALUGUEL" | "VERANEIO" | "REPASSE";
+
+const TABS: { id: HeroTab; label: string; icon: any }[] = [
+  { id: "VENDA", label: "Comprar", icon: Tag },
+  { id: "ALUGUEL", label: "Alugar", icon: Key },
+  { id: "VERANEIO", label: "Temporada", icon: Waves },
+  { id: "REPASSE", label: "Repasses", icon: RefreshCw },
 ];
 
 function HeroSelect({
@@ -63,7 +67,7 @@ export function PortalHero({
 }: PortalHeroProps) {
   const [mounted, setMounted] = useState(false);
   const reduce = useReducedMotion();
-  const [tab, setTab] = useState<"VENDA" | "VERANEIO">("VENDA");
+  const [tab, setTab] = useState<HeroTab>("VENDA");
   const [localizacao, setLocalizacao] = useState("");
   const [tipoImovel, setTipoImovel] = useState("TODOS");
   const [quartosMin, setQuartosMin] = useState("TODOS");
@@ -79,7 +83,7 @@ export function PortalHero({
   );
   const [dynamicSubtitle, setDynamicSubtitle] = useState(
     propSubtitle ||
-      "Venda e temporada em Fortaleza e no litoral, com corretores especialistas e crédito facilitado."
+      "Venda, aluguel e temporada em Fortaleza e no litoral, com corretores especialistas e crédito facilitado."
   );
 
   useEffect(() => {
@@ -104,7 +108,7 @@ export function PortalHero({
     fetchSettings();
   }, []);
 
-  const changeTab = (id: "VENDA" | "VERANEIO") => {
+  const changeTab = (id: HeroTab) => {
     setTab(id);
     setFaixaPreco("TODOS");
   };

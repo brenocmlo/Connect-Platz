@@ -16,7 +16,7 @@ import {
   DollarSign,
   Loader2,
 } from "lucide-react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { LeadDetail } from "@/components/crm/leads/types";
 import { ScoreBadge, LeadTag } from "@/components/crm/primitives";
 import { useCrm } from "@/components/crm/CrmContext";
 import { LeadAbordagemSection } from "./LeadAbordagemSection";

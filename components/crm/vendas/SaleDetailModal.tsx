@@ -153,6 +153,13 @@ export function SaleDetailModal({
             comissaoTotal={sale.comissaoTotal}
             impostoValor={sale.impostoValor}
             impostoPercentual={sale.impostoPercentual}
+            isRepasse={sale.isRepasse}
+            valorRepasse={sale.valorRepasse || undefined}
+            entradaRepasse={sale.entradaRepasse || undefined}
+            parcelasRepasse={sale.parcelasRepasse || undefined}
+            valorParcelaRepasse={sale.valorParcelaRepasse || undefined}
+            saldoDevedor={sale.saldoDevedor || undefined}
+            titularOriginario={sale.titularOriginario || undefined}
             splits={sale.splits}
           />
 

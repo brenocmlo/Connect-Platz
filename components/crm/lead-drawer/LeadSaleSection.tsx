@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { DollarSign, CheckCircle2, Building2, User, Calendar, ArrowRight, ShieldCheck } from "lucide-react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { LeadDetail } from "@/components/crm/leads/types";
 import { useCrm } from "@/components/crm/CrmContext";
 
 interface LeadSaleSectionProps {

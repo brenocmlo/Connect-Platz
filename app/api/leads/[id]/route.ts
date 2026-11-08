@@ -191,15 +191,21 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     if (!canModifyLead(lead, session)) return forbidden("Você não tem permissão para excluir este lead.");
 
-    // Sale e SeasonBooking usam onDelete: Restrict — bloqueia com mensagem clara
-    const [salesCount, bookingsCount] = await Promise.all([
+    // Sale, SeasonBooking e RentalContract vinculadas bloqueiam exclusão com mensagem clara
+    const [salesCount, bookingsCount, rentalsCount] = await Promise.all([
       prisma.sale.count({ where: { leadId: lead.id } }),
       prisma.seasonBooking.count({ where: { leadId: lead.id } }),
+      prisma.rentalContract.count({ where: { leadId: lead.id } }),
     ]);
-    if (salesCount > 0 || bookingsCount > 0) {
-      const motivo = salesCount > 0 ? `${salesCount} venda(s)` : `${bookingsCount} reserva(s) de temporada`;
+    if (salesCount > 0 || bookingsCount > 0 || rentalsCount > 0) {
+      const motivo =
+        salesCount > 0
+          ? `${salesCount} venda(s)`
+          : bookingsCount > 0
+          ? `${bookingsCount} reserva(s) de temporada`
+          : `${rentalsCount} contrato(s) de locação`;
       return NextResponse.json(
-        { error: `Este lead possui ${motivo} vinculada(s) e não pode ser excluído. Encerre a oportunidade em vez de excluir.` },
+        { error: `Este lead possui ${motivo} vinculado(s) e não pode ser excluído. Encerre a oportunidade em vez de excluir.` },
         { status: 409 }
       );
     }

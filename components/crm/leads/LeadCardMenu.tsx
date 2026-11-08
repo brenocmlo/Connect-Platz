@@ -18,7 +18,7 @@ import {
   ChevronRight,
   MessageSquare,
 } from "lucide-react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { LeadDetail } from "./types";
 
 interface LeadCardMenuProps {
   lead: LeadDetail;

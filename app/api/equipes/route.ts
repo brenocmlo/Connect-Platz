@@ -221,11 +221,33 @@ export async function PATCH(req: NextRequest) {
           { status: 403 }
         );
       }
-      if (role && role !== target.role && !isAdmin(session.role)) {
-        return NextResponse.json(
-          { error: "Apenas Administradores podem alterar o cargo do colaborador." },
-          { status: 403 }
-        );
+      if (role && role !== target.role) {
+        if (!isAdmin(session.role)) {
+          return NextResponse.json(
+            { error: "Apenas Administradores podem alterar o cargo do colaborador." },
+            { status: 403 }
+          );
+        }
+        if (
+          session.role === Role.ADMINISTRADOR_VENDA &&
+          role !== Role.CORRETOR_VENDA &&
+          role !== Role.FINANCEIRO_VENDA
+        ) {
+          return NextResponse.json(
+            { error: "Administrador de Vendas só pode atribuir cargos da equipe de Vendas." },
+            { status: 403 }
+          );
+        }
+        if (
+          session.role === Role.ADMINISTRADOR_ALUGUEL &&
+          role !== Role.CORRETOR_ALUGUEL &&
+          role !== Role.FINANCEIRO_ALUGUEL
+        ) {
+          return NextResponse.json(
+            { error: "Administrador de Aluguel só pode atribuir cargos da equipe de Aluguel." },
+            { status: 403 }
+          );
+        }
       }
     }
 

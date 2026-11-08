@@ -19,7 +19,12 @@ export interface IUserRepository {
   create(data: CreateUserData): Promise<User>;
   updateStatus(userId: string, status: CorretorStatus): Promise<User>;
   updateLastLeadAssignedAt(userId: string, date: Date): Promise<User>;
-  findEligibleCorretores(organizationId: string, date: Date): Promise<User[]>;
+  findEligibleCorretores(
+    organizationId: string,
+    date: Date,
+    modality?: "VENDA" | "ALUGUEL",
+    excludeUserId?: string
+  ): Promise<User[]>;
   registerCheckIn(userId: string, date: Date, ip?: string): Promise<CheckIn>;
   hasCheckedInToday(userId: string, date: Date): Promise<boolean>;
 }

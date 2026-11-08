@@ -68,13 +68,25 @@ export function usePropertyMaterials(propertyId: string | null) {
     if (!up.ok) throw new Error(await readError(up, "Erro no upload do arquivo."));
     const uploaded = (await up.json()).firstFile;
 
-    return register({ titulo, categoria, url: uploaded.url, tipo: uploaded.type || "pdf" });
+    return register({
+      titulo,
+      categoria,
+      url: uploaded.url,
+      tipo: uploaded.type || "pdf",
+      tamanho: uploaded.size || formatBytes(file.size),
+    });
   };
 
   const addLink = (url: string, titulo: string, categoria: MaterialCategoria) =>
     register({ titulo, categoria, url, tipo: "link" });
 
-  const register = async (payload: { titulo: string; categoria: MaterialCategoria; url: string; tipo: string }) => {
+  const register = async (payload: {
+    titulo: string;
+    categoria: MaterialCategoria;
+    url: string;
+    tipo: string;
+    tamanho?: string;
+  }) => {
     const res = await fetch(`/api/properties/${propertyId}/materials`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -27,7 +27,10 @@ type ToastState = { message: string; type: "success" | "error" | "info" } | null
 
 export default function LeadsPage() {
   const { token, selectedPeriod, user } = useCrm();
-  const isAdmin = user?.role === "ADMINISTRADOR";
+  const isAdmin =
+    user?.role === "ADMINISTRADOR" ||
+    user?.role === "ADMINISTRADOR_VENDA" ||
+    user?.role === "ADMINISTRADOR_ALUGUEL";
   const isFinanceiro = user?.role === "FINANCEIRO_VENDA" || user?.role === "FINANCEIRO_ALUGUEL";
   const canAssignBroker = isAdmin || isFinanceiro;
   const { members: lookupMembers } = useCrmLookups({ enabled: true, members: true, leads: false, properties: false });

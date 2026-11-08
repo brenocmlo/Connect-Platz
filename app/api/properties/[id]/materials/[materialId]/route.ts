@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { resolveUploadPath } from "@/app/api/upload/uploadStorage";
+import { deleteFromR2, extractR2KeyFromUrl } from "@/lib/storage/r2Client";
 
 export const dynamic = "force-dynamic";
 
@@ -36,13 +37,18 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     await prisma.propertyMaterial.delete({ where: { id: material.id } });
 
-    // Apaga o arquivo só se estiver dentro de public/uploads/materials e não for usado por outro registro
+    // Apaga o arquivo só se estiver dentro de public/uploads/materials ou no R2 e não for usado por outro registro
     const filePath = resolveUploadPath(material.url, "materials");
+    const r2Key = extractR2KeyFromUrl(material.url, "materials");
     let arquivoRemovido = false;
-    if (filePath) {
+    if (filePath || r2Key) {
       const emUso = await prisma.propertyMaterial.count({ where: { url: material.url } });
       if (emUso === 0) {
-        arquivoRemovido = await unlink(filePath).then(() => true).catch(() => false);
+        if (r2Key) {
+          arquivoRemovido = await deleteFromR2(r2Key);
+        } else if (filePath) {
+          arquivoRemovido = await unlink(filePath).then(() => true).catch(() => false);
+        }
       }
     }
 

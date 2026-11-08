@@ -19,7 +19,7 @@ interface NewEmpreendimentoModalProps {
   onSuccess: () => void;
 }
 
-type Modalidade = "VENDA" | "VERANEIO_TEMPORADA" | "AMBOS";
+type Modalidade = "VENDA" | "VERANEIO_TEMPORADA" | "LOCACAO_ANUAL" | "AMBOS" | "REPASSE";
 
 export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpreendimentoModalProps) {
   const [nome, setNome] = useState("");
@@ -28,6 +28,9 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
   const [estagioObra, setEstagioObra] = useState("Lançamento");
   const [valorAPartir, setValorAPartir] = useState("");
   const [valorDiaria, setValorDiaria] = useState("");
+  const [valorAluguel, setValorAluguel] = useState("");
+  const [valorRepasse, setValorRepasse] = useState("");
+  const [saldoDevedor, setSaldoDevedor] = useState("");
   const [location, setLocation] = useState(EMPTY_LOCATION);
   const [tipologia, setTipologia] = useState(EMPTY_TIPOLOGIA);
   const [descricao, setDescricao] = useState("");
@@ -45,6 +48,9 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
     setEstagioObra("Lançamento");
     setValorAPartir("");
     setValorDiaria("");
+    setValorAluguel("");
+    setValorRepasse("");
+    setSaldoDevedor("");
     setLocation(EMPTY_LOCATION);
     setTipologia(EMPTY_TIPOLOGIA);
     setDescricao("");
@@ -58,6 +64,13 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
     setLoading(true);
     setError(null);
     try {
+      const vVenda =
+        modalidade === "REPASSE" && valorRepasse !== ""
+          ? Number(valorRepasse) + Number(saldoDevedor || 0)
+          : modalidade !== "VERANEIO_TEMPORADA" && modalidade !== "LOCACAO_ANUAL" && valorAPartir !== ""
+          ? Number(valorAPartir)
+          : null;
+
       const res = await fetch("/api/properties", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,8 +81,11 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
           exibirNaLandingPage,
           modalidade,
           estagioObra,
-          valorVenda: modalidade !== "VERANEIO_TEMPORADA" && valorAPartir !== "" ? Number(valorAPartir) : null,
-          valorDiaria: modalidade !== "VENDA" && valorDiaria !== "" ? Number(valorDiaria) : null,
+          valorVenda: vVenda,
+          valorDiaria: (modalidade === "VERANEIO_TEMPORADA" || modalidade === "AMBOS") && valorDiaria !== "" ? Number(valorDiaria) : null,
+          valorAluguel: (modalidade === "LOCACAO_ANUAL" || modalidade === "AMBOS") && valorAluguel !== "" ? Number(valorAluguel) : null,
+          valorRepasse: modalidade === "REPASSE" && valorRepasse !== "" ? Number(valorRepasse) : null,
+          saldoDevedor: modalidade === "REPASSE" && saldoDevedor !== "" ? Number(saldoDevedor) : null,
           ...locationPayload(location),
           descricao: descricao || null,
           fotos,
@@ -139,9 +155,11 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
           <div>
             <label htmlFor="emp-modalidade" className={fieldLabel}>Modalidade</label>
             <select id="emp-modalidade" value={modalidade} onChange={(e) => setModalidade(e.target.value as Modalidade)} className={fieldInput}>
-              <option value="VENDA">Venda Tradicional</option>
-              <option value="VERANEIO_TEMPORADA">Temporada / Veraneio</option>
-              <option value="AMBOS">Ambos (Venda & Temporada)</option>
+              <option value="VENDA">🏢 Venda Tradicional</option>
+              <option value="LOCACAO_ANUAL">🔑 Locação Comum</option>
+              <option value="VERANEIO_TEMPORADA">🏖️ Temporada / Veraneio</option>
+              <option value="REPASSE">🔄 Repasse de Imóvel</option>
+              <option value="AMBOS">✨ Ambos (Venda & Temporada)</option>
             </select>
           </div>
           <div>
@@ -152,17 +170,47 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
               <option value="Pronto para Morar">Pronto para Morar</option>
             </select>
           </div>
-          {modalidade !== "VERANEIO_TEMPORADA" && (
+          {modalidade === "VENDA" && (
             <div>
               <label htmlFor="emp-valor" className={fieldLabel}>Preço a partir de (R$)</label>
               <input id="emp-valor" type="number" min="0" value={valorAPartir} onChange={(e) => setValorAPartir(e.target.value)} placeholder="Ex.: 850000" className={fieldInput} />
             </div>
           )}
-          {modalidade !== "VENDA" && (
+          {modalidade === "LOCACAO_ANUAL" && (
+            <div>
+              <label htmlFor="emp-aluguel" className={fieldLabel}>Aluguel a partir de (R$/mês)</label>
+              <input id="emp-aluguel" type="number" min="0" value={valorAluguel} onChange={(e) => setValorAluguel(e.target.value)} placeholder="Ex.: 3200" className={fieldInput} />
+            </div>
+          )}
+          {modalidade === "VERANEIO_TEMPORADA" && (
             <div>
               <label htmlFor="emp-diaria" className={fieldLabel}>Diária base (R$)</label>
               <input id="emp-diaria" type="number" min="0" value={valorDiaria} onChange={(e) => setValorDiaria(e.target.value)} placeholder="Ex.: 950" className={fieldInput} />
             </div>
+          )}
+          {modalidade === "AMBOS" && (
+            <>
+              <div>
+                <label htmlFor="emp-valor" className={fieldLabel}>Preço a partir de (R$)</label>
+                <input id="emp-valor" type="number" min="0" value={valorAPartir} onChange={(e) => setValorAPartir(e.target.value)} placeholder="Ex.: 850000" className={fieldInput} />
+              </div>
+              <div>
+                <label htmlFor="emp-diaria" className={fieldLabel}>Diária base (R$)</label>
+                <input id="emp-diaria" type="number" min="0" value={valorDiaria} onChange={(e) => setValorDiaria(e.target.value)} placeholder="Ex.: 950" className={fieldInput} />
+              </div>
+            </>
+          )}
+          {modalidade === "REPASSE" && (
+            <>
+              <div>
+                <label htmlFor="emp-repasse" className={fieldLabel}>Repasse / Ágio a partir de (R$)</label>
+                <input id="emp-repasse" type="number" min="0" value={valorRepasse} onChange={(e) => setValorRepasse(e.target.value)} placeholder="Ex.: 85000" className={fieldInput} />
+              </div>
+              <div>
+                <label htmlFor="emp-saldo" className={fieldLabel}>Saldo Devedor a Assumir (R$)</label>
+                <input id="emp-saldo" type="number" min="0" value={saldoDevedor} onChange={(e) => setSaldoDevedor(e.target.value)} placeholder="Ex.: 220000" className={fieldInput} />
+              </div>
+            </>
           )}
         </div>
 

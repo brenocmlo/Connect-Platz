@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { PaymentStatus, CashFlowType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
+import { requireSession, canManageSaleValues } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import {
   saleInclude,
@@ -31,9 +31,15 @@ const PatchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = requireSession(req, ADMIN_ROLES);
+  const auth = requireSession(req);
   if (auth.error) return auth.error;
   const { session } = auth;
+  if (!canManageSaleValues(session.role)) {
+    return NextResponse.json(
+      { error: "Apenas administradores e financeiro de vendas podem atualizar comissões." },
+      { status: 403 }
+    );
+  }
 
   const body = await req.json().catch(() => null);
   const parsed = PatchSchema.safeParse(body);

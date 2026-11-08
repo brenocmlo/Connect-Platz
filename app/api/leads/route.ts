@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { buildLeadRLSWhere } from "@/lib/db/rls";
+import { buildLeadRLSWhere, maskLeadSensitiveData } from "@/lib/db/rls";
 import { requireSession, isAdmin, getUserModality } from "@/lib/auth/session";
 import { Role, BusinessModality } from "@prisma/client";
 import { recordAudit } from "@/lib/services/audit-server";
@@ -102,20 +102,25 @@ export async function GET(req: NextRequest) {
           id: true,
           nome: true,
           telefone: true,
+          corretorId: true,
+          modalidade: true,
           funnel: { select: { id: true, nome: true } },
           stage: { select: { nome: true } },
         },
         take: 3,
       });
 
-      otherFunnelMatches = rawMatches.map((m) => ({
-        id: m.id,
-        nome: m.nome,
-        telefone: m.telefone,
-        funilId: m.funnel.id,
-        funilNome: m.funnel.nome,
-        stageNome: m.stage.nome,
-      }));
+      otherFunnelMatches = rawMatches.map((m) => {
+        const masked = maskLeadSensitiveData(m, ctx);
+        return {
+          id: m.id,
+          nome: m.nome,
+          telefone: masked.telefone,
+          funilId: m.funnel.id,
+          funilNome: m.funnel.nome,
+          stageNome: m.stage.nome,
+        };
+      });
     }
 
     return NextResponse.json(

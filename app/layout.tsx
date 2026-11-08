@@ -87,7 +87,10 @@ export const metadata: Metadata = {
     title: "Connect Platz CRM",
   },
   icons: {
-    icon: "/icons/icon-192x192.png",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: "/icons/icon-192x192.png",
   },
   other: {

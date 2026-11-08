@@ -7,6 +7,7 @@ import { getBaseUrl, SITE_CONFIG } from "@/lib/seo/siteConfig";
 import { PropertyJsonLd } from "@/components/seo/PropertyJsonLd";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import {
+  PropertyFinancialInfo,
   PropertyGallery,
   PropertySidebar,
   PropertySpecs,
@@ -39,19 +40,35 @@ export async function generateMetadata({ params }: PropertyPageProps): Promise<M
   }
 
   const baseUrl = getBaseUrl();
+  const isRepasse = property.modalidade === "REPASSE" || Boolean(property.valorRepasse);
+  const isLocacao = property.modalidade === "LOCACAO_ANUAL" || Boolean(property.valorAluguel);
   const isTemporada =
     property.modalidade === "VERANEIO_TEMPORADA" || property.modalidade === "AMBOS";
-  const preco = isTemporada
-    ? property.valorDiaria
-      ? `R$ ${Number(property.valorDiaria).toLocaleString("pt-BR")}/diária`
-      : "Consulte valor"
-    : property.valorVenda
-      ? `R$ ${Number(property.valorVenda).toLocaleString("pt-BR")}`
+
+  let preco = "Consulte valor";
+  let tipoTexto = "À venda";
+  if (isRepasse) {
+    preco = property.valorRepasse
+      ? `Repasse R$ ${Number(property.valorRepasse).toLocaleString("pt-BR")}`
+      : "Consulte ágio";
+    tipoTexto = "Repasse de imóvel";
+  } else if (isLocacao) {
+    preco = property.valorAluguel
+      ? `R$ ${Number(property.valorAluguel).toLocaleString("pt-BR")}/mês`
       : "Consulte valor";
+    tipoTexto = "Aluguel anual";
+  } else if (isTemporada) {
+    preco = property.valorDiaria
+      ? `R$ ${Number(property.valorDiaria).toLocaleString("pt-BR")}/diária`
+      : "Consulte valor";
+    tipoTexto = "Aluguel de temporada";
+  } else if (property.valorVenda) {
+    preco = `R$ ${Number(property.valorVenda).toLocaleString("pt-BR")}`;
+  }
 
   const local = [property.bairro, property.cidade, property.estado].filter(Boolean).join(", ");
   const title = `${property.nome} em ${property.bairro || property.cidade || "Fortaleza"} | Connect Platz`;
-  const description = `${property.nome} em ${local}. ${isTemporada ? "Aluguel de temporada" : "À venda"} por ${preco}. ${property.descricao ? property.descricao.slice(0, 160) : "Entre em contato para agendar uma visita exclusiva."}`;
+  const description = `${property.nome} em ${local}. ${tipoTexto} por ${preco}. ${property.descricao ? property.descricao.slice(0, 160) : "Entre em contato para agendar uma visita exclusiva."}`;
   const fotoCapa = property.fotos?.[0] || `${baseUrl}/icons/icon-512x512.png`;
   const canonicalUrl = `${baseUrl}/imoveis/${encodeURIComponent(property.slug)}`;
 
@@ -100,15 +117,40 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
   if (!property) notFound();
 
   const baseUrl = getBaseUrl();
+  const isRepasse = property.modalidade === "REPASSE" || Boolean(property.valorRepasse);
+  const isLocacao = property.modalidade === "LOCACAO_ANUAL" || Boolean(property.valorAluguel);
   const isTemporada =
     property.modalidade === "VERANEIO_TEMPORADA" || property.modalidade === "AMBOS";
-  const valorFormatado = isTemporada
-    ? property.valorDiaria
-      ? `R$ ${Number(property.valorDiaria).toLocaleString("pt-BR")}`
-      : null
-    : property.valorVenda
+
+  let modalidadeBadge = "🔑 VENDA";
+  let badgeColorClass = "bg-connect-blue/15 text-connect-blue border-connect-blue/20";
+  let valorHeaderLabel = "Valor de Venda";
+  let valorFormatado = property.valorVenda ? `R$ ${Number(property.valorVenda).toLocaleString("pt-BR")}` : null;
+
+  if (isRepasse) {
+    modalidadeBadge = "🔄 REPASSE / ÁGIO";
+    badgeColorClass = "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/20";
+    valorHeaderLabel = "Valor do Repasse (Ágio)";
+    valorFormatado = property.valorRepasse
+      ? `R$ ${Number(property.valorRepasse).toLocaleString("pt-BR")}`
+      : property.valorVenda
       ? `R$ ${Number(property.valorVenda).toLocaleString("pt-BR")}`
       : null;
+  } else if (isLocacao) {
+    modalidadeBadge = "🔑 ALUGUEL ANUAL";
+    badgeColorClass = "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+    valorHeaderLabel = "Aluguel Mensal";
+    valorFormatado = property.valorAluguel
+      ? `R$ ${Number(property.valorAluguel).toLocaleString("pt-BR")}/mês`
+      : null;
+  } else if (isTemporada) {
+    modalidadeBadge = "🏖️ ALUGUEL TEMPORADA";
+    badgeColorClass = "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20";
+    valorHeaderLabel = "Valor da Diária";
+    valorFormatado = property.valorDiaria
+      ? `R$ ${Number(property.valorDiaria).toLocaleString("pt-BR")}/diária`
+      : null;
+  }
 
   const lat = property.latitude ?? undefined;
   const lng = property.longitude ?? undefined;
@@ -200,8 +242,8 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide bg-connect-blue/15 text-connect-blue border border-connect-blue/20">
-                {isTemporada ? "🏖️ ALUGUEL TEMPORADA" : "🔑 VENDA"}
+              <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide border ${badgeColorClass}`}>
+                {modalidadeBadge}
               </span>
               {property.estagioObra && (
                 <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground capitalize">
@@ -220,12 +262,17 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
 
           <div className="lg:text-right bg-card/60 p-4 rounded-xl border border-border/50">
             <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold block">
-              {isTemporada ? "Valor da Diária" : "Valor de Venda"}
+              {valorHeaderLabel}
             </span>
             <span className="text-2xl sm:text-3xl font-extrabold text-connect-blue">
               {valorFormatado || "Sob Consulta"}
             </span>
             {isTemporada && <span className="text-xs text-muted-foreground block">Mínimo de diárias sob consulta</span>}
+            {isRepasse && property.saldoDevedor && (
+              <span className="text-xs text-muted-foreground block mt-0.5">
+                + Saldo a assumir: R$ {Number(property.saldoDevedor).toLocaleString("pt-BR")}
+              </span>
+            )}
           </div>
         </div>
 
@@ -235,6 +282,21 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Coluna Principal: Ficha Técnica & Descrição */}
           <div className="lg:col-span-2 space-y-6">
+            <PropertyFinancialInfo
+              modalidade={property.modalidade}
+              valorVenda={property.valorVenda ? Number(property.valorVenda) : null}
+              valorAluguel={property.valorAluguel ? Number(property.valorAluguel) : null}
+              valorCondominio={property.valorCondominio ? Number(property.valorCondominio) : null}
+              valorIptu={property.valorIptu ? Number(property.valorIptu) : null}
+              valorRepasse={property.valorRepasse ? Number(property.valorRepasse) : null}
+              entradaRepasse={property.entradaRepasse ? Number(property.entradaRepasse) : null}
+              parcelasRepasse={property.parcelasRepasse || null}
+              valorParcelaRepasse={property.valorParcelaRepasse ? Number(property.valorParcelaRepasse) : null}
+              saldoDevedor={property.saldoDevedor ? Number(property.saldoDevedor) : null}
+              parcelaMensal={property.parcelaMensal ? Number(property.parcelaMensal) : null}
+              titularOriginario={property.titularOriginario || null}
+            />
+
             <PropertySpecs
               caracteristicas={property.caracteristicas as any}
               diferenciais={property.diferenciais}

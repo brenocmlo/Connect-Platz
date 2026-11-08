@@ -12,8 +12,12 @@ type IntegrationTab = "META_PIXEL" | "WEBHOOKS";
 export default function IntegracoesPage() {
   const { user } = useCrm();
   const [activeTab, setActiveTab] = useState<IntegrationTab>("META_PIXEL");
+  const isAdmin =
+    user?.role === "ADMINISTRADOR" ||
+    user?.role === "ADMINISTRADOR_VENDA" ||
+    user?.role === "ADMINISTRADOR_ALUGUEL";
 
-  if (user && user.role !== "ADMINISTRADOR") {
+  if (user && !isAdmin) {
     return (
       <AccessDeniedCard
         moduleName="as Integrações de Tráfego, Pixel e Portais"

@@ -85,11 +85,12 @@ export async function buildLeadUpdate(
   // 1. Bolsão
   if (input.action === "ASSUMIR_BOLSAO") {
     if (!lead.isBolsao || lead.isClosed) throw new LeadUpdateError("Este lead não está disponível no bolsão.");
+    const slaMinutes = lead.stage.slaMinutes || 20;
     set("corretorId", session.userId);
     set("isBolsao", false);
     set("bolsaoEnteredAt", null);
     set("slaBreached", false);
-    set("slaDueAt", new Date(Date.now() + 20 * 60 * 1000)); // SLA obrigatório de 20 min
+    set("slaDueAt", new Date(Date.now() + slaMinutes * 60 * 1000));
     plan.events.push({ tipo: "transbordo", conteudo: `Lead resgatado do Bolsão Compartilhado por ${session.nome}.` });
     return plan;
   }
@@ -125,6 +126,7 @@ export async function buildLeadUpdate(
 
     set("funnelId", targetFunnel.id);
     set("stageId", targetStage.id);
+    set("modalidade", targetFunnel.modalidade || "VENDA");
     set("slaBreached", false);
     set("slaDueAt", targetStage.slaMinutes ? new Date(Date.now() + targetStage.slaMinutes * 60 * 1000) : null);
     plan.isStageChange = true;
@@ -193,10 +195,20 @@ export async function buildLeadUpdate(
         })
       : null;
     if (!target) throw new LeadUpdateError("Corretor informado não pertence à sua organização.");
-    if (session.role === "FINANCEIRO_VENDA" && target.role !== "CORRETOR_VENDA" && target.role !== "ADMINISTRADOR") {
+    if (
+      (session.role === "FINANCEIRO_VENDA" || session.role === "ADMINISTRADOR_VENDA") &&
+      target.role !== "CORRETOR_VENDA" &&
+      target.role !== "ADMINISTRADOR_VENDA" &&
+      target.role !== "ADMINISTRADOR"
+    ) {
       throw new LeadUpdateError("Gestor de Venda só pode transferir leads para corretores de Venda.", 403);
     }
-    if (session.role === "FINANCEIRO_ALUGUEL" && target.role !== "CORRETOR_ALUGUEL" && target.role !== "ADMINISTRADOR") {
+    if (
+      (session.role === "FINANCEIRO_ALUGUEL" || session.role === "ADMINISTRADOR_ALUGUEL") &&
+      target.role !== "CORRETOR_ALUGUEL" &&
+      target.role !== "ADMINISTRADOR_ALUGUEL" &&
+      target.role !== "ADMINISTRADOR"
+    ) {
       throw new LeadUpdateError("Gestor de Aluguel só pode transferir leads para corretores de Aluguel.", 403);
     }
     set("corretorId", target.id);
@@ -252,7 +264,15 @@ function applyDataFields(lead: LeadWithStage, input: UpdateLeadInput, set: (k: s
   if (input.tipoOcupacaoCredito !== undefined && input.tipoOcupacaoCredito !== lead.tipoOcupacaoCredito) {
     set("tipoOcupacaoCredito", input.tipoOcupacaoCredito || null);
   }
-  if (input.statusCredito && input.statusCredito !== lead.statusCredito) set("statusCredito", input.statusCredito);
+  if (input.statusCredito && input.statusCredito !== lead.statusCredito) {
+    const effectiveOcupacao = input.tipoOcupacaoCredito !== undefined ? input.tipoOcupacaoCredito : lead.tipoOcupacaoCredito;
+    const effectiveRendaAutonomo =
+      input.rendaEspecificaAutonomo !== undefined ? input.rendaEspecificaAutonomo : Number(lead.rendaEspecificaAutonomo ?? 0);
+    if (input.statusCredito === "APROVADO" && effectiveOcupacao === "AUTONOMO" && (!effectiveRendaAutonomo || effectiveRendaAutonomo <= 0)) {
+      throw new LeadUpdateError("Para aprovar crédito de autônomo, é obrigatório informar a Renda Específica de Autônomo comprovada.");
+    }
+    set("statusCredito", input.statusCredito);
+  }
 
   const dataNascimento = parseDate(input.dataNascimento);
   if (dataNascimento !== undefined) set("dataNascimento", dataNascimento);

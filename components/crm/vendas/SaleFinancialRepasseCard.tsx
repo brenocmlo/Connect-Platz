@@ -14,6 +14,13 @@ interface SaleFinancialRepasseCardProps {
   proprietarioNome?: string;
   /** Permite compactar a exibição em cards de detalhe ou tabelas */
   compact?: boolean;
+  isRepasse?: boolean;
+  valorRepasse?: number;
+  entradaRepasse?: number;
+  parcelasRepasse?: number;
+  valorParcelaRepasse?: number;
+  saldoDevedor?: number;
+  titularOriginario?: string;
 }
 
 const brl = (n: number) =>
@@ -29,11 +36,19 @@ export function SaleFinancialRepasseCard({
   splits = [],
   proprietarioNome = "Proprietário / Vendedor",
   compact = false,
+  isRepasse = false,
+  valorRepasse,
+  entradaRepasse,
+  parcelasRepasse,
+  valorParcelaRepasse,
+  saldoDevedor,
+  titularOriginario,
 }: SaleFinancialRepasseCardProps) {
   // Cálculo determinístico do Repasse
-  // 1. Líquido do Proprietário / Vendedor = VGV - Comissão Bruta
-  const repasseProprietario = Math.max(0, vgv - comissaoTotal);
-  const pctProprietario = vgv > 0 ? (repasseProprietario / vgv) * 100 : 0;
+  // 1. Líquido do Proprietário / Vendedor / Cedente = (Repasse ou VGV) - Comissão Bruta
+  const baseVendedor = isRepasse && valorRepasse != null && valorRepasse > 0 ? valorRepasse : vgv;
+  const repasseProprietario = Math.max(0, baseVendedor - comissaoTotal);
+  const pctProprietario = baseVendedor > 0 ? (repasseProprietario / baseVendedor) * 100 : 0;
 
   // 2. Corretores (Titular + Segundo Corretor / Co-corretor)
   const corretoresSplits = splits.filter(
@@ -96,7 +111,7 @@ export function SaleFinancialRepasseCard({
             {brl(repasseProprietario)}
           </div>
           <span className="text-[10px] text-muted-foreground block mt-0.5">
-            VGV líquido a repassar
+            {isRepasse ? "Repasse líquido ao cedente" : "VGV líquido a repassar"}
           </span>
         </div>
 
@@ -158,6 +173,39 @@ export function SaleFinancialRepasseCard({
           </span>
         </div>
       </div>
+
+      {isRepasse && (
+        <div className="space-y-2 pt-1">
+          <div className="p-2.5 rounded-lg bg-connect-blue/5 border border-connect-blue/20 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
+            <span className="text-muted-foreground flex items-center gap-1.5">
+              <span className="px-1.5 py-0.5 rounded-md bg-connect-blue text-white font-bold text-[10px]">
+                REPASSE
+              </span>
+              {parcelasRepasse && parcelasRepasse > 1 ? (
+                <span>
+                  Ágio Parcelado: {entradaRepasse ? `Entrada ${brl(entradaRepasse)} + ` : ""}{parcelasRepasse}x de {brl(valorParcelaRepasse || 0)}
+                </span>
+              ) : (
+                <span>Ágio integral à vista: {brl(valorRepasse || 0)}</span>
+              )}
+            </span>
+            {saldoDevedor != null && saldoDevedor > 0 && (
+              <span className="font-mono text-muted-foreground text-[11px]">
+                Saldo financiado assumido: <strong className="text-connect-blue">{brl(saldoDevedor)}</strong>
+              </span>
+            )}
+          </div>
+
+          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <span>
+              <strong>Titular Originário (Gaveta):</strong> {titularOriginario || "Não informado"}
+            </span>
+            <span className="text-[10px] text-amber-700 dark:text-amber-300">
+              ⚠️ Inadimplência superior a 3 meses gera quebra de contrato e perda dos valores.
+            </span>
+          </div>
+        </div>
+      )}
 
       {!compact && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground pt-1 border-t border-border/60">

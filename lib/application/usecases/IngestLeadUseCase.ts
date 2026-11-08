@@ -8,6 +8,9 @@ export interface IngestLeadDto {
   organizationId: string;
   funnelId: string;
   stageId: string;
+  modalidade?: "VENDA" | "ALUGUEL";
+  operatingStart?: string;
+  operatingEnd?: string;
   nome: string;
   telefone: string;
   email?: string | null;
@@ -72,8 +75,14 @@ export class IngestLeadUseCase {
       };
     }
 
-    // 2. DISTRIBUIÇÃO PELA ROLETA
-    const roletaResult = await this.distributeUseCase.execute(dto.organizationId);
+    // 2. DISTRIBUIÇÃO PELA ROLETA (respeitando janela operacional e modalidade VENDA x ALUGUEL)
+    const leadModality = dto.modalidade === "ALUGUEL" ? "ALUGUEL" : "VENDA";
+    const roletaResult = await this.distributeUseCase.execute(
+      dto.organizationId,
+      dto.operatingStart || "09:00",
+      dto.operatingEnd || "22:00",
+      leadModality
+    );
     const assignedCorretor = roletaResult.assignedCorretor;
 
     const slaMins = dto.slaMinutes || 20;
@@ -87,6 +96,7 @@ export class IngestLeadUseCase {
       funnelId: dto.funnelId,
       stageId: dto.stageId,
       corretorId: assignedCorretor?.id || null,
+      modalidade: leadModality,
       nome: dto.nome,
       telefone: cleanPhone,
       email: dto.email,

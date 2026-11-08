@@ -10,8 +10,7 @@ import {
   CheckCircle2,
   Trash2,
 } from "lucide-react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
-import { FunnelColumn } from "@/components/crm/leads/KanbanBoard";
+import { LeadDetail, FunnelColumn } from "@/components/crm/leads/types";
 import { getNextStage, findLeadStageIndex } from "@/components/crm/leads/leadCalculations";
 
 interface LeadDrawerActionsProps {

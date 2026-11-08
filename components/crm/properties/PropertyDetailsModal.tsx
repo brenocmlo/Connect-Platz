@@ -71,7 +71,15 @@ export function PropertyDetailsModal({ property, onClose, onOpenMaterials }: Pro
           <div className="space-y-1.5 border-b border-border pb-4 pr-10">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-connect-blue px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                {p.modalidade === "VERANEIO_TEMPORADA" ? "Temporada" : p.modalidade === "AMBOS" ? "Venda e Temporada" : "Venda"}
+                {p.modalidade === "REPASSE"
+                  ? "🔄 Repasse"
+                  : p.modalidade === "LOCACAO_ANUAL"
+                  ? "🔑 Locação Comum"
+                  : p.modalidade === "VERANEIO_TEMPORADA"
+                  ? "🏖️ Temporada"
+                  : p.modalidade === "AMBOS"
+                  ? "Venda e Temporada"
+                  : "🏢 Venda"}
               </span>
               {p.estagioObra && (
                 <span className="rounded-full border border-platz-gold/40 bg-platz-gold/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-platz-gold">
@@ -209,7 +217,18 @@ export function PropertyDetailsModal({ property, onClose, onOpenMaterials }: Pro
               <span>{copied === "ok" ? "Ficha copiada!" : copied === "erro" ? "Não foi possível copiar" : "Copiar Ficha"}</span>
             </button>
 
-            <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              {p.tipoCadastro !== "AVULSO" && (
+                <a
+                  href={`/espelho/${p.slug || p.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-connect-blue/30 bg-connect-blue/10 px-3.5 py-2.5 text-xs font-bold text-connect-blue transition-all hover:bg-connect-blue/20 sm:flex-none"
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span>Espelho de Vendas</span>
+                </a>
+              )}
               {onOpenMaterials && (
                 <button
                   type="button"

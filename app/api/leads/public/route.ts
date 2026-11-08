@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
           include: {
             stages: { orderBy: { posicao: "asc" }, take: 1 },
           },
-          take: 1,
+          orderBy: { isDefault: "desc" },
         },
       },
     });
@@ -48,14 +48,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const funnel = org.funnels[0];
+    // Se o cliente selecionou um imóvel específico, detecta a modalidade (Venda vs Aluguel)
+    let targetModality: "VENDA" | "ALUGUEL" = "VENDA";
+    if (data.propertyId && /^[0-9a-f-]{36}$/i.test(data.propertyId)) {
+      const prop = await prisma.property.findFirst({
+        where: { id: data.propertyId, organizationId: org.id },
+        select: { modalidade: true },
+      });
+      if (prop?.modalidade === "VERANEIO_TEMPORADA") {
+        targetModality = "ALUGUEL";
+      }
+    }
+
+    const funnel =
+      org.funnels.find((f) => f.modalidade === targetModality && f.stages.length > 0) ||
+      org.funnels[0];
     const stage = funnel.stages[0];
+    const resolvedModality: "VENDA" | "ALUGUEL" =
+      funnel.modalidade === "ALUGUEL" ? "ALUGUEL" : targetModality;
 
     // Ingestão com Roleta Round-Robin e deduplicação
     const result = await container.ingestLeadUseCase.execute({
       organizationId: org.id,
       funnelId: funnel.id,
       stageId: stage.id,
+      modalidade: resolvedModality,
+      operatingStart: org.operatingStart,
+      operatingEnd: org.operatingEnd,
       slaMinutes: stage.slaMinutes || 20,
       nome: data.nome,
       telefone: data.telefone,

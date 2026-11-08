@@ -127,9 +127,11 @@ export function Sidebar() {
       <div className="h-16 px-3 border-b border-border flex items-center justify-between">
         {!isSidebarCollapsed ? (
           <div className="flex items-center gap-2 overflow-hidden">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1266C7] to-[#0D478F] flex items-center justify-center shadow-md shadow-connect-blue/20 flex-shrink-0">
-              <span className="font-extrabold text-white text-sm">CP</span>
-            </div>
+            <img
+              src="/logo-predio.png"
+              alt="Connect Platz"
+              className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-sm"
+            />
             <div className="flex flex-col">
               <span className="text-xs font-extrabold tracking-tight text-foreground leading-none">
                 CONNECT <span className="text-[#D9BB4C]">PLATZ</span>
@@ -140,9 +142,11 @@ export function Sidebar() {
             </div>
           </div>
         ) : (
-          <div className="mx-auto w-9 h-9 rounded-xl bg-gradient-to-br from-[#1266C7] to-[#0D478F] flex items-center justify-center shadow-md shadow-connect-blue/20">
-            <span className="font-extrabold text-white text-xs">CP</span>
-          </div>
+          <img
+            src="/logo-predio.png"
+            alt="Connect Platz"
+            className="mx-auto w-8 h-8 object-contain drop-shadow-sm"
+          />
         )}
 
         <button

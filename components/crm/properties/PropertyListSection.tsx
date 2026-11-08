@@ -48,7 +48,7 @@ export function PropertyListSection({
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 250);
   const [selectedFilter, setSelectedFilter] = useState<
-    "TODOS" | "TEMPORADA" | "VENDA" | "EMPREENDIMENTO" | "AVULSO" | "LANDING" | "LANCAMENTO" | "PRONTO"
+    "TODOS" | "TEMPORADA" | "LOCACAO" | "VENDA" | "REPASSE" | "EMPREENDIMENTO" | "AVULSO" | "LANDING" | "LANCAMENTO" | "PRONTO"
   >("TODOS");
 
   const baseProperties = useMemo(() => {
@@ -57,6 +57,7 @@ export function PropertyListSection({
         return (
           p.modalidade === "VENDA" ||
           p.modalidade === "AMBOS" ||
+          p.modalidade === "REPASSE" ||
           (!p.modalidade && Boolean(p.valorVenda))
         );
       }
@@ -66,7 +67,8 @@ export function PropertyListSection({
           p.modalidade === "LOCACAO_ANUAL" ||
           p.modalidade === "AMBOS" ||
           p.modalidade === "VERANEIO" ||
-          Boolean(p.valorDiaria)
+          Boolean(p.valorDiaria) ||
+          Boolean((p as any).valorAluguel)
         );
       }
       return true;
@@ -79,11 +81,22 @@ export function PropertyListSection({
       if (selectedFilter === "TEMPORADA") {
         const isVeraneio =
           p.modalidade === "VERANEIO_TEMPORADA" ||
-          p.modalidade === "LOCACAO_ANUAL" ||
-          p.modalidade === "AMBOS" ||
           p.modalidade === "VERANEIO" ||
           Boolean(p.valorDiaria);
         if (!isVeraneio) return false;
+      }
+      if (selectedFilter === "LOCACAO") {
+        const isLocacao =
+          p.modalidade === "LOCACAO_ANUAL" ||
+          p.modalidade === "AMBOS" ||
+          Boolean((p as any).valorAluguel);
+        if (!isLocacao) return false;
+      }
+      if (selectedFilter === "REPASSE") {
+        const isRep =
+          p.modalidade === "REPASSE" ||
+          Boolean((p as any).valorRepasse);
+        if (!isRep) return false;
       }
       if (selectedFilter === "VENDA") {
         const isVenda =
@@ -168,23 +181,6 @@ export function PropertyListSection({
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
         {[
           { id: "TODOS", label: `Todos (${baseProperties.length})` },
-          ...(!isVendaOnly
-            ? [
-                {
-                  id: "TEMPORADA",
-                  label: `🏖️ Aluguel / Temporada (${
-                    baseProperties.filter(
-                      (p) =>
-                        p.modalidade === "VERANEIO_TEMPORADA" ||
-                        p.modalidade === "LOCACAO_ANUAL" ||
-                        p.modalidade === "AMBOS" ||
-                        p.modalidade === "VERANEIO" ||
-                        Boolean(p.valorDiaria)
-                    ).length
-                  })`,
-                },
-              ]
-            : []),
           ...(!isAluguelOnly
             ? [
                 {
@@ -195,6 +191,38 @@ export function PropertyListSection({
                         p.modalidade === "VENDA" ||
                         p.modalidade === "AMBOS" ||
                         (!p.modalidade && Boolean(p.valorVenda))
+                    ).length
+                  })`,
+                },
+                {
+                  id: "REPASSE",
+                  label: `🔄 Repasses (${
+                    baseProperties.filter((p) => p.modalidade === "REPASSE" || Boolean((p as any).valorRepasse)).length
+                  })`,
+                },
+              ]
+            : []),
+          ...(!isVendaOnly
+            ? [
+                {
+                  id: "LOCACAO",
+                  label: `🔑 Locação (${
+                    baseProperties.filter(
+                      (p) =>
+                        p.modalidade === "LOCACAO_ANUAL" ||
+                        p.modalidade === "AMBOS" ||
+                        Boolean((p as any).valorAluguel)
+                    ).length
+                  })`,
+                },
+                {
+                  id: "TEMPORADA",
+                  label: `🏖️ Temporada (${
+                    baseProperties.filter(
+                      (p) =>
+                        p.modalidade === "VERANEIO_TEMPORADA" ||
+                        p.modalidade === "VERANEIO" ||
+                        Boolean(p.valorDiaria)
                     ).length
                   })`,
                 },

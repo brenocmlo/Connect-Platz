@@ -1,16 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { LeadDetail, FunnelColumn } from "./types";
 import { KanbanColumn } from "./KanbanColumn";
 
-export interface FunnelColumn {
-  id: string;
-  nome: string;
-  posicao: number;
-  cor: string;
-  slaMinutes: number | null;
-}
+export type { FunnelColumn };
 
 interface KanbanBoardProps {
   stages: FunnelColumn[];

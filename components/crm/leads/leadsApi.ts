@@ -2,8 +2,7 @@
 // Cliente HTTP das rotas de Leads. O cookie HttpOnly de sessão vai automaticamente (same-origin);
 // toda função lança Error com a mensagem da API quando a resposta não é 2xx.
 
-import { LeadDetail } from "@/components/crm/LeadDrawer";
-import { FunnelColumn } from "./KanbanBoard";
+import { LeadDetail, FunnelColumn } from "./types";
 
 export interface OtherFunnelMatch {
   id: string;

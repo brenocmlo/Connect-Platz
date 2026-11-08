@@ -74,6 +74,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Reserva de temporada não encontrada." }, { status: 404 });
     }
 
+    if (context.role === "CORRETOR_ALUGUEL" && booking.corretorId !== context.userId) {
+      return NextResponse.json(
+        { error: "Você só pode alterar reservas registradas na sua própria carteira." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json().catch(() => null);
     const parsed = PatchBookingSchema.safeParse(body);
     if (!parsed.success) {
@@ -222,6 +229,13 @@ export async function DELETE(
 
     if (!booking) {
       return NextResponse.json({ error: "Reserva não encontrada." }, { status: 404 });
+    }
+
+    if (context.role === "CORRETOR_ALUGUEL" && booking.corretorId !== context.userId) {
+      return NextResponse.json(
+        { error: "Você só pode excluir reservas registradas na sua própria carteira." },
+        { status: 403 }
+      );
     }
 
     await prisma.$transaction(async (tx) => {

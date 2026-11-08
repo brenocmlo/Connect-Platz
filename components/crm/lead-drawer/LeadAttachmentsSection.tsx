@@ -11,7 +11,7 @@ import {
   Plus,
   Loader2,
 } from "lucide-react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { LeadDetail } from "@/components/crm/leads/types";
 import { useCrm } from "@/components/crm/CrmContext";
 import { useLeadDocuments, formatBytes } from "./useLeadDocuments";
 

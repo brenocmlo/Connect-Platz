@@ -139,6 +139,137 @@ export function PropertySpecs({ caracteristicas, diferenciais, descricao }: Prop
   );
 }
 
+interface PropertyFinancialInfoProps {
+  modalidade?: string;
+  valorVenda?: number | null;
+  valorAluguel?: number | null;
+  valorCondominio?: number | null;
+  valorIptu?: number | null;
+  valorRepasse?: number | null;
+  entradaRepasse?: number | null;
+  parcelasRepasse?: number | null;
+  valorParcelaRepasse?: number | null;
+  saldoDevedor?: number | null;
+  parcelaMensal?: number | null;
+  titularOriginario?: string | null;
+}
+
+export function PropertyFinancialInfo({
+  modalidade,
+  valorVenda,
+  valorAluguel,
+  valorCondominio,
+  valorIptu,
+  valorRepasse,
+  entradaRepasse,
+  parcelasRepasse,
+  valorParcelaRepasse,
+  saldoDevedor,
+  parcelaMensal,
+  titularOriginario,
+}: PropertyFinancialInfoProps) {
+  const isRepasse = modalidade === "REPASSE" || Boolean(valorRepasse);
+  const isLocacao = modalidade === "LOCACAO_ANUAL" || Boolean(valorAluguel);
+
+  if (!isRepasse && !isLocacao) return null;
+
+  const brl = (val?: number | null) =>
+    val ? `R$ ${Number(val).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—";
+
+  return (
+    <div className="bg-card rounded-2xl p-6 border border-border shadow-sm space-y-4">
+      <h2 className="text-lg font-bold flex items-center gap-2">
+        <Compass className="w-5 h-5 text-connect-blue" />
+        {isRepasse ? "Condições Financeiras do Repasse" : "Encargos e Condições de Locação"}
+      </h2>
+
+      {isRepasse && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider block">
+                Valor Total do Ágio
+              </span>
+              <span className="text-lg font-extrabold text-foreground block mt-1">
+                {brl(valorRepasse || valorVenda)}
+              </span>
+              <span className="text-[11px] text-muted-foreground">
+                {parcelasRepasse && parcelasRepasse > 1
+                  ? `Entrada ${brl(entradaRepasse)} + ${parcelasRepasse}x parceladas`
+                  : "Negociável com entrada + parcelamento"}
+              </span>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-muted/60 border border-border">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                Saldo Devedor a Assumir
+              </span>
+              <span className="text-lg font-extrabold text-foreground block mt-1">
+                {brl(saldoDevedor)}
+              </span>
+              <span className="text-[11px] text-muted-foreground">Financiamento ativo no banco/construtora</span>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-muted/60 border border-border">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                Parcela Mensal do Financiamento
+              </span>
+              <span className="text-lg font-extrabold text-foreground block mt-1">
+                {parcelaMensal ? brl(parcelaMensal) : "Sob consulta"}
+              </span>
+              <span className="text-[11px] text-muted-foreground">Valor pago diretamente ao banco</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+            <span className="font-bold flex items-center gap-1.5">
+              <span>⚠️ Regra Jurídica do Repasse:</span>
+              {titularOriginario && <span className="font-normal opacity-80">(Titular originário: {titularOriginario})</span>}
+            </span>
+            <p className="text-[11px] leading-relaxed opacity-90">
+              O imóvel continua registrado no nome do financista original até a liquidação final. O adquirente assume o pagamento regular das parcelas. <strong>Em caso de atraso superior a 3 meses consecutivos, haverá rescisão contratual com perda integral dos valores pagos</strong> e retomada do imóvel.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isLocacao && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
+              Aluguel Mensal
+            </span>
+            <span className="text-lg font-extrabold text-foreground block mt-1">
+              {brl(valorAluguel)}
+            </span>
+            <span className="text-[11px] text-muted-foreground">Locação contrato padrão</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-muted/60 border border-border">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+              Condomínio Estimado
+            </span>
+            <span className="text-lg font-extrabold text-foreground block mt-1">
+              {valorCondominio ? brl(valorCondominio) : "Incluso ou sob consulta"}
+            </span>
+            <span className="text-[11px] text-muted-foreground">Variação conforme condomínio</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-muted/60 border border-border">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+              IPTU / Mensal
+            </span>
+            <span className="text-lg font-extrabold text-foreground block mt-1">
+              {valorIptu ? brl(valorIptu) : "Sob consulta"}
+            </span>
+            <span className="text-[11px] text-muted-foreground">Ou cota única anual</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface PropertySidebarProps {
   enderecoCompleto: string;
   gmapsUrl: string;

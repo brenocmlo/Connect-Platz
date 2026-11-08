@@ -7,12 +7,7 @@ import { useCrmLookups } from "@/components/crm/agenda/useCrmLookups";
 import { localDateKey } from "@/components/crm/agenda/types";
 import { SaleItem } from "./types";
 import { SaleCalculationsTab } from "./SaleCalculationsTab";
-import {
-  SaleParticipantsSection,
-  ParticipantsForm,
-  ParticipantFormState,
-  EMPTY_PARTICIPANT,
-} from "./SaleParticipantsSection";
+import { SaleParticipantsSection, ParticipantsForm, ParticipantFormState, EMPTY_PARTICIPANT } from "./SaleParticipantsSection";
 import { SaleAttachmentsTab, SaleAttachment } from "./SaleAttachmentsTab";
 import { SaleDealFields, SaleDealState } from "./SaleDealFields";
 import { calculateSaleValues, ParticipantRole } from "./saleSplitHelper";
@@ -20,7 +15,6 @@ import { calculateSaleValues, ParticipantRole } from "./saleSplitHelper";
 interface NewSaleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Chamado somente após a API confirmar o registro, com a venda real retornada. */
   onSubmit: (sale: SaleItem) => void;
   preselectedLead?: {
     id: string;
@@ -51,11 +45,14 @@ function initialDeal(preselectedLead?: NewSaleModalProps["preselectedLead"]): Sa
     percentualComissao: 5,
     impostoPercentual: 6,
     meioPagamento: "TED",
+    isRepasse: false,
+    valorRepasse: 0,
+    saldoDevedor: 0,
+    baseCalculoComissao: "REPASSE",
   };
 }
 
 function initialParticipants(): ParticipantsForm {
-  // Gestor e Captador começam em 0% (opcionais) — sem super-alocação por padrão
   return {
     CORRETOR_1: { ...EMPTY_PARTICIPANT, percentual: 50 },
     CORRETOR_2: { ...EMPTY_PARTICIPANT },
@@ -66,7 +63,7 @@ function initialParticipants(): ParticipantsForm {
 
 export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: NewSaleModalProps) {
   const { user } = useCrm();
-  const canManage = user?.role === "ADMINISTRADOR" || user?.role === "FINANCEIRO_VENDA";
+  const canManage = user?.role === "ADMINISTRADOR" || user?.role === "ADMINISTRADOR_VENDA" || user?.role === "FINANCEIRO_VENDA";
   const { leads, properties, members, loading } = useCrmLookups({ enabled: isOpen, members: true });
 
   const [activeTab, setActiveTab] = useState<"dados" | "resumo" | "anexos">("dados");
@@ -151,6 +148,10 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
     vgvValue: deal.vgv,
     percentualComissao: deal.percentualComissao,
     impostoPercentual: deal.impostoPercentual,
+    isRepasse: deal.isRepasse,
+    valorRepasse: deal.valorRepasse,
+    saldoDevedor: deal.saldoDevedor,
+    baseCalculoComissao: deal.baseCalculoComissao,
     participants: activeRoles.map((role) => ({
       role,
       userId: participants[role].userId,
@@ -236,6 +237,16 @@ export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: New
           dataVenda: deal.dataVenda,
           dataPrevistaPagamento: deal.dataPrevistaPagamento || undefined,
           vgv: deal.vgv,
+          isRepasse: Boolean(deal.isRepasse),
+          ...(deal.isRepasse ? {
+            valorRepasse: deal.valorRepasse,
+            entradaRepasse: deal.entradaRepasse,
+            parcelasRepasse: deal.parcelasRepasse,
+            valorParcelaRepasse: deal.valorParcelaRepasse,
+            saldoDevedor: deal.saldoDevedor,
+            titularOriginario: deal.titularOriginario,
+            baseCalculoComissao: deal.baseCalculoComissao,
+          } : {}),
           percentualComissao: deal.percentualComissao,
           impostoPercentual: deal.impostoPercentual,
           meioPagamento: deal.meioPagamento,

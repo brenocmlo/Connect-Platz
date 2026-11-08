@@ -73,25 +73,29 @@ export async function GET(req: NextRequest) {
       orderBy: { checkInDate: "desc" },
     });
 
-    const serialized = bookings.map((b) => ({
-      id: b.id,
-      propertyId: b.propertyId,
-      leadId: b.leadId,
-      imovelNome: b.property?.nome || "Imóvel",
-      locatarioNome: b.lead?.nome || "Hóspede",
-      locatarioTelefone: b.lead?.telefone || null,
-      corretorNome: b.corretor?.nome || null,
-      checkIn: b.checkInDate.toISOString().slice(0, 10),
-      checkOut: b.checkOutDate.toISOString().slice(0, 10),
-      diarias: b.totalNights,
-      valorDiaria: Number(b.valorDiarias) / Math.max(1, b.totalNights),
-      taxaLimpeza: Number(b.taxaLimpeza),
-      valorTotal: Number(b.valorTotal),
-      meioPagamento: b.meioPagamento,
-      status: b.status,
-      observacoes: b.observacoes || null,
-      createdAt: b.createdAt.toISOString(),
-    }));
+    const isRentBroker = context.role === "CORRETOR_ALUGUEL";
+    const serialized = bookings.map((b) => {
+      const isOwnBooking = !isRentBroker || b.corretorId === context.userId;
+      return {
+        id: b.id,
+        propertyId: b.propertyId,
+        leadId: isOwnBooking ? b.leadId : null,
+        imovelNome: b.property?.nome || "Imóvel",
+        locatarioNome: isOwnBooking ? b.lead?.nome || "Hóspede" : "Reservado (Outro Corretor)",
+        locatarioTelefone: isOwnBooking ? b.lead?.telefone || null : null,
+        corretorNome: b.corretor?.nome || null,
+        checkIn: b.checkInDate.toISOString().slice(0, 10),
+        checkOut: b.checkOutDate.toISOString().slice(0, 10),
+        diarias: b.totalNights,
+        valorDiaria: Number(b.valorDiarias) / Math.max(1, b.totalNights),
+        taxaLimpeza: Number(b.taxaLimpeza),
+        valorTotal: Number(b.valorTotal),
+        meioPagamento: b.meioPagamento,
+        status: b.status,
+        observacoes: isOwnBooking ? b.observacoes || null : null,
+        createdAt: b.createdAt.toISOString(),
+      };
+    });
 
     return NextResponse.json({ bookings: serialized }, { status: 200 });
   } catch (error: any) {

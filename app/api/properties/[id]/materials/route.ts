@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { formatFileSize, resolveUploadPath } from "@/app/api/upload/uploadStorage";
+import { extractR2KeyFromUrl } from "@/lib/storage/r2Client";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ const MaterialSchema = z.object({
   categoria: z.enum(MATERIAL_CATEGORIAS, { errorMap: () => ({ message: "Categoria inválida." }) }),
   url: z.string().trim().min(1, "Envie o arquivo antes de cadastrar o material."),
   tipo: z.enum(["pdf", "image", "doc", "link"]).default("pdf"),
+  tamanho: z.string().trim().max(40).optional().nullable(),
 });
 
 async function findProperty(id: string, organizationId: string) {
@@ -61,13 +63,14 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
   const input = parsed.data;
 
-  // Link externo (nuvem) exige https; arquivo precisa ter sido enviado para /uploads/materials
+  // Link externo (nuvem) exige https; arquivo precisa ter sido enviado para /uploads/materials ou R2 (materials/*)
   const isLink = input.tipo === "link";
   if (isLink && !/^https:\/\/[^\s]+$/i.test(input.url)) {
     return NextResponse.json({ error: "Informe um link https válido." }, { status: 400 });
   }
   const filePath = isLink ? null : resolveUploadPath(input.url, "materials");
-  if (!isLink && !filePath) {
+  const r2Key = isLink ? null : extractR2KeyFromUrl(input.url, "materials");
+  if (!isLink && !filePath && !r2Key) {
     return NextResponse.json({ error: "Arquivo inválido: use a URL retornada pelo upload de materiais." }, { status: 400 });
   }
 
@@ -76,7 +79,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!property) return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
 
     const info = filePath ? await stat(filePath).catch(() => null) : null;
-    if (!isLink && (!info || !info.isFile())) {
+    if (!isLink && !r2Key && (!info || !info.isFile())) {
       return NextResponse.json({ error: "Arquivo não encontrado no servidor. Envie-o novamente." }, { status: 400 });
     }
 
@@ -87,7 +90,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         categoria: input.categoria,
         url: input.url,
         tipo: input.tipo,
-        tamanho: info ? formatFileSize(info.size) : null,
+        tamanho: info ? formatFileSize(info.size) : input.tamanho || null,
         createdById: session.userId,
       },
     });

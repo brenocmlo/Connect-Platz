@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
-import { FunnelColumn } from "./KanbanBoard";
+import { LeadDetail, FunnelColumn } from "./types";
 import { LeadCard } from "./LeadCard";
 
 interface KanbanColumnProps {

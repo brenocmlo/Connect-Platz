@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { resolveUploadPath } from "@/app/api/upload/uploadStorage";
+import { deleteFromR2, extractR2KeyFromUrl } from "@/lib/storage/r2Client";
 import { auditSnapshot, fillCoordinates, parsePropertyBody } from "../propertyPayload";
 
 export const dynamic = "force-dynamic";
@@ -104,7 +105,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const property = await prisma.property.findFirst({
       where: { id: params.id, organizationId: session.organizationId },
       include: {
-        _count: { select: { sales: true, bookings: true } },
+        _count: { select: { sales: true, bookings: true, rentalContracts: true } },
         materials: { select: { url: true } },
       },
     });
@@ -116,7 +117,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       req.nextUrl.searchParams.get("permanent") === "true" ||
       req.nextUrl.searchParams.get("definitivo") === "true";
 
-    const vinculos = property._count.sales + property._count.bookings;
+    const vinculos = property._count.sales + property._count.bookings + property._count.rentalContracts;
     const auditBase = {
       req,
       organizationId: session.organizationId,
@@ -133,7 +134,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         where: { id: property.id },
         data: { isActive: false, exibirNaLandingPage: false },
       });
-      const motivo = `${property._count.sales} venda(s) e ${property._count.bookings} reserva(s) vinculada(s)`;
+      const motivo = `${property._count.sales} venda(s), ${property._count.bookings} reserva(s) e ${property._count.rentalContracts} contrato(s) vinculado(s)`;
       await recordAudit({
         ...auditBase,
         acao: "Desativou imóvel",
@@ -164,9 +165,14 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       await prisma.property.delete({ where: { id: property.id } });
     }
 
-    // Remove os arquivos físicos dos materiais (registros já caíram em cascata)
+    // Remove os arquivos físicos dos materiais (disco local ou Cloudflare R2)
     await Promise.all(
       property.materials.map(async (m) => {
+        const r2Key = extractR2KeyFromUrl(m.url, "materials");
+        if (r2Key) {
+          await deleteFromR2(r2Key);
+          return;
+        }
         const path = resolveUploadPath(m.url, "materials");
         if (path) await unlink(path).catch(() => undefined);
       })

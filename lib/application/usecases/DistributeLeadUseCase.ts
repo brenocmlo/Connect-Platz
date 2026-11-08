@@ -42,7 +42,8 @@ export class DistributeLeadUseCase {
     organizationId: string,
     operatingStart: string = "09:00",
     operatingEnd: string = "22:00",
-    modality?: "VENDA" | "ALUGUEL"
+    modality: "VENDA" | "ALUGUEL" = "VENDA",
+    excludeUserId?: string
   ): Promise<DistributionResult> {
     // 1. Checagem de Janela Operacional
     const isOperating = this.isWithinOperatingHours(operatingStart, operatingEnd);
@@ -54,13 +55,18 @@ export class DistributeLeadUseCase {
       };
     }
 
-    // 2. Buscar corretores ativos com Check-in diário (todos os corretores atendem ambos os públicos)
-    const candidates = await this.userRepo.findEligibleCorretores(organizationId, new Date());
+    // 2. Buscar corretores ativos com Check-in diário compatíveis com a modalidade do lead
+    const candidates = await this.userRepo.findEligibleCorretores(
+      organizationId,
+      new Date(),
+      modality,
+      excludeUserId
+    );
     if (candidates.length === 0) {
       return {
         assignedCorretor: null,
         isNightQueue: false,
-        reason: "Nenhum corretor disponível no momento. Lead direcionado ao bolsão compartilhado.",
+        reason: "Nenhum corretor disponível para a modalidade no momento. Lead direcionado ao bolsão compartilhado.",
       };
     }
 
@@ -77,7 +83,7 @@ export class DistributeLeadUseCase {
     // 4. Atualização atômica do timestamp do corretor selecionado
     await this.userRepo.updateLastLeadAssignedAt(selected.id, new Date());
 
-    const modalidadeLabel = modality === "ALUGUEL" ? "Aluguel de Temporada" : "Vendas";
+    const modalidadeLabel = modality === "ALUGUEL" ? "Aluguel / Temporada" : "Vendas";
     return {
       assignedCorretor: selected,
       isNightQueue: false,

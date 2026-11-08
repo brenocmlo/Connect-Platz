@@ -25,11 +25,11 @@ if (existsSync(standaloneServer)) {
   const publicSrc = path.join(rootDir, "public");
   const publicDest = path.join(rootDir, ".next", "standalone", "public");
 
-  if (existsSync(staticSrc) && !existsSync(staticDest)) {
-    cpSync(staticSrc, staticDest, { recursive: true });
+  if (existsSync(staticSrc)) {
+    cpSync(staticSrc, staticDest, { recursive: true, force: true });
   }
-  if (existsSync(publicSrc) && !existsSync(publicDest)) {
-    cpSync(publicSrc, publicDest, { recursive: true });
+  if (existsSync(publicSrc)) {
+    cpSync(publicSrc, publicDest, { recursive: true, force: true });
   }
 
   const child = spawn("node", [standaloneServer], {

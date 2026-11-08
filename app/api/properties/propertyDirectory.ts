@@ -63,10 +63,16 @@ export function buildDirectory(items: DirectorySource[]): DirectoryCity[] {
     };
 
     const tipo = tipoPlural(p);
-    if (p.modalidade !== PropertyModality.VERANEIO_TEMPORADA) {
+    if (p.modalidade === PropertyModality.VENDA || p.modalidade === PropertyModality.AMBOS) {
       entry.comprar.add(`${tipo} à venda em ${cidadeNome}`);
     }
-    if (p.modalidade !== PropertyModality.VENDA) {
+    if (p.modalidade === PropertyModality.REPASSE) {
+      entry.comprar.add(`${tipo} em repasse em ${cidadeNome}`);
+    }
+    if (p.modalidade === PropertyModality.LOCACAO_ANUAL || p.modalidade === PropertyModality.AMBOS) {
+      entry.alugar.add(`${tipo} para alugar em ${cidadeNome}`);
+    }
+    if (p.modalidade === PropertyModality.VERANEIO_TEMPORADA || p.modalidade === PropertyModality.AMBOS) {
       entry.alugar.add(`${tipo} para temporada em ${cidadeNome}`);
     }
 

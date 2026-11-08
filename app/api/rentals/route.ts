@@ -52,7 +52,10 @@ export async function GET(req: NextRequest) {
     }
 
     const contracts = await prisma.rentalContract.findMany({
-      where: { organizationId: context.organizationId },
+      where: {
+        organizationId: context.organizationId,
+        ...(context.role === "CORRETOR_ALUGUEL" ? { corretorId: context.userId } : {}),
+      },
       include: {
         property: { select: { id: true, nome: true, bairro: true, endereco: true } },
         lead: { select: { id: true, nome: true, telefone: true, email: true } },
@@ -147,26 +150,30 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Lançamento da 1ª mensalidade de taxa de administração no fluxo de caixa (RECEITA)
-      const vencimentoPrimeiraMensalidade = new Date(dataInicio);
-      vencimentoPrimeiraMensalidade.setDate(data.diaVencimento);
-      if (vencimentoPrimeiraMensalidade < dataInicio) {
-        vencimentoPrimeiraMensalidade.setMonth(vencimentoPrimeiraMensalidade.getMonth() + 1);
+      // Lançamento das mensalidades de taxa de administração no fluxo de caixa (RECEITA)
+      const vencimentoBase = new Date(dataInicio);
+      vencimentoBase.setUTCDate(data.diaVencimento);
+      if (vencimentoBase < dataInicio) {
+        vencimentoBase.setUTCMonth(vencimentoBase.getUTCMonth() + 1);
       }
 
-      await tx.cashFlow.create({
-        data: {
+      const cashFlowEntries = Array.from({ length: data.duracaoMeses }, (_, idx) => {
+        const vencimentoMes = new Date(vencimentoBase);
+        vencimentoMes.setUTCMonth(vencimentoBase.getUTCMonth() + idx);
+        return {
           organizationId: context.organizationId,
           tipo: CashFlowType.RECEITA,
           categoria: "Taxa Administração Aluguel",
-          descricao: `Taxa Adm ${codigoContrato} • Mensalidade 1/${data.duracaoMeses}`,
+          descricao: `Taxa Adm ${codigoContrato} • Mensalidade ${idx + 1}/${data.duracaoMeses}`,
           valor: taxaAdmValor,
-          dataVencimento: vencimentoPrimeiraMensalidade,
+          dataVencimento: vencimentoMes,
           status: PaymentStatus.PENDENTE,
-          modalidade: "ALUGUEL",
+          modalidade: "ALUGUEL" as const,
           rentalContractId: created.id,
-        },
+        };
       });
+
+      await tx.cashFlow.createMany({ data: cashFlowEntries });
 
       return created;
     });

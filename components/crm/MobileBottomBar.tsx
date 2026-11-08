@@ -17,13 +17,19 @@ import { useCrm } from "./CrmContext";
  */
 export function MobileBottomBar() {
   const pathname = usePathname();
-  const { isSidebarCollapsed, setIsSidebarCollapsed } = useCrm();
+  const { user, isSidebarCollapsed, setIsSidebarCollapsed } = useCrm();
+  const isRentalRole =
+    user?.role === "ADMINISTRADOR_ALUGUEL" ||
+    user?.role === "FINANCEIRO_ALUGUEL" ||
+    user?.role === "CORRETOR_ALUGUEL";
 
   const tabs = [
     { label: "Dashboard", href: "/crm", icon: LayoutDashboard },
     { label: "Leads", href: "/crm/leads", icon: Kanban },
     { label: "Agenda", href: "/crm/agenda", icon: CalendarDays },
-    { label: "Vendas", href: "/crm/vendas", icon: BadgeDollarSign },
+    isRentalRole
+      ? { label: "Locações", href: "/crm/temporada", icon: BadgeDollarSign }
+      : { label: "Vendas", href: "/crm/vendas", icon: BadgeDollarSign },
   ];
 
   const isCurrentActive = (href: string) => {

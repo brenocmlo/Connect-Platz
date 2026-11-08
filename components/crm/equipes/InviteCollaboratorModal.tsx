@@ -58,11 +58,14 @@ export function InviteCollaboratorModal({
 }: InviteCollaboratorModalProps) {
   const isFinanceiroVenda = userRole === "FINANCEIRO_VENDA";
   const isFinanceiroAluguel = userRole === "FINANCEIRO_ALUGUEL";
+  const isAdminVenda = userRole === "ADMINISTRADOR_VENDA";
+  const isAdminAluguel = userRole === "ADMINISTRADOR_ALUGUEL";
+  const isSuperAdmin = userRole === "ADMINISTRADOR";
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<InviteRole>(
-    isFinanceiroAluguel ? "CORRETOR_ALUGUEL" : "CORRETOR_VENDA"
+    isFinanceiroAluguel || isAdminAluguel ? "CORRETOR_ALUGUEL" : "CORRETOR_VENDA"
   );
   const [creci, setCreci] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -72,9 +75,9 @@ export function InviteCollaboratorModal({
   const [error, setError] = useState<string | null>(null);
 
   React.useEffect(() => {
-    if (isFinanceiroVenda) setRole("CORRETOR_VENDA");
-    else if (isFinanceiroAluguel) setRole("CORRETOR_ALUGUEL");
-  }, [isFinanceiroVenda, isFinanceiroAluguel, isOpen]);
+    if (isFinanceiroVenda || isAdminVenda) setRole("CORRETOR_VENDA");
+    else if (isFinanceiroAluguel || isAdminAluguel) setRole("CORRETOR_ALUGUEL");
+  }, [isFinanceiroVenda, isFinanceiroAluguel, isAdminVenda, isAdminAluguel, isOpen]);
 
   if (!isOpen) return null;
 
@@ -199,7 +202,25 @@ export function InviteCollaboratorModal({
                 <div className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-semibold text-xs">
                   Corretor Aluguel (Time de Aluguel/Temporada)
                 </div>
-              ) : (
+              ) : isAdminVenda ? (
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as InviteRole)}
+                  className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
+                >
+                  <option value="CORRETOR_VENDA">Corretor Venda (Leads e Vendas)</option>
+                  <option value="FINANCEIRO_VENDA">Financeiro Venda (VGV, Comissões e ERP Venda)</option>
+                </select>
+              ) : isAdminAluguel ? (
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as InviteRole)}
+                  className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
+                >
+                  <option value="CORRETOR_ALUGUEL">Corretor Aluguel (Locações e Temporada)</option>
+                  <option value="FINANCEIRO_ALUGUEL">Financeiro Aluguel (Locações, Diárias e ERP Aluguel)</option>
+                </select>
+              ) : isSuperAdmin ? (
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as InviteRole)}
@@ -213,7 +234,7 @@ export function InviteCollaboratorModal({
                   <option value="ADMINISTRADOR_ALUGUEL">Administrador Aluguel (Gestão total exclusiva de Aluguel)</option>
                   <option value="ADMINISTRADOR">Administrador Geral (Robson - Gestão irrestrita)</option>
                 </select>
-              )}
+              ) : null}
             </div>
           </div>
 

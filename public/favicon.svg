@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <rect width="120" height="120" rx="26" fill="#080C14"/>
+  <!-- Contorno externo do prédio + torre esquerda e direita -->
+  <path
+    d="M36 74 L28 82 L28 102 L16 102 L16 48 L60 10 L104 48 L104 102 L90 102 L90 74 L76 64"
+    stroke="#1266C7"
+    stroke-width="5.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Torre central alta -->
+  <path
+    d="M42 102 L42 46 L60 32 L78 46 L78 102"
+    stroke="#1266C7"
+    stroke-width="5.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Eixo vertical central -->
+  <path
+    d="M60 32 L60 102"
+    stroke="#1266C7"
+    stroke-width="5.5"
+    stroke-linecap="round"
+  />
+  <!-- Detalhes diagonais internos das torres -->
+  <path
+    d="M46 76 L56 85 M64 70 L78 58"
+    stroke="#1266C7"
+    stroke-width="5.5"
+    stroke-linecap="round"
+  />
+</svg>

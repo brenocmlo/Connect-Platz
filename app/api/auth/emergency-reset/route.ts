@@ -50,6 +50,30 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Colaborador não encontrado." }, { status: 404 });
       }
 
+      if (session.role === "ADMINISTRADOR_VENDA") {
+        const allowedTarget =
+          targetUser.id === session.userId ||
+          targetUser.role === "CORRETOR_VENDA" ||
+          targetUser.role === "FINANCEIRO_VENDA";
+        if (!allowedTarget) {
+          return NextResponse.json(
+            { error: "Administrador de Vendas só pode redefinir senhas da equipe de Vendas." },
+            { status: 403 }
+          );
+        }
+      } else if (session.role === "ADMINISTRADOR_ALUGUEL") {
+        const allowedTarget =
+          targetUser.id === session.userId ||
+          targetUser.role === "CORRETOR_ALUGUEL" ||
+          targetUser.role === "FINANCEIRO_ALUGUEL";
+        if (!allowedTarget) {
+          return NextResponse.json(
+            { error: "Administrador de Aluguel só pode redefinir senhas da equipe de Aluguel." },
+            { status: 403 }
+          );
+        }
+      }
+
       const generatedPassword = newPassword?.trim() ? newPassword.trim() : generateSecureTempPassword();
       if (generatedPassword.length < 8) {
         return NextResponse.json({ error: "A senha deve conter no mínimo 8 caracteres." }, { status: 400 });
@@ -102,11 +126,17 @@ export async function POST(req: NextRequest) {
         select: { id: true, nome: true, email: true, organizationId: true },
       });
 
-      // Proteção de enumeração: sempre responde mensagem amigável
+      const waMsg = encodeURIComponent(
+        `Olá Robson, solicitei a redefinição emergencial da minha senha no Connect Platz CRM.\n\nE-mail: ${cleanEmail}\nPoderia me informar o código de liberação gerado no painel de Auditoria ou redefinir meu acesso?`
+      );
+      const waUrl = `https://wa.me/5585999990001?text=${waMsg}`;
+
+      // Proteção de enumeração e não-exposição do código em rota pública
       if (!user) {
         return NextResponse.json({
           success: true,
-          message: "Se o e-mail estiver cadastrado, a chave emergencial foi gerada.",
+          message: "Se o e-mail estiver cadastrado, a solicitação emergencial foi registrada para liberação do Administrador.",
+          whatsAppUrl: waUrl,
         });
       }
 
@@ -132,17 +162,12 @@ export async function POST(req: NextRequest) {
         entidadeId: user.id,
         entidadeNome: user.nome,
         descricao: `Código emergencial de redefinição de senha solicitado para ${user.email}.`,
+        dadosDepois: { emergencyCode, expiresAt: expiresAt.toISOString() },
       });
-
-      const waMsg = encodeURIComponent(
-        `Olá Robson, estou solicitando a redefinição emergencial da minha senha no Connect Platz CRM.\n\nE-mail: ${user.email}\nCódigo gerado: ${emergencyCode}`
-      );
-      const waUrl = `https://wa.me/5585999990001?text=${waMsg}`;
 
       return NextResponse.json({
         success: true,
-        message: "Chave emergencial gerada com sucesso. Validade de 2 horas.",
-        emergencyCode,
+        message: "Se o e-mail estiver cadastrado, a solicitação emergencial foi registrada para liberação do Administrador.",
         whatsAppUrl: waUrl,
       });
     }

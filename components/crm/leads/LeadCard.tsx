@@ -15,11 +15,10 @@ import {
   AlertTriangle,
   DollarSign,
 } from "lucide-react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { LeadDetail, FunnelColumn } from "./types";
 import { ScoreBadge, LeadTag } from "@/components/crm/primitives";
 import { LeadCardMenu } from "./LeadCardMenu";
 import { useCrm } from "@/components/crm/CrmContext";
-import { FunnelColumn } from "./KanbanBoard";
 import { getNextStage, findLeadStageIndex, getInitials, getRelativeTime } from "./leadCalculations";
 import { SlaBadge } from "@/components/crm/SlaBadge";
 import { buildWhatsAppUrl, defaultLeadGreeting, normalizeBrPhone } from "@/lib/utils/phone";

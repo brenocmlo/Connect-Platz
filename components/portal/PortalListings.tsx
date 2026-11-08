@@ -22,7 +22,9 @@ interface PortalListingsProps {
 const CHIPS: { id: Modalidade; label: string }[] = [
   { id: "TODOS", label: "Todos" },
   { id: "VENDA", label: "Venda" },
+  { id: "ALUGUEL", label: "Aluguel" },
   { id: "VERANEIO", label: "Temporada" },
+  { id: "REPASSE", label: "Repasses" },
 ];
 
 const CARD_WIDTH = "w-[86%] shrink-0 snap-start sm:w-[300px] xl:w-[296px]";
