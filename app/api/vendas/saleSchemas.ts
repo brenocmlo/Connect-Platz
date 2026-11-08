@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { Prisma, PaymentMethod } from "@prisma/client";
 
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use AAAA-MM-DD).");
 
 export const ParticipantSchema = z.object({
@@ -38,6 +39,7 @@ export const CreateSaleSchema = z
     valorParcelaRepasse: z.number().nonnegative().optional(),
     saldoDevedor: z.number().nonnegative().optional(),
     titularOriginario: z.string().trim().max(160).optional(),
+    clausulaRepasse: z.string().trim().max(2000).optional(),
     baseCalculoComissao: z.enum(["REPASSE", "VGV"]).default("REPASSE"),
     meioPagamento: z.nativeEnum(PaymentMethod).default(PaymentMethod.TED),
     participants: z.array(ParticipantSchema).min(1, "Informe o corretor titular."),
@@ -63,6 +65,26 @@ export const CreateSaleSchema = z
     message: "Cada papel do split só pode aparecer uma vez.",
     path: ["participants"],
   });
+
+export const UpdateSaleSchema = z.object({
+  dataVenda: dateOnly.optional(),
+  vgv: z.number().positive("VGV deve ser positivo.").optional(),
+  valorAvaliacao: z.number().nonnegative().optional().nullable(),
+  percentualComissao: z.number().positive().max(100).optional(),
+  impostoPercentual: z.number().min(0).max(100).optional(),
+  isRepasse: z.boolean().optional(),
+  valorRepasse: z.number().nonnegative().optional().nullable(),
+  entradaRepasse: z.number().nonnegative().optional().nullable(),
+  parcelasRepasse: z.number().int().min(1).max(120).optional().nullable(),
+  valorParcelaRepasse: z.number().nonnegative().optional().nullable(),
+  saldoDevedor: z.number().nonnegative().optional().nullable(),
+  titularOriginario: z.string().trim().max(160).optional().nullable(),
+  clausulaRepasse: z.string().trim().max(2000).optional().nullable(),
+  baseCalculoComissao: z.enum(["REPASSE", "VGV"]).optional().nullable(),
+  meioPagamento: z.nativeEnum(PaymentMethod).optional(),
+  unidadeNumero: z.string().trim().max(40).optional().nullable(),
+  participants: z.array(ParticipantSchema).min(1).optional(),
+});
 
 export class HttpError extends Error {
   constructor(public status: number, message: string) {

@@ -19,7 +19,10 @@ function csvCell(value: string | null | undefined): string {
 
 export default function AuditoriaPage() {
   const { user, setActionMessage } = useCrm();
-  const isAdmin = user?.role === "ADMINISTRADOR";
+  const isAdmin =
+    user?.role === "ADMINISTRADOR" ||
+    user?.role === "ADMINISTRADOR_VENDA" ||
+    user?.role === "ADMINISTRADOR_ALUGUEL";
 
   const [filters, setFilters] = useState<AuditFilterState>(EMPTY_FILTERS);
   const [debouncedQ, setDebouncedQ] = useState("");

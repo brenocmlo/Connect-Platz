@@ -24,8 +24,21 @@ export async function GET(req: NextRequest) {
     const startDate = req.nextUrl.searchParams.get("startDate");
     const endDate = req.nextUrl.searchParams.get("endDate");
     const modalityParam = req.nextUrl.searchParams.get("modality")?.toUpperCase();
-    const modality: "TODOS" | "VENDA" | "ALUGUEL" =
-      modalityParam === "VENDA" || modalityParam === "ALUGUEL" ? modalityParam : "TODOS";
+    const isSaleRole =
+      session.role === "ADMINISTRADOR_VENDA" ||
+      session.role === "FINANCEIRO_VENDA" ||
+      session.role === "CORRETOR_VENDA";
+    const isRentRole =
+      session.role === "ADMINISTRADOR_ALUGUEL" ||
+      session.role === "FINANCEIRO_ALUGUEL" ||
+      session.role === "CORRETOR_ALUGUEL";
+    const modality: "TODOS" | "VENDA" | "ALUGUEL" = isSaleRole
+      ? "VENDA"
+      : isRentRole
+      ? "ALUGUEL"
+      : modalityParam === "VENDA" || modalityParam === "ALUGUEL"
+      ? modalityParam
+      : "TODOS";
 
     const period = resolvePeriod(periodParam, new Date(), { start: startDate, end: endDate });
     const scope = buildScope(session);

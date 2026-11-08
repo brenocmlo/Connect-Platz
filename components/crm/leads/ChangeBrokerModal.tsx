@@ -38,10 +38,22 @@ export function ChangeBrokerModal({
 
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
-      if (lead?.modalidade === "VENDA" && m.role && m.role !== "CORRETOR_VENDA" && m.role !== "ADMINISTRADOR") {
+      if (
+        lead?.modalidade === "VENDA" &&
+        m.role &&
+        m.role !== "CORRETOR_VENDA" &&
+        m.role !== "ADMINISTRADOR_VENDA" &&
+        m.role !== "ADMINISTRADOR"
+      ) {
         return false;
       }
-      if (lead?.modalidade === "ALUGUEL" && m.role && m.role !== "CORRETOR_ALUGUEL" && m.role !== "ADMINISTRADOR") {
+      if (
+        lead?.modalidade === "ALUGUEL" &&
+        m.role &&
+        m.role !== "CORRETOR_ALUGUEL" &&
+        m.role !== "ADMINISTRADOR_ALUGUEL" &&
+        m.role !== "ADMINISTRADOR"
+      ) {
         return false;
       }
       return m.nome.toLowerCase().includes(search.toLowerCase());

@@ -63,7 +63,7 @@ function initialParticipants(): ParticipantsForm {
 
 export function NewSaleModal({ isOpen, onClose, onSubmit, preselectedLead }: NewSaleModalProps) {
   const { user } = useCrm();
-  const canManage = user?.role === "ADMINISTRADOR" || user?.role === "FINANCEIRO_VENDA";
+  const canManage = user?.role === "ADMINISTRADOR" || user?.role === "ADMINISTRADOR_VENDA" || user?.role === "FINANCEIRO_VENDA";
   const { leads, properties, members, loading } = useCrmLookups({ enabled: isOpen, members: true });
 
   const [activeTab, setActiveTab] = useState<"dados" | "resumo" | "anexos">("dados");

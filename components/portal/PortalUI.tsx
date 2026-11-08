@@ -116,12 +116,32 @@ export function CountUp({ value, suffix = "" }: { value: number; suffix?: string
   return <span ref={ref}>{value > 0 ? `${Math.round(value).toLocaleString("pt-BR")}${suffix}` : `0${suffix}`}</span>;
 }
 
-export function PortalLogo({ subtitle = true }: { subtitle?: boolean }) {
+export function PortalLogo({
+  subtitle = true,
+  variant = "compact",
+}: {
+  subtitle?: boolean;
+  variant?: "compact" | "full";
+}) {
+  if (variant === "full") {
+    return (
+      <span className="inline-flex items-center">
+        <img
+          src="/logo-connect-platz.png"
+          alt="Connect Platz Imobiliária"
+          className="h-12 w-auto object-contain sm:h-14"
+        />
+      </span>
+    );
+  }
+
   return (
     <span className="flex items-center gap-2.5">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-connect-blue to-connect-deep-blue text-sm font-black text-white ring-1 ring-white/15">
-        CP
-      </span>
+      <img
+        src="/logo-predio.png"
+        alt="Connect Platz"
+        className="h-10 w-10 shrink-0 object-contain drop-shadow-[0_2px_6px_rgba(18,102,199,0.35)]"
+      />
       <span className="flex flex-col">
         <span className="text-base font-black leading-none tracking-tight text-white sm:text-lg">
           CONNECT <span className="text-platz-gold">PLATZ</span>

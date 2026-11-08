@@ -217,7 +217,18 @@ export function PropertyDetailsModal({ property, onClose, onOpenMaterials }: Pro
               <span>{copied === "ok" ? "Ficha copiada!" : copied === "erro" ? "Não foi possível copiar" : "Copiar Ficha"}</span>
             </button>
 
-            <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              {p.tipoCadastro !== "AVULSO" && (
+                <a
+                  href={`/espelho/${p.slug || p.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-connect-blue/30 bg-connect-blue/10 px-3.5 py-2.5 text-xs font-bold text-connect-blue transition-all hover:bg-connect-blue/20 sm:flex-none"
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span>Espelho de Vendas</span>
+                </a>
+              )}
               {onOpenMaterials && (
                 <button
                   type="button"

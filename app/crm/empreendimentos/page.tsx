@@ -17,7 +17,10 @@ import { EditPropertyImageModal } from "@/components/crm/properties/EditProperty
 
 export default function EmpreendimentosPage() {
   const { user, setActionMessage } = useCrm();
-  const canManage = user?.role === "ADMINISTRADOR";
+  const canManage =
+    user?.role === "ADMINISTRADOR" ||
+    user?.role === "ADMINISTRADOR_VENDA" ||
+    user?.role === "ADMINISTRADOR_ALUGUEL";
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeMainTab, setActiveMainTab] = useState<"LISTA" | "CONFIG_SITE">("LISTA");
   const [properties, setProperties] = useState<PropertyCardData[]>([]);
@@ -100,7 +103,10 @@ export default function EmpreendimentosPage() {
   };
 
   // Métricas reais do catálogo (Seção 5.6) — sem valores de exemplo
-  const isAluguel = user?.role === "FINANCEIRO_ALUGUEL" || user?.role === "CORRETOR_ALUGUEL";
+  const isAluguel =
+    user?.role === "ADMINISTRADOR_ALUGUEL" ||
+    user?.role === "FINANCEIRO_ALUGUEL" ||
+    user?.role === "CORRETOR_ALUGUEL";
   const empreendimentos = properties.filter((p) => p.tipoCadastro !== "AVULSO");
   const totalEmpreendimentos = empreendimentos.length;
   const totalAtivos = properties.filter((p) => p.exibirNaLandingPage !== false).length;

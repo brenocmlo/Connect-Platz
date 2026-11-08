@@ -49,6 +49,28 @@ export async function handleRemoveMember(req: NextRequest, session: SessionPaylo
       );
     }
 
+    if (
+      session.role === Role.ADMINISTRADOR_VENDA &&
+      target.role !== Role.CORRETOR_VENDA &&
+      target.role !== Role.FINANCEIRO_VENDA
+    ) {
+      return NextResponse.json(
+        { error: "Administrador de Vendas só pode remover colaboradores do time de Vendas." },
+        { status: 403 }
+      );
+    }
+
+    if (
+      session.role === Role.ADMINISTRADOR_ALUGUEL &&
+      target.role !== Role.CORRETOR_ALUGUEL &&
+      target.role !== Role.FINANCEIRO_ALUGUEL
+    ) {
+      return NextResponse.json(
+        { error: "Administrador de Aluguel só pode remover colaboradores do time de Aluguel." },
+        { status: 403 }
+      );
+    }
+
     // 1. Transfere leads ativos do corretor para o Bolsão de Leads
     const transferCount = target._count.leads;
     if (transferCount > 0) {

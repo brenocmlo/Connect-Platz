@@ -24,7 +24,14 @@ export function TeamStatCards({ team, loading }: { team: TeamMember[]; loading?:
     },
     {
       label: "Gestão & Financeiro",
-      value: team.filter((m) => m.role === "ADMINISTRADOR" || m.role === "FINANCEIRO_VENDA" || m.role === "FINANCEIRO_ALUGUEL").length,
+      value: team.filter(
+        (m) =>
+          m.role === "ADMINISTRADOR" ||
+          m.role === "ADMINISTRADOR_VENDA" ||
+          m.role === "ADMINISTRADOR_ALUGUEL" ||
+          m.role === "FINANCEIRO_VENDA" ||
+          m.role === "FINANCEIRO_ALUGUEL"
+      ).length,
       icon: Crown,
       cls: "text-foreground",
       tint: "bg-platz-gold/15 text-amber-600 dark:text-platz-gold",

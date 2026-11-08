@@ -19,8 +19,8 @@ describe("Recursos de Locação Comum e Repasse", () => {
         saldoDevedor: 220000,
         baseCalculoComissao: "REPASSE",
         participants: [
-          { role: "corretor1", name: "Corretor 1", percentual: 50 },
-          { role: "captador", name: "Captador", percentual: 10 },
+          { role: "CORRETOR_1", userId: "u1", nome: "Corretor 1", percentual: 50 },
+          { role: "CAPTADOR", userId: "u2", nome: "Captador", percentual: 10 },
         ],
       });
 
@@ -45,7 +45,7 @@ describe("Recursos de Locação Comum e Repasse", () => {
         saldoDevedor: 220000,
         baseCalculoComissao: "VGV",
         participants: [
-          { role: "corretor1", name: "Corretor 1", percentual: 50 },
+          { role: "CORRETOR_1", userId: "u1", nome: "Corretor 1", percentual: 50 },
         ],
       });
 

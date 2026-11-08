@@ -14,7 +14,7 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { LeadDetail } from "@/components/crm/leads/types";
 import { broadcastLeadUpdated } from "@/components/crm/leads/leadsApi";
 import { useLeadTimeline, formatTimelineDate } from "./useLeadTimeline";
 

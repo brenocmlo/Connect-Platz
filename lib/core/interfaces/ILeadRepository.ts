@@ -5,6 +5,7 @@ export interface CreateLeadDto {
   funnelId: string;
   stageId: string;
   corretorId?: string | null;
+  modalidade?: "VENDA" | "ALUGUEL";
   nome: string;
   telefone: string;
   email?: string | null;
@@ -50,7 +51,10 @@ export interface ILeadRepository {
   create(data: CreateLeadDto): Promise<Lead & { corretor?: any; stage?: any }>;
   update(id: string, data: Prisma.LeadUncheckedUpdateInput | Prisma.LeadUpdateInput): Promise<Lead>;
   addTimeline(dto: CreateTimelineDto): Promise<LeadTimeline>;
-  findExpiredSlaLeads(organizationId: string, now: Date): Promise<(Lead & { corretor: any; stage: any })[]>;
+  findExpiredSlaLeads(
+    organizationId: string,
+    now: Date
+  ): Promise<(Lead & { corretor: any; stage: any; funnel?: any; organization?: any })[]>;
   findInactiveLeads(organizationId: string, cutoffDate: Date): Promise<Lead[]>;
   findManyWithFilter(where: Prisma.LeadWhereInput, limit?: number): Promise<(Lead & { stage: any; corretor: any })[]>;
 }

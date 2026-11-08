@@ -2,7 +2,7 @@
 
 import React from "react";
 import { X, MessageSquare, Phone, AlertTriangle, UserCheck, Flame } from "lucide-react";
-import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { LeadDetail } from "@/components/crm/leads/types";
 import { SlaBadge } from "@/components/crm/SlaBadge";
 import { buildWhatsAppUrl, defaultLeadGreeting, normalizeBrPhone } from "@/lib/utils/phone";
 import { registerFirstContact } from "@/components/crm/leads/leadsApi";

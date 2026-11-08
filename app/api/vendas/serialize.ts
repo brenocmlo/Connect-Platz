@@ -72,6 +72,7 @@ export function serializeSale(s: SaleWithRelations) {
     valorParcelaRepasse: s.valorParcelaRepasse != null ? Number(s.valorParcelaRepasse) : null,
     saldoDevedor: s.saldoDevedor != null ? Number(s.saldoDevedor) : null,
     titularOriginario: s.titularOriginario || null,
+    clausulaRepasse: s.clausulaRepasse || null,
     baseCalculoComissao: s.baseCalculoComissao || "REPASSE",
     impostoValor,
     impostoPercentual: comissaoTotal > 0 ? round2((impostoValor / comissaoTotal) * 100) : 0,

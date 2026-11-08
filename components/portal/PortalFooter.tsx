@@ -36,7 +36,7 @@ export function PortalFooter({ onNavigateVitrine }: PortalFooterProps) {
       <div className="border-t border-white/5 bg-portal-navy text-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr_auto]">
           <div>
-            <PortalLogo />
+            <PortalLogo variant="full" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/70">
               Intermediação imobiliária, vendas de alto padrão e gestão de locação por temporada no Ceará.
             </p>

@@ -47,9 +47,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Card Header */}
         <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            CONNECT <span className="text-[#D9BB4C]">PLATZ</span>
-          </h1>
+          <img
+            src="/logo-connect-platz.png"
+            alt="Connect Platz Imobiliária"
+            className="mx-auto h-16 sm:h-20 w-auto object-contain mb-2"
+          />
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
             Robson Carvalho CRM & ERP Imobiliário
           </p>

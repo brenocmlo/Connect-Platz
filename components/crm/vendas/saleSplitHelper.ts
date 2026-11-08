@@ -29,6 +29,10 @@ export const BENEFICIARY_LABEL: Record<string, string> = {
   PARCEIRO_EXTERNO: "Parceiro Externo",
 };
 
+/** Cláusula padrão de inadimplência e rescisão para contratos de repasse (editável pelo Admin/Financeiro). */
+export const DEFAULT_CLAUSULA_REPASSE =
+  "O imóvel permanece registrado em nome do titular originário. O adquirente assume o pagamento contínuo das parcelas. Se houver atraso superior a 3 meses (90 dias), haverá quebra de contrato com perda integral dos valores pagos e retomada do imóvel.";
+
 export interface ParticipantInput {
   role: ParticipantRole;
   userId?: string | null;

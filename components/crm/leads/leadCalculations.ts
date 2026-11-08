@@ -1,5 +1,4 @@
-import { LeadDetail } from "@/components/crm/LeadDrawer";
-import { FunnelColumn } from "@/components/crm/leads/KanbanBoard";
+import { LeadDetail, FunnelColumn } from "@/components/crm/leads/types";
 
 /** Índice da etapa atual do lead no funil (0 quando a etapa não é encontrada). */
 export function findLeadStageIndex(lead: LeadDetail, stages: FunnelColumn[]): number {

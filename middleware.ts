@@ -9,6 +9,8 @@ interface DecodedSession {
   nome: string;
   role:
     | "ADMINISTRADOR"
+    | "ADMINISTRADOR_VENDA"
+    | "ADMINISTRADOR_ALUGUEL"
     | "FINANCEIRO_VENDA"
     | "FINANCEIRO_ALUGUEL"
     | "CORRETOR_VENDA"
@@ -181,6 +183,18 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith("/crm/integracoes");
 
       if (isForbidden) {
+        const forbiddenRedirect = new URL("/crm/temporada", request.url);
+        forbiddenRedirect.searchParams.set("denied", "true");
+        return NextResponse.redirect(forbiddenRedirect);
+      }
+    } else if (session.role === "ADMINISTRADOR_VENDA") {
+      if (pathname.startsWith("/crm/temporada")) {
+        const forbiddenRedirect = new URL("/crm/vendas", request.url);
+        forbiddenRedirect.searchParams.set("denied", "true");
+        return NextResponse.redirect(forbiddenRedirect);
+      }
+    } else if (session.role === "ADMINISTRADOR_ALUGUEL") {
+      if (pathname.startsWith("/crm/vendas")) {
         const forbiddenRedirect = new URL("/crm/temporada", request.url);
         forbiddenRedirect.searchParams.set("denied", "true");
         return NextResponse.redirect(forbiddenRedirect);

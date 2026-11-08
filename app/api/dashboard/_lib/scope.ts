@@ -1,9 +1,9 @@
 // app/api/dashboard/_lib/scope.ts
 // Filtros de escopo (RBAC) e de vendas válidas usados pelos agregadores de BI.
 
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { SessionPayload } from "@/lib/auth/jwt";
-import { isAdmin } from "@/lib/auth/session";
+import { isAdmin, isFinanceiro } from "@/lib/auth/session";
 
 /**
  * Venda válida = qualquer status que não seja cancelamento/estorno.
@@ -38,15 +38,55 @@ export interface AnalyticsScope {
 }
 
 export function buildScope(session: SessionPayload): AnalyticsScope {
-  const manager = isAdmin(session.role);
+  const manager = isFinanceiro(session.role);
+  const isSaleScoped =
+    session.role === "ADMINISTRADOR_VENDA" ||
+    session.role === "FINANCEIRO_VENDA" ||
+    session.role === "CORRETOR_VENDA";
+  const isRentScoped =
+    session.role === "ADMINISTRADOR_ALUGUEL" ||
+    session.role === "FINANCEIRO_ALUGUEL" ||
+    session.role === "CORRETOR_ALUGUEL";
+
+  const saleFilter: Prisma.SaleWhereInput = isRentScoped
+    ? { id: "__none__" }
+    : manager
+    ? {}
+    : { corretorId: session.userId };
+
+  const leadFilter: Prisma.LeadWhereInput = {
+    ...(manager ? {} : { corretorId: session.userId }),
+    ...(isSaleScoped ? { modalidade: "VENDA" } : isRentScoped ? { modalidade: "ALUGUEL" } : {}),
+  };
+
+  const appointmentFilter: Prisma.AppointmentWhereInput = !manager
+    ? { userId: session.userId }
+    : isSaleScoped
+    ? {
+        user: {
+          role: {
+            in: [Role.ADMINISTRADOR, Role.ADMINISTRADOR_VENDA, Role.FINANCEIRO_VENDA, Role.CORRETOR_VENDA],
+          },
+        },
+      }
+    : isRentScoped
+    ? {
+        user: {
+          role: {
+            in: [Role.ADMINISTRADOR, Role.ADMINISTRADOR_ALUGUEL, Role.FINANCEIRO_ALUGUEL, Role.CORRETOR_ALUGUEL],
+          },
+        },
+      }
+    : {};
+
   return {
     organizationId: session.organizationId,
     userId: session.userId,
     manager,
     director: isAdmin(session.role),
-    sale: manager ? {} : { corretorId: session.userId },
-    lead: manager ? {} : { corretorId: session.userId },
-    appointment: manager ? {} : { userId: session.userId },
+    sale: saleFilter,
+    lead: leadFilter,
+    appointment: appointmentFilter,
   };
 }
 

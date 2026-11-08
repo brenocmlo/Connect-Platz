@@ -31,6 +31,7 @@ export const CHART_OF_ACCOUNTS: ChartAccount[] = [
   { categoria: "Comissão Venda", tipo: "RECEITA", grupo: "RECEITA_BRUTA", centroCustoPadrao: "Comercial — Lançamentos" },
   { categoria: "Comissão Revenda", tipo: "RECEITA", grupo: "RECEITA_BRUTA", centroCustoPadrao: "Comercial — Revenda" },
   { categoria: "Aluguel Veraneio", tipo: "RECEITA", grupo: "RECEITA_BRUTA", centroCustoPadrao: "Temporada / Veraneio" },
+  { categoria: "Taxa Administração Aluguel", tipo: "RECEITA", grupo: "RECEITA_BRUTA", centroCustoPadrao: "Temporada / Veraneio" },
   { categoria: "Taxa de Limpeza Temporada", tipo: "RECEITA", grupo: "RECEITA_BRUTA", centroCustoPadrao: "Temporada / Veraneio" },
   { categoria: "Outras Receitas", tipo: "RECEITA", grupo: "RECEITA_BRUTA", centroCustoPadrao: "Administrativo / Sede" },
   { categoria: "Impostos (Simples Nacional)", tipo: "DESPESA", grupo: "DEDUCOES", centroCustoPadrao: "Administrativo / Sede" },

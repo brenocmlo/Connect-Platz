@@ -45,12 +45,25 @@ export class PrismaUserRepository implements IUserRepository {
     });
   }
 
-  async findEligibleCorretores(organizationId: string, today: Date): Promise<User[]> {
+  async findEligibleCorretores(
+    organizationId: string,
+    today: Date,
+    modality?: "VENDA" | "ALUGUEL",
+    excludeUserId?: string
+  ): Promise<User[]> {
+    const roleFilter =
+      modality === "ALUGUEL"
+        ? { in: [Role.CORRETOR_ALUGUEL] }
+        : modality === "VENDA"
+        ? { in: [Role.CORRETOR_VENDA] }
+        : { in: [Role.CORRETOR_VENDA, Role.CORRETOR_ALUGUEL] };
+
     return this.prisma.user.findMany({
       where: {
         organizationId,
         isActive: true,
-        role: { in: [Role.CORRETOR_VENDA, Role.CORRETOR_ALUGUEL] },
+        role: roleFilter,
+        ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
         status: CorretorStatus.DISPONIVEL,
         checkIns: {
           some: {

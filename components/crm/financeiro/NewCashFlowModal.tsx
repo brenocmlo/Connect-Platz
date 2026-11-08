@@ -39,9 +39,9 @@ export function NewCashFlowModal({
   const todayStr = localDateKey(new Date());
 
   const initialModality =
-    userRole === "FINANCEIRO_ALUGUEL"
+    userRole === "FINANCEIRO_ALUGUEL" || userRole === "ADMINISTRADOR_ALUGUEL"
       ? "ALUGUEL"
-      : userRole === "FINANCEIRO_VENDA"
+      : userRole === "FINANCEIRO_VENDA" || userRole === "ADMINISTRADOR_VENDA"
       ? "VENDA"
       : defaultModality || "VENDA";
 
@@ -61,9 +61,9 @@ export function NewCashFlowModal({
   React.useEffect(() => {
     if (isOpen) {
       const mod =
-        userRole === "FINANCEIRO_ALUGUEL"
+        userRole === "FINANCEIRO_ALUGUEL" || userRole === "ADMINISTRADOR_ALUGUEL"
           ? "ALUGUEL"
-          : userRole === "FINANCEIRO_VENDA"
+          : userRole === "FINANCEIRO_VENDA" || userRole === "ADMINISTRADOR_VENDA"
           ? "VENDA"
           : defaultModality || "VENDA";
       setModalidade(mod);

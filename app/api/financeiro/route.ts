@@ -20,9 +20,9 @@ export async function GET(req: NextRequest) {
 
   const queryModality = req.nextUrl.searchParams.get("modalidade");
   const modalityFilter =
-    session.role === Role.FINANCEIRO_VENDA
+    session.role === Role.FINANCEIRO_VENDA || session.role === Role.ADMINISTRADOR_VENDA
       ? "VENDA"
-      : session.role === Role.FINANCEIRO_ALUGUEL
+      : session.role === Role.FINANCEIRO_ALUGUEL || session.role === Role.ADMINISTRADOR_ALUGUEL
       ? "ALUGUEL"
       : queryModality === "VENDA" || queryModality === "ALUGUEL"
       ? queryModality
@@ -104,9 +104,9 @@ export async function POST(req: NextRequest) {
   const data = parsed.data;
 
   const entryModality: BusinessModality =
-    session.role === Role.FINANCEIRO_ALUGUEL
+    session.role === Role.FINANCEIRO_ALUGUEL || session.role === Role.ADMINISTRADOR_ALUGUEL
       ? "ALUGUEL"
-      : session.role === Role.FINANCEIRO_VENDA
+      : session.role === Role.FINANCEIRO_VENDA || session.role === Role.ADMINISTRADOR_VENDA
       ? "VENDA"
       : data.modalidade || "VENDA";
 

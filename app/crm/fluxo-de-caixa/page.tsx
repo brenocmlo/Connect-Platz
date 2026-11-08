@@ -26,8 +26,8 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 
 export default function FluxoCaixaDREPage() {
   const { user, setActionMessage, hideValues } = useCrm();
-  const isFinanceiroVenda = user?.role === "FINANCEIRO_VENDA";
-  const isFinanceiroAluguel = user?.role === "FINANCEIRO_ALUGUEL";
+  const isFinanceiroVenda = user?.role === "FINANCEIRO_VENDA" || user?.role === "ADMINISTRADOR_VENDA";
+  const isFinanceiroAluguel = user?.role === "FINANCEIRO_ALUGUEL" || user?.role === "ADMINISTRADOR_ALUGUEL";
   const isAdmin = user?.role === "ADMINISTRADOR";
   const canAccess = !user || isAdmin || isFinanceiroVenda || isFinanceiroAluguel;
 

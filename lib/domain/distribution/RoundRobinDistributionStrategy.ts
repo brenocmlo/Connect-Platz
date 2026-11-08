@@ -14,8 +14,20 @@ export class RoundRobinDistributionStrategy implements IDistributionStrategy {
       return null;
     }
 
+    const scoped = modality
+      ? candidates.filter((c) =>
+          modality === "ALUGUEL"
+            ? c.role === "CORRETOR_ALUGUEL"
+            : c.role === "CORRETOR_VENDA"
+        )
+      : candidates;
+
+    if (scoped.length === 0) {
+      return null;
+    }
+
     // Ordenar pelo menor timestamp de atribuição (nulls first)
-    const sorted = [...candidates].sort((a, b) => {
+    const sorted = [...scoped].sort((a, b) => {
       if (!a.lastLeadAssignedAt && !b.lastLeadAssignedAt) return 0;
       if (!a.lastLeadAssignedAt) return -1;
       if (!b.lastLeadAssignedAt) return 1;

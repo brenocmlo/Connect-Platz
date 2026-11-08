@@ -423,6 +423,7 @@ model Property {
   saldoDevedor        Decimal?         @db.Decimal(14, 2) // Saldo restante assumido
   parcelaMensal       Decimal?         @db.Decimal(10, 2) // Parcela mensal estimada
   titularOriginario   String? // Titular originário do financiamento ativo
+  clausulaRepasse     String?          @db.Text // Cláusula customizada de inadimplência e rescisão do repasse
   endereco            String?
   bairro              String?
   cidade              String?
@@ -564,6 +565,7 @@ model Sale {
   valorParcelaRepasse Decimal? @db.Decimal(12, 2) // Valor da parcela do repasse
   saldoDevedor       Decimal? @db.Decimal(14, 2) // Saldo restante assumido pelo comprador
   titularOriginario  String? // Titular original em nome de quem corre o financiamento
+  clausulaRepasse    String?  @db.Text // Cláusula customizável de inadimplência e rescisão
   baseCalculoComissao String?  @default("REPASSE") // "REPASSE" (sobre o ágio) ou "VGV" (sobre o VGV total)
 
   meioPagamento  PaymentMethod @default(TED)

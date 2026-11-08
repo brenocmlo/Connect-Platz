@@ -225,14 +225,17 @@ O sistema implementa **Row Level Security (RLS)** nativo no PostgreSQL via trans
 - Variáveis de sessão `app.current_organization_id`, `app.current_user_id` e `app.current_user_role` são definidas no banco a cada requisição.
 - Defesa em profundidade: Mesmo em consultas diretas, o banco garante que dados de uma organização não vazem para outra.
 
-### 2. Controle de Acesso Baseado em Perfis (RBAC)
-O sistema possui 4 níveis hierárquicos de acesso:
-- `ADMINISTRADOR`: Acesso global 360°, gestão corporativa da imobiliária, equipes, integrações, auditoria e ERP financeiro completo.
-- `DIRETOR`: Acesso a dashboards consolidados, relatórios gerenciais e acompanhamento de VGV.
-- `GERENTE`: Supervisão de corretores da sua equipe, reatribuição de leads e metas comerciais.
-- `CORRETOR`: **Acesso estritamente restrito aos seus próprios leads, à sua agenda e às suas comissões**.
+### 2. Controle de Acesso Baseado em Perfis (RBAC — 7 Perfis Oficiais)
+O sistema possui **7 perfis oficiais** segregados por modalidade (`VENDA` vs. `ALUGUEL`) e responsabilidade:
+- `ADMINISTRADOR`: Acesso global 360° (Venda + Aluguel), gestão corporativa da imobiliária, equipes, integrações, auditoria e ERP financeiro completo.
+- `ADMINISTRADOR_VENDA`: Gestão completa da operação de **Vendas** (leads, vendas/comissões, fluxo de caixa de vendas, equipe de vendas, funis e empreendimentos de venda). Sem acesso a Temporada & Locações.
+- `ADMINISTRADOR_ALUGUEL`: Gestão completa da operação de **Locações e Temporada** (leads de aluguel, temporada/locações, fluxo de caixa de locações, equipe de aluguel e imóveis de locação). Sem acesso a Vendas e Comissões.
+- `FINANCEIRO_VENDA`: Gestão financeira e ERP exclusiva da modalidade de **Vendas** (aprovação de fechamentos comerciais, lançamento de VGV/splits de comissão, fluxo de caixa de vendas e relatórios DRE de vendas).
+- `FINANCEIRO_ALUGUEL`: Gestão financeira e ERP exclusiva da modalidade de **Locações/Temporada** (contratos de locação, reservas de temporada, repasses a proprietários e fluxo de caixa de aluguéis).
+- `CORRETOR_VENDA`: **Acesso estritamente restrito aos seus próprios leads de venda, agenda e suas comissões**. Solicita fechamento comercial para formalização pelo Financeiro (não lança valores de VGV ou comissões).
+- `CORRETOR_ALUGUEL`: **Acesso estritamente restrito aos seus próprios leads de locação, agenda e reservas/locações próprias**. Pode registrar reservas de temporada e aluguéis bloqueando o calendário, sem lançar comissões.
   - O item "Administração" não é exibido no menu lateral.
-  - Acesso bloqueado pelo `middleware.ts` e pelas APIs para Fluxo de Caixa, DRE, Equipes, Integrações e Auditoria.
+  - Acesso bloqueado pelo `middleware.ts` e pelas APIs para Fluxo de Caixa, DRE, Equipes, Integrações e Auditoria para ambos os perfis de Corretor.
 
 ### 3. Privacidade de Dados & LGPD (Máscara de Contato)
 - Para leads ativos na carteira, o número de telefone e o e-mail são **mascarados automaticamente** (ex: `(85) 9****-1234` e `jo***@gmail.com`) para corretores que não sejam o titular responsável.

@@ -66,12 +66,17 @@ export class WebhookIngestorService {
 
     const funnel = org.funnels[0];
     const stage = funnel.stages[0];
+    const funnelModality: "VENDA" | "ALUGUEL" =
+      funnel.modalidade === "ALUGUEL" ? "ALUGUEL" : "VENDA";
 
     // 2. Caso de Uso oficial: deduplicação + Roleta Round-Robin + score
     const result = await container.ingestLeadUseCase.execute({
       organizationId: org.id,
       funnelId: funnel.id,
       stageId: stage.id,
+      modalidade: funnelModality,
+      operatingStart: org.operatingStart,
+      operatingEnd: org.operatingEnd,
       slaMinutes: stage.slaMinutes || 20,
       nome,
       telefone,

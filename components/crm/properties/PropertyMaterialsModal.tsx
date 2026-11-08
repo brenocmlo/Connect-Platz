@@ -42,7 +42,10 @@ export function PropertyMaterialsModal({
   property,
 }: PropertyMaterialsModalProps) {
   const { user, setActionMessage } = useCrm();
-  const canManage = user?.role === "ADMINISTRADOR";
+  const canManage =
+    user?.role === "ADMINISTRADOR" ||
+    user?.role === "ADMINISTRADOR_VENDA" ||
+    user?.role === "ADMINISTRADOR_ALUGUEL";
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);

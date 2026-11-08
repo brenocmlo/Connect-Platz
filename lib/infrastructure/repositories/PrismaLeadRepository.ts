@@ -55,6 +55,7 @@ export class PrismaLeadRepository implements ILeadRepository {
         funnelId: data.funnelId,
         stageId: data.stageId,
         corretorId: data.corretorId || null,
+        modalidade: data.modalidade || "VENDA",
         nome: data.nome,
         telefone: data.telefone,
         email: data.email || null,
@@ -121,6 +122,8 @@ export class PrismaLeadRepository implements ILeadRepository {
       include: {
         corretor: true,
         stage: true,
+        funnel: true,
+        organization: { select: { operatingStart: true, operatingEnd: true } },
       },
     });
   }

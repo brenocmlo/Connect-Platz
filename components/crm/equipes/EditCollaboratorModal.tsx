@@ -30,7 +30,10 @@ export function EditCollaboratorModal({
   onSave,
   currentUserRole,
 }: EditCollaboratorModalProps) {
-  const isAdmin = currentUserRole === "ADMINISTRADOR";
+  const isSuperAdmin = currentUserRole === "ADMINISTRADOR";
+  const isAdminVenda = currentUserRole === "ADMINISTRADOR_VENDA";
+  const isAdminAluguel = currentUserRole === "ADMINISTRADOR_ALUGUEL";
+  const isAdmin = isSuperAdmin || isAdminVenda || isAdminAluguel;
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -193,7 +196,7 @@ export function EditCollaboratorModal({
               <label className="block text-foreground font-semibold mb-1">
                 Cargo / Modalidade *
               </label>
-              {isAdmin ? (
+              {isSuperAdmin ? (
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as MemberRole)}
@@ -206,6 +209,24 @@ export function EditCollaboratorModal({
                   <option value="ADMINISTRADOR_VENDA">Administrador Venda (Gestão total exclusiva de Vendas)</option>
                   <option value="ADMINISTRADOR_ALUGUEL">Administrador Aluguel (Gestão total exclusiva de Aluguel)</option>
                   <option value="ADMINISTRADOR">Administrador Geral (Robson - Gestão Irrestrita)</option>
+                </select>
+              ) : isAdminVenda && (member.role === "CORRETOR_VENDA" || member.role === "FINANCEIRO_VENDA") ? (
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as MemberRole)}
+                  className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
+                >
+                  <option value="CORRETOR_VENDA">Corretor Vendas (Leads e Vendas)</option>
+                  <option value="FINANCEIRO_VENDA">Financeiro Vendas (VGV, Comissões e ERP Venda)</option>
+                </select>
+              ) : isAdminAluguel && (member.role === "CORRETOR_ALUGUEL" || member.role === "FINANCEIRO_ALUGUEL") ? (
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as MemberRole)}
+                  className="w-full bg-background border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
+                >
+                  <option value="CORRETOR_ALUGUEL">Corretor Aluguéis (Locações e Temporada)</option>
+                  <option value="FINANCEIRO_ALUGUEL">Financeiro Aluguéis (Diárias, Locações e ERP Aluguel)</option>
                 </select>
               ) : (
                 <div className="w-full bg-muted/60 border border-border rounded-xl p-2.5 text-foreground font-semibold flex items-center justify-between">

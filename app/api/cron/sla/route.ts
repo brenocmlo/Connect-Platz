@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { container } from "@/lib/container";
 import { RoletaService } from "@/lib/services/roleta";
+import { SlaService } from "@/lib/services/sla";
 import { verifyWebhookKey } from "@/lib/services/webhook-auth";
 
 export const dynamic = "force-dynamic";
@@ -30,21 +31,29 @@ export async function GET(req: NextRequest) {
             organizationId: org.id,
             isNightQueue: true,
           },
+          include: { stage: { select: { slaMinutes: true } } },
           orderBy: { createdAt: "asc" },
         });
 
         if (nightLeads.length > 0) {
           const updates = [];
           for (const nLead of nightLeads) {
-            const roleta = await container.distributeLeadUseCase.execute(org.id);
+            const leadModality = nLead.modalidade === "ALUGUEL" ? "ALUGUEL" : "VENDA";
+            const roleta = await container.distributeLeadUseCase.execute(
+              org.id,
+              org.operatingStart,
+              org.operatingEnd,
+              leadModality
+            );
             if (roleta.assignedCorretor) {
+              const slaMins = nLead.stage?.slaMinutes || org.bolsaoTimeoutMin || 20;
               updates.push(
                 prisma.lead.update({
                   where: { id: nLead.id },
                   data: {
                     isNightQueue: false,
                     corretorId: roleta.assignedCorretor.id,
-                    slaDueAt: new Date(Date.now() + 20 * 60 * 1000),
+                    slaDueAt: new Date(Date.now() + slaMins * 60 * 1000),
                   },
                 })
               );
@@ -57,10 +66,14 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // 3. Processar caducidade automática (14 dias sem interação -> Encerrado)
+      const caducadosCount = await SlaService.processCaducidade(org.id, 14);
+
       report.push({
         organization: org.nome,
         transbordos: transbordoResults.length,
         nightQueueReleased,
+        caducadosCount,
         details: transbordoResults,
       });
     }

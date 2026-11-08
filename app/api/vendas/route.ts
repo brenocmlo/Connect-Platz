@@ -11,6 +11,7 @@ import {
   LeadSource,
   LeadTemperature,
   Role,
+  UnitStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireSession, canManageSaleValues } from "@/lib/auth/session";
@@ -225,6 +226,7 @@ export async function POST(req: NextRequest) {
           valorParcelaRepasse: input.isRepasse ? input.valorParcelaRepasse : null,
           saldoDevedor: input.isRepasse ? input.saldoDevedor : null,
           titularOriginario: input.isRepasse ? input.titularOriginario : null,
+          clausulaRepasse: input.isRepasse ? input.clausulaRepasse || null : null,
           baseCalculoComissao: input.isRepasse ? input.baseCalculoComissao || "REPASSE" : null,
           meioPagamento: input.meioPagamento,
           status: "ativa",
@@ -232,6 +234,14 @@ export async function POST(req: NextRequest) {
           dataVenda,
         },
       });
+
+      // 2.1. Atualiza status da unidade no Espelho de Vendas para VENDIDA
+      if (unit?.id) {
+        await tx.propertyUnit.update({
+          where: { id: unit.id },
+          data: { status: UnitStatus.VENDIDA },
+        });
+      }
 
       // 3. Splits e lançamentos de repasse
       const pixByRole = new Map(input.participants.map((p) => [p.role, p.documentoPix]));

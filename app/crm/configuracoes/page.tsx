@@ -25,8 +25,11 @@ export default function ConfiguracoesPage() {
   const { user } = useCrm();
   const [activeTab, setActiveTab] = useState<ConfigTab>("perfil");
 
-  // RBAC: Corretor → Minha Conta + preferências locais; Administrador → tudo
-  const isAdmin = user?.role === "ADMINISTRADOR";
+  // RBAC: Corretor → Minha Conta + preferências locais; Administradores → tudo
+  const isAdmin =
+    user?.role === "ADMINISTRADOR" ||
+    user?.role === "ADMINISTRADOR_VENDA" ||
+    user?.role === "ADMINISTRADOR_ALUGUEL";
 
   const availableTabs = useMemo(
     () => tabList.filter((t) => t.access === "all" || isAdmin),
