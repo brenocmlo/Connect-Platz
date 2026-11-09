@@ -281,9 +281,27 @@ export async function loadOperational(
       ? prisma.lead.count({ where: { ...leadBase, createdAt: rangeFilter(period.previous) } })
       : Promise.resolve(null),
     prisma.lead.count({ where: { ...leadBase, createdAt: { gte: today } } }),
-    prisma.sale.count({ where: { ...saleBase, dataVenda: dateOnlyFilter(period.current) } }),
+    scope.isRentScoped
+      ? Promise.all([
+          prisma.rentalContract.count({
+            where: { organizationId: orgId, status: { not: "CANCELADO" }, createdAt: rangeFilter(period.current) },
+          }),
+          prisma.seasonBooking.count({
+            where: { organizationId: orgId, status: { not: "CANCELADA" }, createdAt: rangeFilter(period.current) },
+          }),
+        ]).then(([r, b]) => r + b)
+      : prisma.sale.count({ where: { ...saleBase, dataVenda: dateOnlyFilter(period.current) } }),
     period.previous
-      ? prisma.sale.count({ where: { ...saleBase, dataVenda: dateOnlyFilter(period.previous) } })
+      ? scope.isRentScoped
+        ? Promise.all([
+            prisma.rentalContract.count({
+              where: { organizationId: orgId, status: { not: "CANCELADO" }, createdAt: rangeFilter(period.previous) },
+            }),
+            prisma.seasonBooking.count({
+              where: { organizationId: orgId, status: { not: "CANCELADA" }, createdAt: rangeFilter(period.previous) },
+            }),
+          ]).then(([r, b]) => r + b)
+        : prisma.sale.count({ where: { ...saleBase, dataVenda: dateOnlyFilter(period.previous) } })
       : Promise.resolve(null),
   ]);
 
@@ -315,6 +333,40 @@ export async function loadSalesSeries(scope: AnalyticsScope): Promise<DashboardD
   const mensal = monthWeekBuckets(now);
   const semanal = lastDaysBuckets(7, now);
   const since = earliestStart(anual, mensal, semanal);
+
+  if (scope.isRentScoped) {
+    const [bookings, rentals] = await Promise.all([
+      prisma.seasonBooking.findMany({
+        where: {
+          organizationId: scope.organizationId,
+          status: { not: "CANCELADA" },
+          createdAt: { gte: since },
+        },
+        select: { createdAt: true, valorTotal: true },
+      }),
+      prisma.rentalContract.findMany({
+        where: {
+          organizationId: scope.organizationId,
+          status: { not: "CANCELADO" },
+          createdAt: { gte: since },
+        },
+        select: { createdAt: true, valorAluguelMensal: true },
+      }),
+    ]);
+
+    const items = [
+      ...bookings.map((b) => ({ date: b.createdAt, value: toNumber(b.valorTotal) })),
+      ...rentals.map((r) => ({ date: r.createdAt, value: toNumber(r.valorAluguelMensal) })),
+    ];
+
+    const toSeries = (buckets: Bucket[]): SalesSeriesPoint[] => {
+      const vgv = sumByBucket(buckets, items, (s) => s.date, (s) => s.value);
+      const qty = sumByBucket(buckets, items, (s) => s.date, () => 1);
+      return buckets.map((b, i) => ({ label: b.label, vgv: vgv[i], vendas: qty[i] }));
+    };
+
+    return { anual: toSeries(anual), mensal: toSeries(mensal), semanal: toSeries(semanal) };
+  }
 
   const sales = await prisma.sale.findMany({
     where: {

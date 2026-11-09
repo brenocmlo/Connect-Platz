@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       : "TODOS";
 
     const period = resolvePeriod(periodParam, new Date(), { start: startDate, end: endDate });
-    const scope = buildScope(session);
+    const scope = buildScope(session, modality);
 
     const [financial, cashFlow, operational, salesSeries, funnels, hotLeads, appointments, team, activities] =
       await Promise.all([
