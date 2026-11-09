@@ -2,19 +2,15 @@
 
 import React, { useState } from "react";
 import {
-  MoreHorizontal,
   ChevronLeft,
   ChevronRight,
-  FileText,
-  Eye,
-  CreditCard,
-  Pencil,
   Trash2,
   Paperclip,
   AlertTriangle,
   Loader2,
 } from "lucide-react";
 import { SaleItem } from "./types";
+import { VendasRowActions } from "./VendasRowActions";
 
 interface VendasTableProps {
   sales: SaleItem[];
@@ -110,7 +106,7 @@ export function VendasTable({
       </div>
 
       {/* Table Content */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto min-h-[300px] pb-24">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -135,7 +131,8 @@ export function VendasTable({
                 </td>
               </tr>
             ) : (
-              paginatedSales.map((sale) => {
+              paginatedSales.map((sale, index) => {
+                const isNearBottom = index >= Math.max(1, paginatedSales.length - 2);
                 const corretorValor = sale.splits
                   .filter((s) => s.tipo === "CORRETOR_TITULAR" || s.tipo === "CO_CORRETOR")
                   .reduce((acc, s) => acc + s.valor, 0);
@@ -253,76 +250,22 @@ export function VendasTable({
                     </td>
 
                     {/* Ações ⋯ */}
-                    <td className="py-3 px-4 text-center relative whitespace-nowrap">
-                      <button
-                        onClick={() =>
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      <VendasRowActions
+                        sale={sale}
+                        isNearBottom={isNearBottom}
+                        isOpen={openActionId === sale.id}
+                        onToggle={() =>
                           setOpenActionId(openActionId === sale.id ? null : sale.id)
                         }
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-muted transition-colors"
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-
-                      {openActionId === sale.id && (
-                        <div className="absolute right-4 top-10 z-20 w-44 bg-card border border-border rounded-xl shadow-xl animate-fade-in py-1 text-left">
-                          <button
-                            onClick={() => {
-                              onViewDetails(sale);
-                              setOpenActionId(null);
-                            }}
-                            className="w-full px-3 py-1.5 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            Ver detalhes
-                          </button>
-                          <button
-                            onClick={() => {
-                              onViewReceipt(sale);
-                              setOpenActionId(null);
-                            }}
-                            className="w-full px-3 py-1.5 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            Ver recibo
-                          </button>
-                          {canManagePayments && (
-                            <button
-                              onClick={() => {
-                                onEditPayment(sale);
-                                setOpenActionId(null);
-                              }}
-                              className="w-full px-3 py-1.5 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
-                            >
-                              <CreditCard className="w-3.5 h-3.5" />
-                              Editar pagamento
-                            </button>
-                          )}
-                          {canManagePayments && onEditSale && (
-                            <button
-                              onClick={() => {
-                                onEditSale(sale);
-                                setOpenActionId(null);
-                              }}
-                              className="w-full px-3 py-1.5 flex items-center gap-2 text-foreground hover:bg-connect-blue hover:text-white transition-colors"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                              Editar venda
-                            </button>
-                          )}
-                          {canManagePayments && onDeleteSale && (
-                            <button
-                              onClick={() => {
-                                setSaleToDelete(sale);
-                                setOpenActionId(null);
-                              }}
-                              className="w-full px-3 py-1.5 flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white transition-colors border-t border-border mt-1 pt-1.5"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Excluir venda
-                            </button>
-                          )}
-                        </div>
-                      )}
+                        onClose={() => setOpenActionId(null)}
+                        canManagePayments={canManagePayments}
+                        onViewDetails={onViewDetails}
+                        onViewReceipt={onViewReceipt}
+                        onEditPayment={onEditPayment}
+                        onEditSale={onEditSale}
+                        onRequestDelete={setSaleToDelete}
+                      />
                     </td>
                   </tr>
                 );

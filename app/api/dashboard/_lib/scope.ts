@@ -20,6 +20,8 @@ const CANCELLED_SALE_STATUSES = [
   "DISTRATADA",
 ];
 
+export const NIL_UUID = "00000000-0000-0000-0000-000000000000";
+
 export const ACTIVE_SALE_WHERE: Prisma.SaleWhereInput = {
   status: { notIn: CANCELLED_SALE_STATUSES },
 };
@@ -29,6 +31,8 @@ export interface AnalyticsScope {
   userId: string;
   manager: boolean;
   director: boolean;
+  isRentScoped: boolean;
+  isSaleScoped: boolean;
   /** Filtro aplicado em Sale (corretor = só as vendas em que é titular) */
   sale: Prisma.SaleWhereInput;
   /** Filtro aplicado em Lead (corretor = só os leads atribuídos a ele) */
@@ -37,19 +41,24 @@ export interface AnalyticsScope {
   appointment: Prisma.AppointmentWhereInput;
 }
 
-export function buildScope(session: SessionPayload): AnalyticsScope {
+export function buildScope(
+  session: SessionPayload,
+  modality?: "TODOS" | "VENDA" | "ALUGUEL"
+): AnalyticsScope {
   const manager = isAdmin(session.role) || isFinanceiro(session.role);
   const isSaleScoped =
     session.role === "ADMINISTRADOR_VENDA" ||
     session.role === "FINANCEIRO_VENDA" ||
-    session.role === "CORRETOR_VENDA";
+    session.role === "CORRETOR_VENDA" ||
+    modality === "VENDA";
   const isRentScoped =
     session.role === "ADMINISTRADOR_ALUGUEL" ||
     session.role === "FINANCEIRO_ALUGUEL" ||
-    session.role === "CORRETOR_ALUGUEL";
+    session.role === "CORRETOR_ALUGUEL" ||
+    modality === "ALUGUEL";
 
   const saleFilter: Prisma.SaleWhereInput = isRentScoped
-    ? { id: "__none__" }
+    ? { id: NIL_UUID }
     : manager
     ? {}
     : { corretorId: session.userId };
@@ -84,6 +93,8 @@ export function buildScope(session: SessionPayload): AnalyticsScope {
     userId: session.userId,
     manager,
     director: isAdmin(session.role),
+    isRentScoped,
+    isSaleScoped,
     sale: saleFilter,
     lead: leadFilter,
     appointment: appointmentFilter,

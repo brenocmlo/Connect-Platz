@@ -12,7 +12,7 @@ import {
   canManageSaleValues,
 } from "@/lib/auth/session";
 import { buildLeadRLSWhere, maskLeadSensitiveData } from "@/lib/db/rls";
-import { buildScope } from "@/app/api/dashboard/_lib/scope";
+import { buildScope, NIL_UUID } from "@/app/api/dashboard/_lib/scope";
 import { RoundRobinDistributionStrategy } from "@/lib/domain/distribution/RoundRobinDistributionStrategy";
 
 const ORG_ID = "00000000-0000-0000-0000-000000000001";
@@ -177,7 +177,7 @@ describe("Governança RBAC (7 Perfis Oficiais) & Roleta por Modalidade", () => {
       });
       expect(scopeAdminAluguel.manager).toBe(true);
       expect(scopeAdminAluguel.lead).toEqual({ modalidade: "ALUGUEL" });
-      expect(scopeAdminAluguel.sale).toHaveProperty("id", "__none__");
+      expect(scopeAdminAluguel.sale).toHaveProperty("id", NIL_UUID);
     });
   });
 

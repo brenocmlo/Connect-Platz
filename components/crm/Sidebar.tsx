@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -126,27 +127,44 @@ export function Sidebar() {
       {/* 1. CABEÇALHO DA SIDEBAR: LOGO + BOTÃO DE RECOLHER (5.2) */}
       <div className="h-16 px-3 border-b border-border flex items-center justify-between">
         {!isSidebarCollapsed ? (
-          <div className="flex items-center gap-2 overflow-hidden">
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Ir para a Landing Page / Portal público"
+            aria-label="Ir para a Landing Page Connect Platz"
+            className="group flex items-center gap-2 overflow-hidden rounded-xl p-1 transition-all hover:bg-muted/70 hover:scale-[1.02]"
+          >
             <img
               src="/logo-predio.png"
               alt="Connect Platz"
-              className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-sm"
+              className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-sm transition-transform group-hover:scale-105"
             />
             <div className="flex flex-col">
-              <span className="text-xs font-extrabold tracking-tight text-foreground leading-none">
+              <span className="text-xs font-extrabold tracking-tight text-foreground leading-none group-hover:text-connect-blue transition-colors">
                 CONNECT <span className="text-[#D9BB4C]">PLATZ</span>
               </span>
-              <span className="text-[8px] font-semibold text-muted-foreground tracking-wider uppercase mt-0.5">
+              <span className="text-[8px] font-semibold text-muted-foreground tracking-wider uppercase mt-0.5 flex items-center gap-1">
                 CRM IMOBILIÁRIO
+                <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity text-connect-blue" />
               </span>
             </div>
-          </div>
+          </Link>
         ) : (
-          <img
-            src="/logo-predio.png"
-            alt="Connect Platz"
-            className="mx-auto w-8 h-8 object-contain drop-shadow-sm"
-          />
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Ir para a Landing Page / Portal público"
+            aria-label="Ir para a Landing Page Connect Platz"
+            className="mx-auto p-1 rounded-xl transition-all hover:bg-muted/70 hover:scale-105"
+          >
+            <img
+              src="/logo-predio.png"
+              alt="Connect Platz"
+              className="w-8 h-8 object-contain drop-shadow-sm"
+            />
+          </Link>
         )}
 
         <button
