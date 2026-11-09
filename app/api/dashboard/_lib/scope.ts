@@ -38,7 +38,7 @@ export interface AnalyticsScope {
 }
 
 export function buildScope(session: SessionPayload): AnalyticsScope {
-  const manager = isFinanceiro(session.role);
+  const manager = isAdmin(session.role) || isFinanceiro(session.role);
   const isSaleScoped =
     session.role === "ADMINISTRADOR_VENDA" ||
     session.role === "FINANCEIRO_VENDA" ||

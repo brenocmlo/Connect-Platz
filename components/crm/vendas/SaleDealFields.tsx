@@ -29,6 +29,7 @@ export interface SaleDealState {
   valorParcelaRepasse?: number;
   saldoDevedor?: number;
   titularOriginario?: string;
+  clausulaRepasse?: string;
   baseCalculoComissao?: "REPASSE" | "VGV";
 }
 

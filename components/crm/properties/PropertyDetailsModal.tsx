@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { PropertyCardData } from "./PropertyProductCard";
 import { PropertyModalShell } from "./PropertyModalShell";
-import { REGIONAL_POIS } from "@/lib/services/location";
+import { resolveNeighborhoodPois } from "@/lib/services/location";
 import {
   buildFichaText,
   copyText,
@@ -47,7 +47,11 @@ export function PropertyDetailsModal({ property, onClose, onOpenMaterials }: Pro
   const specs = p ? propertySpecs(p) : [];
   const address = p ? formatPropertyAddress(p) : "";
   const nav = p ? propertyNavigation(p) : { hasAny: false, wazeUrl: null, googleMapsUrl: null };
-  const pois = (p?.bairro && REGIONAL_POIS[p.bairro]) || [];
+  const pois = resolveNeighborhoodPois({
+    bairro: p?.bairro,
+    cidade: p?.cidade,
+    customPois: (p?.caracteristicas as any)?.pontosDeInteresse,
+  });
   const hasCoords = p?.latitude != null && p?.longitude != null;
 
   const handleCopyFicha = async () => {

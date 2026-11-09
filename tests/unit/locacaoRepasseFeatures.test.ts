@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { calculateSaleValues } from "@/components/crm/vendas/saleSplitHelper";
+import { calculateSaleValues, DEFAULT_CLAUSULA_REPASSE } from "@/components/crm/vendas/saleSplitHelper";
 import { formatPrice, matchesFilters, isLocacao, isRepasse } from "@/components/portal/portalUtils";
 import { parsePropertyBody } from "@/app/api/properties/propertyPayload";
+import { resolveBairro } from "@/app/api/properties/propertyDirectory";
 import type { PropertyItem, PortalFilters } from "@/components/portal/types";
 
 describe("Recursos de Locação Comum e Repasse", () => {
@@ -71,6 +72,7 @@ describe("Recursos de Locação Comum e Repasse", () => {
           saldoDevedor: 250000,
           parcelaMensal: 2150.5,
           titularOriginario: "Carlos Eduardo da Silva",
+          clausulaRepasse: "Em caso de atraso superior a 60 dias, haverá quebra contratual imediata.",
           valorAluguel: 3500,
           valorCondominio: 650,
           valorIptu: 180,
@@ -86,10 +88,19 @@ describe("Recursos de Locação Comum e Repasse", () => {
       expect(data.saldoDevedor).toBe(250000);
       expect(data.parcelaMensal).toBe(2150.5);
       expect(data.titularOriginario).toBe("Carlos Eduardo da Silva");
+      expect(data.clausulaRepasse).toBe("Em caso de atraso superior a 60 dias, haverá quebra contratual imediata.");
+      expect(DEFAULT_CLAUSULA_REPASSE).toContain("3 meses");
       expect(data.valorAluguel).toBe(3500);
       expect(data.valorCondominio).toBe(650);
       expect(data.valorIptu).toBe(180);
       expect(data.modalidade).toBe("REPASSE");
+    });
+
+    it("resolveBairro extrai bairro corretamente da coluna, parênteses na cidade ou endereço/nome", () => {
+      expect(resolveBairro({ bairro: "Meireles", cidade: "Fortaleza" })).toBe("Meireles");
+      expect(resolveBairro({ bairro: null, cidade: "Aquiraz (Porto das Dunas)" })).toBe("Porto das Dunas");
+      expect(resolveBairro({ bairro: "", cidade: "Fortaleza", nome: "Mansão no Cocó" })).toBe("Cocó");
+      expect(resolveBairro({ bairro: null, cidade: "Caucaia", endereco: "Av. Central, Praia de Cumbuco" })).toBe("Cumbuco");
     });
   });
 

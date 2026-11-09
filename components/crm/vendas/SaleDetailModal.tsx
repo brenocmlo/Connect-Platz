@@ -160,6 +160,7 @@ export function SaleDetailModal({
             valorParcelaRepasse={sale.valorParcelaRepasse || undefined}
             saldoDevedor={sale.saldoDevedor || undefined}
             titularOriginario={sale.titularOriginario || undefined}
+            clausulaRepasse={sale.clausulaRepasse || undefined}
             splits={sale.splits}
           />
 

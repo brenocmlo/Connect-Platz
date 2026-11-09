@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { ShieldAlert } from "lucide-react";
+import { RotateCcw, ShieldAlert } from "lucide-react";
 import { NumericInput } from "@/components/crm/primitives/NumericInput";
+import { DEFAULT_CLAUSULA_REPASSE } from "./saleSplitHelper";
 
 interface EditSaleRepasseSectionProps {
   isRepasse: boolean;
@@ -19,6 +20,8 @@ interface EditSaleRepasseSectionProps {
   setSaldoDevedor: (v: number) => void;
   titularOriginario: string;
   setTitularOriginario: (v: string) => void;
+  clausulaRepasse: string;
+  setClausulaRepasse: (v: string) => void;
   baseCalculoComissao: "REPASSE" | "VGV";
   setBaseCalculoComissao: (v: "REPASSE" | "VGV") => void;
   vgv: number;
@@ -40,6 +43,8 @@ export function EditSaleRepasseSection({
   setSaldoDevedor,
   titularOriginario,
   setTitularOriginario,
+  clausulaRepasse,
+  setClausulaRepasse,
   baseCalculoComissao,
   setBaseCalculoComissao,
   vgv,
@@ -168,11 +173,28 @@ export function EditSaleRepasseSection({
             </div>
           </div>
 
-          <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-start gap-2 text-xs text-amber-900 dark:text-amber-200">
-            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-[11px] leading-relaxed">
-              <strong>Cláusula de Inadimplência:</strong> O imóvel permanece no nome do titular originário. O adquirente assume as parcelas. Em caso de atraso superior a <strong>3 meses</strong>, haverá rescisão e perda total dos valores pagos.
-            </p>
+          <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 space-y-1.5 text-xs text-amber-900 dark:text-amber-200">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 font-bold">
+                <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                Cláusula de Inadimplência & Retomada (Editável):
+              </span>
+              <button
+                type="button"
+                onClick={() => setClausulaRepasse(DEFAULT_CLAUSULA_REPASSE)}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300 hover:underline shrink-0"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Restaurar padrão
+              </button>
+            </div>
+            <textarea
+              rows={3}
+              value={clausulaRepasse}
+              onChange={(e) => setClausulaRepasse(e.target.value)}
+              placeholder={DEFAULT_CLAUSULA_REPASSE}
+              className="w-full rounded-lg border border-amber-500/30 bg-background/90 p-2 text-[11px] leading-relaxed text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
           </div>
         </div>
       )}

@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
-import { ChevronDown, Menu, MessageCircle } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Menu, MessageCircle } from "lucide-react";
 import type { DirectoryCity, Modalidade, NavigateFn } from "./types";
 import { PortalLogo } from "./PortalUI";
 import { PortalMobileMenu } from "./PortalMobileMenu";
 import { PortalThemeToggle } from "./PortalThemeToggle";
-import { ANCHOR_LINKS, cityLabel, scrollToId } from "./portalUtils";
+import { ANCHOR_LINKS, scrollToId } from "./portalUtils";
 import { useWaLink } from "./PortalSettingsContext";
 import { PortalQuickLeadModal } from "./PortalQuickLeadModal";
 import { PortalBairrosSelector } from "./PortalBairrosSelector";
+import { PortalNavBairrosDropdown } from "./PortalNavBairrosDropdown";
+import { PortalAllBairrosModal } from "./PortalAllBairrosModal";
 
 interface PortalHeaderProps {
   cities: DirectoryCity[];
@@ -18,52 +20,6 @@ interface PortalHeaderProps {
   temporadaLocations?: string[];
   repasseLocations?: string[];
   onNavigate: NavigateFn;
-}
-
-function NavDropdown({
-  label,
-  modalidade,
-  locations,
-  onNavigate,
-}: {
-  label: string;
-  modalidade: Modalidade;
-  locations: string[];
-  onNavigate: NavigateFn;
-}) {
-  return (
-    <div className="group relative">
-      <button
-        type="button"
-        onClick={() => onNavigate(modalidade)}
-        className="flex h-[72px] items-center gap-1.5 px-3 text-sm font-semibold text-white/90 transition-colors hover:text-white"
-      >
-        <span>{label}</span>
-        <ChevronDown className="h-3.5 w-3.5 text-white/60 transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180" />
-      </button>
-      <div className="invisible absolute left-0 top-full w-56 translate-y-2 rounded-2xl border border-white/10 bg-[#0B132B]/95 backdrop-blur-xl p-2 opacity-0 shadow-2xl shadow-black/40 transition-all duration-200 ease-habitus group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 z-50">
-        <div className="space-y-0.5">
-          {locations.map((loc) => (
-            <button
-              key={loc}
-              type="button"
-              onClick={() => onNavigate(modalidade, loc)}
-              className="block w-full rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-white/90 transition-all hover:bg-[#1266C7] hover:text-white"
-            >
-              {loc}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => onNavigate(modalidade)}
-          className="mt-1.5 block w-full rounded-xl border-t border-white/10 pt-2 px-3.5 py-2 text-left text-xs font-bold text-sky-400 transition-colors hover:bg-[#1266C7] hover:text-white"
-        >
-          Ver todos os imóveis
-        </button>
-      </div>
-    </div>
-  );
 }
 
 export function PortalHeader({
@@ -77,17 +33,40 @@ export function PortalHeader({
   const waLink = useWaLink();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [allBairrosModalOpen, setAllBairrosModalOpen] = useState(false);
+  const [allBairrosModalidade, setAllBairrosModalidade] = useState<Modalidade>("VENDA");
 
-  const defaultLocations = ["Aquiraz", "Fortaleza"];
+  const openAllBairros = (mod: Modalidade = "VENDA") => {
+    setAllBairrosModalidade(mod);
+    setAllBairrosModalOpen(true);
+  };
+
+  const cityByBairro = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of cities) {
+      for (const b of c.bairros || []) {
+        map.set(b.nome.toLowerCase(), c.cidade.split(" (")[0]);
+      }
+    }
+    return map;
+  }, [cities]);
+
+  const fallbackBairros = useMemo(() => {
+    const fromDirectory = cities.flatMap((c) => (c.bairros || []).map((b) => b.nome)).filter(Boolean);
+    if (fromDirectory.length > 0) {
+      return Array.from(new Set(fromDirectory)).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    }
+    return ["Porto das Dunas", "Meireles", "Aldeota", "Cocó", "Cumbuco"];
+  }, [cities]);
 
   const finalComprar =
-    comprarLocations && comprarLocations.length > 0 ? comprarLocations : defaultLocations;
+    comprarLocations && comprarLocations.length > 0 ? comprarLocations : fallbackBairros;
   const finalAlugar =
-    alugarLocations && alugarLocations.length > 0 ? alugarLocations : defaultLocations;
+    alugarLocations && alugarLocations.length > 0 ? alugarLocations : fallbackBairros;
   const finalTemporada =
-    temporadaLocations && temporadaLocations.length > 0 ? temporadaLocations : defaultLocations;
+    temporadaLocations && temporadaLocations.length > 0 ? temporadaLocations : fallbackBairros;
   const finalRepasse =
-    repasseLocations && repasseLocations.length > 0 ? repasseLocations : defaultLocations;
+    repasseLocations && repasseLocations.length > 0 ? repasseLocations : fallbackBairros;
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-portal-navy shadow-lg shadow-portal-navy-deep/20">
@@ -97,10 +76,38 @@ export function PortalHeader({
         </a>
 
         <nav aria-label="Principal" className="hidden items-center lg:flex">
-          <NavDropdown label="Comprar" modalidade="VENDA" locations={finalComprar} onNavigate={onNavigate} />
-          <NavDropdown label="Alugar" modalidade="ALUGUEL" locations={finalAlugar} onNavigate={onNavigate} />
-          <NavDropdown label="Temporada" modalidade="VERANEIO" locations={finalTemporada} onNavigate={onNavigate} />
-          <NavDropdown label="Repasses" modalidade="REPASSE" locations={finalRepasse} onNavigate={onNavigate} />
+          <PortalNavBairrosDropdown
+            label="Comprar"
+            modalidade="VENDA"
+            locations={finalComprar}
+            cityByBairro={cityByBairro}
+            onNavigate={onNavigate}
+            onOpenAllBairros={() => openAllBairros("VENDA")}
+          />
+          <PortalNavBairrosDropdown
+            label="Alugar"
+            modalidade="ALUGUEL"
+            locations={finalAlugar}
+            cityByBairro={cityByBairro}
+            onNavigate={onNavigate}
+            onOpenAllBairros={() => openAllBairros("ALUGUEL")}
+          />
+          <PortalNavBairrosDropdown
+            label="Temporada"
+            modalidade="VERANEIO"
+            locations={finalTemporada}
+            cityByBairro={cityByBairro}
+            onNavigate={onNavigate}
+            onOpenAllBairros={() => openAllBairros("VERANEIO")}
+          />
+          <PortalNavBairrosDropdown
+            label="Repasses"
+            modalidade="REPASSE"
+            locations={finalRepasse}
+            cityByBairro={cityByBairro}
+            onNavigate={onNavigate}
+            onOpenAllBairros={() => openAllBairros("REPASSE")}
+          />
           {ANCHOR_LINKS.map((link) => {
             if (link.id === "diretorio") {
               return (
@@ -108,6 +115,7 @@ export function PortalHeader({
                   key="bairros-selector"
                   cities={cities}
                   onNavigate={onNavigate}
+                  onOpenAllBairros={() => openAllBairros("VENDA")}
                 />
               );
             }
@@ -152,7 +160,12 @@ export function PortalHeader({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         cities={cities}
+        comprarLocations={finalComprar}
+        alugarLocations={finalAlugar}
+        temporadaLocations={finalTemporada}
+        repasseLocations={finalRepasse}
         onNavigate={onNavigate}
+        onOpenAllBairros={openAllBairros}
       />
 
       <PortalQuickLeadModal
@@ -162,6 +175,14 @@ export function PortalHeader({
         subtitle="Informe seu nome e WhatsApp para ser atendido pelo corretor credenciado de plantão."
         defaultMessage="Olá! Gostaria de informações sobre imóveis com a Connect Platz."
         contextSource="header_nav_cta"
+      />
+
+      <PortalAllBairrosModal
+        isOpen={allBairrosModalOpen}
+        onClose={() => setAllBairrosModalOpen(false)}
+        cities={cities}
+        onNavigate={onNavigate}
+        defaultModalidade={allBairrosModalidade}
       />
     </header>
   );

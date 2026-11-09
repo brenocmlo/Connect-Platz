@@ -49,49 +49,60 @@ export default function LandingPage() {
   const navigateTo = (modalidade: Modalidade, cidade?: string) =>
     showResults({ modalidade, localizacao: cidade ?? "" });
 
-  const comprarLocations = React.useMemo(() => {
-    return Array.from(
-      new Set(
-        properties
-          .filter((p) => p.modalidade === "VENDA" || p.modalidade === "AMBOS")
-          .map((p) => p.bairro || p.cidade)
-          .filter(Boolean) as string[]
-      )
-    ).sort();
-  }, [properties]);
+  const allApiBairros = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const b of portal.bairros) {
+      const trimmed = b.trim();
+      if (trimmed) counts.set(trimmed, (counts.get(trimmed) || 0) + 1);
+    }
+    for (const p of properties) {
+      const b = p.bairro?.trim();
+      if (b) counts.set(b, (counts.get(b) || 0) + 1);
+    }
+    return Array.from(counts.keys()).sort(
+      (a, b) => (counts.get(b) || 0) - (counts.get(a) || 0) || a.localeCompare(b, "pt-BR")
+    );
+  }, [portal.bairros, properties]);
 
-  const alugarLocations = React.useMemo(() => {
-    return Array.from(
-      new Set(
-        properties
-          .filter((p) => p.modalidade === "LOCACAO_ANUAL" || p.modalidade === "AMBOS" || Boolean(p.valorAluguel))
-          .map((p) => p.bairro || p.cidade)
-          .filter(Boolean) as string[]
-      )
-    ).sort();
-  }, [properties]);
+  const extractLocations = React.useCallback(
+    (filterFn: (p: PropertyItem) => boolean) => {
+      const counts = new Map<string, number>();
+      for (const p of properties) {
+        if (filterFn(p)) {
+          const b = p.bairro?.trim();
+          if (b) counts.set(b, (counts.get(b) || 0) + 1);
+        }
+      }
+      const list = Array.from(counts.keys()).sort(
+        (a, b) => (counts.get(b) || 0) - (counts.get(a) || 0) || a.localeCompare(b, "pt-BR")
+      );
+      return list.length > 0 ? list : allApiBairros;
+    },
+    [properties, allApiBairros]
+  );
 
-  const temporadaLocations = React.useMemo(() => {
-    return Array.from(
-      new Set(
-        properties
-          .filter((p) => isTemporada(p) || p.modalidade === "AMBOS")
-          .map((p) => p.bairro || p.cidade)
-          .filter(Boolean) as string[]
-      )
-    ).sort();
-  }, [properties]);
+  const comprarLocations = React.useMemo(
+    () => extractLocations((p) => p.modalidade === "VENDA" || p.modalidade === "AMBOS"),
+    [extractLocations]
+  );
 
-  const repasseLocations = React.useMemo(() => {
-    return Array.from(
-      new Set(
-        properties
-          .filter((p) => p.modalidade === "REPASSE" || Boolean(p.valorRepasse))
-          .map((p) => p.bairro || p.cidade)
-          .filter(Boolean) as string[]
-      )
-    ).sort();
-  }, [properties]);
+  const alugarLocations = React.useMemo(
+    () =>
+      extractLocations(
+        (p) => p.modalidade === "LOCACAO_ANUAL" || p.modalidade === "AMBOS" || Boolean(p.valorAluguel)
+      ),
+    [extractLocations]
+  );
+
+  const temporadaLocations = React.useMemo(
+    () => extractLocations((p) => isTemporada(p) || p.modalidade === "AMBOS"),
+    [extractLocations]
+  );
+
+  const repasseLocations = React.useMemo(
+    () => extractLocations((p) => p.modalidade === "REPASSE" || Boolean(p.valorRepasse)),
+    [extractLocations]
+  );
 
   return (
     <PortalSettingsProvider>

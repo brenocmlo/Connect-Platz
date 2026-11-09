@@ -32,7 +32,7 @@ async function main() {
   const defaultPassword = "ConnectPlatz2026@";
   const defaultPasswordHash = await hashPassword(defaultPassword);
 
-  // 2. Os 5 Usuários Oficiais
+  // 2. Os 7 Usuários Oficiais
   const usersToSeed = [
     {
       nome: "Robson Carvalho (Administrador)",
@@ -40,6 +40,20 @@ async function main() {
       role: Role.ADMINISTRADOR,
       telefone: "(85) 99999-0001",
       creci: "00001-J",
+    },
+    {
+      nome: "Marcelo Rocha (Administrador Vendas)",
+      email: "admin.venda@connectplatz.com.br",
+      role: Role.ADMINISTRADOR_VENDA,
+      telefone: "(85) 99999-0010",
+      creci: "00002-J",
+    },
+    {
+      nome: "Patrícia Lima (Administradora Aluguéis)",
+      email: "admin.aluguel@connectplatz.com.br",
+      role: Role.ADMINISTRADOR_ALUGUEL,
+      telefone: "(85) 99999-0020",
+      creci: "00003-J",
     },
     {
       nome: "Beatriz Mendes (Financeiro Vendas)",

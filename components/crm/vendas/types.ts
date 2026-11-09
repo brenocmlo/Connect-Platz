@@ -40,6 +40,7 @@ export interface SaleItem {
   valorParcelaRepasse?: number | null;
   saldoDevedor?: number | null;
   titularOriginario?: string | null;
+  clausulaRepasse?: string | null;
   baseCalculoComissao?: string | null;
   comissaoTotal: number;
   percentualComissao?: number;

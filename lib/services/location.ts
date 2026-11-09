@@ -27,63 +27,14 @@ export interface PropertyLocationEnriched extends LocationData {
   pois: { label: string; iconType: "beach" | "shopping" | "food" | "route" | "nature" }[];
 }
 
+import { REGIONAL_POIS, resolveNeighborhoodPois } from "./neighborhoodPois";
+export { REGIONAL_POIS, resolveNeighborhoodPois };
+
 // Bairros mais frequentes da imobiliária para sugestão rápida
 export const REGIONAL_NEIGHBORHOODS: Record<string, string[]> = {
   Fortaleza: ["Meireles", "Aldeota", "Mucuripe", "Cocó", "Praia de Iracema", "Dionísio Torres", "Varjota", "Guararapes", "Fátima", "Papicu", "Engenheiro Luciano Cavalcante"],
   Aquiraz: ["Porto das Dunas", "Prainha", "Centro", "Camocim", "Japuara", "Iguape"],
   Eusébio: ["Centro", "Urucunema", "Coaçu", "Tamandatuba", "Mangabeira", "Amador"],
-};
-
-// Pontos de Interesse (POIs) curados por bairro (somente bairros conhecidos)
-export const REGIONAL_POIS: Record<string, { label: string; iconType: "beach" | "shopping" | "food" | "route" | "nature" }[]> = {
-  "Meireles": [
-    { label: "A 200m da Praia do Meireles e Feirinha Beira-Mar", iconType: "beach" },
-    { label: "Polo Gastronômico da Varjota e Aldeota", iconType: "food" },
-    { label: "A 10 min do Shopping Iguatemi Bosque", iconType: "shopping" },
-    { label: "Acesso expresso pela Av. Abolição e Santos Dumont", iconType: "route" },
-  ],
-  "Aldeota": [
-    { label: "A 300m da icônica Praça Portugal", iconType: "nature" },
-    { label: "Shopping Aldeota e Del Paseo a 5 minutos", iconType: "shopping" },
-    { label: "Centro Financeiro, Clínicas e Hospitais de Referência", iconType: "route" },
-    { label: "Bistrôs e Restaurantes de Alta Gastronomia", iconType: "food" },
-  ],
-  "Mucuripe": [
-    { label: "Frente Mar Absoluta da Enseada do Mucuripe", iconType: "beach" },
-    { label: "Iate Clube de Fortaleza a 300 metros", iconType: "nature" },
-    { label: "Mercado dos Peixes e Orla Gastronômica", iconType: "food" },
-    { label: "Ciclovia e Calçadão da Av. Beira-Mar", iconType: "route" },
-  ],
-  "Cocó": [
-    { label: "Em frente ao Parque Ecológico do Cocó", iconType: "nature" },
-    { label: "A 4 minutos do Shopping Iguatemi Bosque", iconType: "shopping" },
-    { label: "Eixo Corporativo Av. Santos Dumont", iconType: "route" },
-    { label: "Complexo Hospitalar e Centros Médicos", iconType: "food" },
-  ],
-  "Porto das Dunas": [
-    { label: "A 400m do Beach Park e Pé na Areia", iconType: "beach" },
-    { label: "A 20 minutos de Fortaleza pela Rodovia CE-025", iconType: "route" },
-    { label: "Complexo de Resorts e Beach Club Exclusivo", iconType: "food" },
-    { label: "Vila Azul do Mar e Polo Turístico", iconType: "shopping" },
-  ],
-  "Praia do Japão": [
-    { label: "Praia preservada com acesso pé na areia", iconType: "beach" },
-    { label: "Resort fechado com segurança armada 24h", iconType: "nature" },
-    { label: "Acesso duplicado e rápido pela CE-025", iconType: "route" },
-    { label: "A 10 minutos da rota dos Resorts de Aquiraz", iconType: "shopping" },
-  ],
-  "Alphaville": [
-    { label: "Condomínio Fechado com Alta Segurança e Lago", iconType: "nature" },
-    { label: "Alphaville Mall e Mercadinhos São Luiz", iconType: "shopping" },
-    { label: "Colégios Bilíngues e Colégio Christus Eusébio", iconType: "food" },
-    { label: "Acesso rápido e direto à Rodovia CE-040", iconType: "route" },
-  ],
-  "Cumbuco": [
-    { label: "Meca Mundial do Kitesurf e Ventos Alísios", iconType: "beach" },
-    { label: "Dunas do Cumbuco e Lagoa do Banana", iconType: "nature" },
-    { label: "Vila Charmosa com Culinária Internacional", iconType: "food" },
-    { label: "A 35 minutos de Fortaleza via Rodovia Estruturante", iconType: "route" },
-  ],
 };
 
 /**
@@ -376,7 +327,7 @@ export async function getPropertyLocationDetails(params: PropertyLocationInput):
     wazeUrl,
     googleMapsUrl,
     osmEmbedUrl,
-    // POIs apenas para bairros com curadoria real; nada genérico inventado
-    pois: (bairro && REGIONAL_POIS[bairro]) || [],
+    // POIs resolvidos de forma inteligente (curados para bairros conhecidos ou metropolitano)
+    pois: resolveNeighborhoodPois({ bairro, cidade }),
   };
 }

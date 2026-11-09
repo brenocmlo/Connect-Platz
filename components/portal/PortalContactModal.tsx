@@ -22,6 +22,7 @@ import { FALLBACK_PHOTO, formatPrice, isTemporada } from "./portalUtils";
 import { useWaLink } from "./PortalSettingsContext";
 import { PropertyLocationTab } from "./PropertyLocationTab";
 import { PortalLeadContactForm } from "./PortalLeadContactForm";
+import { PortalModalGallery } from "./PortalModalGallery";
 
 interface PortalContactModalProps {
   property: PropertyItem | null;
@@ -77,37 +78,14 @@ function ModalPanel({ property, onClose }: { property: PropertyItem; onClose: ()
         <X className="h-4 w-4" />
       </button>
 
-      {/* Lado Esquerdo: Foto de Capa & Status */}
-      <div className="relative h-56 shrink-0 md:h-auto md:w-[42%] bg-portal-mist overflow-hidden">
-        <img
-          src={property.fotos?.[0] || FALLBACK_PHOTO}
-          alt={property.nome}
-          className="h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
-
-        <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-1.5 z-10">
-          <span className="rounded-full bg-connect-blue px-3 py-1 text-xs font-bold text-white shadow-sm">
-            {isTemporada(property) ? "Temporada" : "Venda"}
-          </span>
-          {(property as any).estagioObra && (
-            <span className="rounded-full bg-platz-gold px-3 py-1 text-xs font-bold text-portal-navy shadow-sm">
-              {(property as any).estagioObra}
-            </span>
-          )}
-        </div>
-
-        {/* Rodapé da imagem com construtora */}
-        {property.construtora && (
-          <div className="absolute bottom-3 left-3 right-3 text-white z-10 text-xs">
-            <span className="text-[10px] uppercase font-semibold text-white/80 block">Incorporação</span>
-            <span className="font-bold flex items-center gap-1.5 text-sm">
-              <Building className="w-4 h-4 text-platz-gold" />
-              {property.construtora}
-            </span>
-          </div>
-        )}
-      </div>
+      {/* Lado Esquerdo: Galeria de Fotos Interativa & Status */}
+      <PortalModalGallery
+        fotos={property.fotos}
+        nome={property.nome}
+        modalidadeBadge={isTemporada(property) ? "Temporada" : "Venda"}
+        estagioObra={(property as any).estagioObra}
+        construtora={property.construtora}
+      />
 
       {/* Lado Direito: Informações Completas + Abas */}
       <div className="flex-1 overflow-y-auto p-5 sm:p-6 flex flex-col justify-between">
