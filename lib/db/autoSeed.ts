@@ -1,17 +1,17 @@
 import { prisma } from "./prisma";
-import { Role, CorretorStatus, PropertyModality, PriceRange } from "@prisma/client";
+import { Role, CorretorStatus, PropertyModality, PriceRange, BusinessModality } from "@prisma/client";
 import { hashPassword } from "../auth/password";
 import { businessDay } from "../utils/businessDay";
 
 export async function ensureInitialSeed(): Promise<{ seeded: boolean; message: string }> {
   // Verifica se o administrador principal já está cadastrado
   const existingAdmin = await prisma.user.findUnique({
-    where: { email: "robson@connectplatz.com.br" },
+    where: { email: "admin@connectplatz.com.br" },
     select: { id: true, email: true },
   });
 
   if (existingAdmin) {
-    return { seeded: false, message: "Base já inicializada com Robson Carvalho." };
+    return { seeded: false, message: "Base já inicializada com os perfis oficiais." };
   }
 
   console.log("🌱 Executando auto-seed inicial Connect Platz...");
@@ -37,90 +37,79 @@ export async function ensureInitialSeed(): Promise<{ seeded: boolean; message: s
   // 2. Senha padrão segura com Bcrypt
   const defaultPasswordHash = await hashPassword("ConnectPlatz2026@");
 
-  // 3. Administrador Geral (Robson Carvalho)
-  await prisma.user.upsert({
-    where: { email: "robson@connectplatz.com.br" },
-    update: { passwordHash: defaultPasswordHash },
-    create: {
-      organizationId: org.id,
-      nome: "Robson Carvalho",
-      email: "robson@connectplatz.com.br",
-      passwordHash: defaultPasswordHash,
-      role: Role.ADMINISTRADOR,
-      status: CorretorStatus.DISPONIVEL,
-      telefone: "(85) 99999-0001",
-    },
-  });
-
-  // 4. Corretores de Exemplo com Check-in diário
-  const corretoresData = [
-    { nome: "Lucas Santos", email: "lucas.corretor@connectplatz.com.br", telefone: "(85) 98888-1001", creci: "12345-F" },
-    { nome: "Mariana Oliveira", email: "mariana.corretor@connectplatz.com.br", telefone: "(85) 98888-1002", creci: "23456-F" },
-    { nome: "Rafael Mendes", email: "rafael.corretor@connectplatz.com.br", telefone: "(85) 98888-1003", creci: "34567-F" },
+  // 3. Os 7 Perfis Oficiais de Produção
+  const officialUsers = [
+    { nome: "Admin Geral", email: "admin@connectplatz.com.br", role: Role.ADMINISTRADOR, telefone: "(85) 99999-0001", creci: "00001-J" },
+    { nome: "Robson Carvalho", email: "admin.venda@connectplatz.com.br", role: Role.ADMINISTRADOR_VENDA, telefone: "(85) 99999-0010", creci: "00002-J" },
+    { nome: "Pietro", email: "admin.aluguel@connectplatz.com.br", role: Role.ADMINISTRADOR_ALUGUEL, telefone: "(85) 99999-0020", creci: "00003-J" },
+    { nome: "Bianca", email: "financeiro.venda@connectplatz.com.br", role: Role.FINANCEIRO_VENDA, telefone: "(85) 99999-0002", creci: null },
+    { nome: "Mikaelly", email: "financeiro.aluguel@connectplatz.com.br", role: Role.FINANCEIRO_ALUGUEL, telefone: "(85) 99999-0003", creci: null },
+    { nome: "Lucas Santos", email: "corretor.venda@connectplatz.com.br", role: Role.CORRETOR_VENDA, telefone: "(85) 98888-1001", creci: "12345-F" },
+    { nome: "Juliana Paes", email: "corretor.aluguel@connectplatz.com.br", role: Role.CORRETOR_ALUGUEL, telefone: "(85) 98888-2001", creci: "98765-F" },
   ];
 
   const today = businessDay();
-  for (const c of corretoresData) {
+  for (const u of officialUsers) {
     const user = await prisma.user.upsert({
-      where: { email: c.email },
-      update: { passwordHash: defaultPasswordHash },
+      where: { email: u.email },
+      update: { nome: u.nome, role: u.role, isActive: true },
       create: {
         organizationId: org.id,
-        nome: c.nome,
-        email: c.email,
+        nome: u.nome,
+        email: u.email,
         passwordHash: defaultPasswordHash,
-        role: Role.CORRETOR_VENDA,
+        role: u.role,
         status: CorretorStatus.DISPONIVEL,
-        telefone: c.telefone,
-        creci: c.creci,
+        telefone: u.telefone,
+        creci: u.creci,
+        isActive: true,
         lastLeadAssignedAt: new Date(),
       },
     });
 
-    await prisma.checkIn.upsert({
-      where: { userId_date: { userId: user.id, date: today } },
-      update: {},
-      create: { userId: user.id, date: today },
-    });
-  }
-
-  // 5. Funil Padrão e Etapas com SLA
-  let funnel = await prisma.funnel.findFirst({
-    where: { organizationId: org.id, nome: "Funil de Vendas Imobiliárias" },
-  });
-
-  if (!funnel) {
-    funnel = await prisma.funnel.create({
-      data: {
-        organizationId: org.id,
-        nome: "Funil de Vendas Imobiliárias",
-        isDefault: true,
-      },
-    });
-
-    const stages = [
-      { nome: "Novo Lead", posicao: 1, cor: "#1266C7", slaMinutes: 20, actionOnExpire: "transbordo" },
-      { nome: "Primeiro Contato", posicao: 2, cor: "#0D478F", slaMinutes: 120, actionOnExpire: "bolsao" },
-      { nome: "Análise de Crédito", posicao: 3, cor: "#8B5CF6", slaMinutes: 4320, actionOnExpire: "notificar" },
-      { nome: "Visita Agendada", posicao: 4, cor: "#D9BB4C", slaMinutes: 2880, actionOnExpire: "notificar" },
-      { nome: "Proposta Enviada", posicao: 5, cor: "#F59E0B", slaMinutes: 1440, actionOnExpire: "notificar" },
-      { nome: "Fechado / Ganho", posicao: 6, cor: "#10B981", slaMinutes: null, actionOnExpire: "none" },
-      { nome: "Encerrado", posicao: 7, cor: "#64748B", slaMinutes: null, actionOnExpire: "none" },
-    ];
-
-    for (const stage of stages) {
-      await prisma.funnelStage.create({
-        data: {
-          funnelId: funnel.id,
-          nome: stage.nome,
-          posicao: stage.posicao,
-          cor: stage.cor,
-          slaMinutes: stage.slaMinutes,
-          actionOnExpire: stage.actionOnExpire,
-        },
+    if (u.role === Role.CORRETOR_VENDA || u.role === Role.CORRETOR_ALUGUEL) {
+      await prisma.checkIn.upsert({
+        where: { userId_date: { userId: user.id, date: today } },
+        update: {},
+        create: { userId: user.id, date: today },
       });
     }
   }
+
+  // 4. Funis Padrão (Vendas e Locações/Temporada)
+  const ensureFunnel = async (
+    nome: string,
+    modalidade: BusinessModality,
+    stages: { nome: string; posicao: number; cor: string; slaMinutes: number | null; actionOnExpire: string }[]
+  ) => {
+    const existing = await prisma.funnel.findFirst({ where: { organizationId: org.id, modalidade } });
+    if (existing) return;
+    const created = await prisma.funnel.create({
+      data: { organizationId: org.id, nome, modalidade, isDefault: true },
+    });
+    for (const s of stages) {
+      await prisma.funnelStage.create({ data: { funnelId: created.id, ...s } });
+    }
+  };
+
+  await ensureFunnel("Funil de Vendas Imobiliárias", BusinessModality.VENDA, [
+    { nome: "Novo Lead", posicao: 1, cor: "#1266C7", slaMinutes: 20, actionOnExpire: "transbordo" },
+    { nome: "Primeiro Contato", posicao: 2, cor: "#0D478F", slaMinutes: 120, actionOnExpire: "bolsao" },
+    { nome: "Análise de Crédito", posicao: 3, cor: "#8B5CF6", slaMinutes: 4320, actionOnExpire: "notificar" },
+    { nome: "Visita Agendada", posicao: 4, cor: "#D9BB4C", slaMinutes: 2880, actionOnExpire: "notificar" },
+    { nome: "Proposta Enviada", posicao: 5, cor: "#F59E0B", slaMinutes: 1440, actionOnExpire: "notificar" },
+    { nome: "Fechado / Ganho", posicao: 6, cor: "#10B981", slaMinutes: null, actionOnExpire: "none" },
+    { nome: "Encerrado", posicao: 7, cor: "#64748B", slaMinutes: null, actionOnExpire: "none" },
+  ]);
+
+  await ensureFunnel("Funil de Locações & Temporada", BusinessModality.ALUGUEL, [
+    { nome: "Novo Lead Locação", posicao: 1, cor: "#1266C7", slaMinutes: 20, actionOnExpire: "transbordo" },
+    { nome: "Contato Inicial", posicao: 2, cor: "#0D478F", slaMinutes: 120, actionOnExpire: "bolsao" },
+    { nome: "Visita ao Imóvel", posicao: 3, cor: "#D9BB4C", slaMinutes: 2880, actionOnExpire: "notificar" },
+    { nome: "Análise de Ficha & Garantia", posicao: 4, cor: "#8B5CF6", slaMinutes: 1440, actionOnExpire: "notificar" },
+    { nome: "Contrato / Reserva Fechada", posicao: 5, cor: "#10B981", slaMinutes: null, actionOnExpire: "none" },
+    { nome: "Perdido / Cancelado", posicao: 6, cor: "#64748B", slaMinutes: null, actionOnExpire: "none" },
+  ]);
 
   // 6. Catálogo de Imóveis Principais
   const sampleProperties = [
@@ -184,49 +173,37 @@ export async function ensureInitialSeed(): Promise<{ seeded: boolean; message: s
     },
   ];
 
-  for (const p of sampleProperties) {
-    await prisma.property.upsert({
-      where: {
-        organizationId_slug: {
-          organizationId: org.id,
-          slug: p.slug,
+  const existingProperties = await prisma.property.count({ where: { organizationId: org.id } });
+  if (existingProperties === 0) {
+    for (const p of sampleProperties) {
+      await prisma.property.upsert({
+        where: {
+          organizationId_slug: {
+            organizationId: org.id,
+            slug: p.slug,
+          },
         },
-      },
-      update: {
-        nome: p.nome,
-        modalidade: p.modalidade,
-        faixaPreco: p.faixaPreco,
-        valorDiaria: p.valorDiaria,
-        valorVenda: p.valorVenda,
-        taxaLimpeza: p.taxaLimpeza,
-        cidade: p.cidade,
-        estado: p.estado,
-        bairro: p.bairro,
-        endereco: p.endereco,
-        descricao: p.descricao,
-        caracteristicas: p.caracteristicas,
-        diferenciais: p.diferenciais,
-        fotos: p.fotos,
-      },
-      create: {
-        organizationId: org.id,
-        nome: p.nome,
-        slug: p.slug,
-        modalidade: p.modalidade,
-        faixaPreco: p.faixaPreco,
-        valorDiaria: p.valorDiaria,
-        valorVenda: p.valorVenda,
-        taxaLimpeza: p.taxaLimpeza,
-        cidade: p.cidade,
-        estado: p.estado,
-        bairro: p.bairro,
-        endereco: p.endereco,
-        descricao: p.descricao,
-        caracteristicas: p.caracteristicas,
-        diferenciais: p.diferenciais,
-        fotos: p.fotos,
-      },
-    });
+        update: {},
+        create: {
+          organizationId: org.id,
+          nome: p.nome,
+          slug: p.slug,
+          modalidade: p.modalidade,
+          faixaPreco: p.faixaPreco,
+          valorDiaria: p.valorDiaria,
+          valorVenda: p.valorVenda,
+          taxaLimpeza: p.taxaLimpeza,
+          cidade: p.cidade,
+          estado: p.estado,
+          bairro: p.bairro,
+          endereco: p.endereco,
+          descricao: p.descricao,
+          caracteristicas: p.caracteristicas,
+          diferenciais: p.diferenciais,
+          fotos: p.fotos,
+        },
+      });
+    }
   }
 
   console.log("✅ Auto-seed concluído com sucesso!");

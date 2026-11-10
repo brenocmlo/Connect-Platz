@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
 
   let result;
   try {
-    // Auto-seed de contingência: garante que Robson e a estrutura básica existam em bancos novos
-    if (parsed.data.email === "robson@connectplatz.com.br") {
+    // Auto-seed de contingência: garante que os 7 perfis oficiais e funis existam em bancos novos
+    if (parsed.data.email.endsWith("@connectplatz.com.br")) {
       await ensureInitialSeed().catch((err) => {
         console.warn("[Login Auto-Seed Error]:", err);
       });

@@ -1,8 +1,8 @@
 import { expect, Page } from "@playwright/test";
 
 export const PASSWORD = process.env.TEST_PASSWORD || "ConnectPlatz2026@";
-export const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || "robson@connectplatz.com.br";
-export const CORRETOR_EMAIL = process.env.TEST_CORRETOR_EMAIL || "lucas.corretor@connectplatz.com.br";
+export const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || "admin@connectplatz.com.br";
+export const CORRETOR_EMAIL = process.env.TEST_CORRETOR_EMAIL || "corretor.venda@connectplatz.com.br";
 
 /** Login via API (o contexto de request compartilha cookies com a page) — evita corrida de hidratação do form. */
 export async function login(page: Page, email: string) {

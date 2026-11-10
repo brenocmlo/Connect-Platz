@@ -313,9 +313,9 @@ O sistema possui **7 perfis oficiais** segregados por modalidade (`VENDA` vs. `A
    ```
 
    > **Credenciais de Acesso Inicial (Seed):**  
-   > - **E-mail:** `robson@connectplatz.com.br`  
+   > - **E-mail:** `admin@connectplatz.com.br`  
    > - **Senha:** `ConnectPlatz2026@`  
-   > - **Perfil:** Administrador
+   > - **Perfil:** Administrador Geral (`ADMINISTRADOR`)
 
 7. **Iniciar o Servidor de Desenvolvimento**:
    ```bash

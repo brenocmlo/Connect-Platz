@@ -9,35 +9,35 @@ const prisma = new PrismaClient();
 
 const OFICIAIS = [
   {
-    nome: "Robson Carvalho",
+    nome: "Admin Geral",
     email: "admin@connectplatz.com.br",
     role: Role.ADMINISTRADOR,
     telefone: "(85) 99999-0001",
     creci: "00001-J",
   },
   {
-    nome: "Marcelo Rocha",
+    nome: "Robson Carvalho",
     email: "admin.venda@connectplatz.com.br",
     role: Role.ADMINISTRADOR_VENDA,
     telefone: "(85) 99999-0010",
     creci: "00002-J",
   },
   {
-    nome: "Patrícia Lima",
+    nome: "Pietro",
     email: "admin.aluguel@connectplatz.com.br",
     role: Role.ADMINISTRADOR_ALUGUEL,
     telefone: "(85) 99999-0020",
     creci: "00003-J",
   },
   {
-    nome: "Beatriz Mendes",
+    nome: "Bianca",
     email: "financeiro.venda@connectplatz.com.br",
     role: Role.FINANCEIRO_VENDA,
     telefone: "(85) 99999-0002",
     creci: null,
   },
   {
-    nome: "Carlos Drummond",
+    nome: "Mikaelly",
     email: "financeiro.aluguel@connectplatz.com.br",
     role: Role.FINANCEIRO_ALUGUEL,
     telefone: "(85) 99999-0003",

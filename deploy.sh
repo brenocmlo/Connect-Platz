@@ -67,7 +67,7 @@ echo -e "${GREEN}   ✅ DEPLOY CONCLUÍDO COM SUCESSO!                          
 echo -e "${GREEN}===================================================================${NC}"
 echo -e "Acesse a aplicação no navegador em:"
 echo -e "👉 ${BLUE}http://$(curl -s ifconfig.me 2>/dev/null || echo "SEU-IP-DA-VPS"):3000${NC}"
-echo -e "👉 Login Admin: ${YELLOW}robson@connectplatz.com.br${NC}"
+echo -e "👉 Login Admin: ${YELLOW}admin@connectplatz.com.br${NC}"
 echo -e "👉 Senha Padrão: ${YELLOW}ConnectPlatz2026@${NC}"
 echo -e "-------------------------------------------------------------------"
 echo -e "Para configurar domínio com SSL e Nginx, siga o guia nginx/connect-platz.conf"
