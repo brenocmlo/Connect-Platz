@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface PropertyModalShellProps {
@@ -85,8 +85,24 @@ export function PropertyModalShell({
   );
 }
 
-// Classes de formulário compartilhadas pelos modais de cadastro (tokens light/dark).
-export const fieldLabel = "mb-1 block text-xs font-semibold text-foreground";
+// Classes de formulário padronizadas (mesma altura h-10 e remoção de controles nativos no Safari/WebKit).
+export const fieldLabel = "mb-1 block truncate text-xs font-semibold text-foreground";
 export const fieldInput =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue";
+  "h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground [color-scheme:light] dark:[color-scheme:dark] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue";
+export const fieldSelect =
+  "h-10 w-full cursor-pointer appearance-none rounded-lg border border-border bg-background px-3 py-2 pr-9 text-xs text-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue";
+export const fieldTextarea =
+  "min-h-[84px] w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue";
 export const fieldHint = "mb-1 block text-[11px] text-muted-foreground";
+
+export function SelectWithChevron({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      {children}
+      <ChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+      />
+    </div>
+  );
+}

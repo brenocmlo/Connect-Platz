@@ -7,6 +7,11 @@ import { recordAudit } from "@/lib/services/audit-server";
 import { resolveUploadPath } from "@/app/api/upload/uploadStorage";
 import { deleteFromR2, extractR2KeyFromUrl } from "@/lib/storage/r2Client";
 import { auditSnapshot, fillCoordinates, parsePropertyBody } from "../propertyPayload";
+import {
+  getModalityScopeErrorMessage,
+  isModalidadeAllowedForRole,
+  isPropertyVisibleToRole,
+} from "@/lib/domain/properties/modalityScope";
 
 export const dynamic = "force-dynamic";
 
@@ -38,10 +43,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (!current) {
       return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
     }
+    if (!isPropertyVisibleToRole(current.modalidade, session.role)) {
+      return NextResponse.json({ error: "Acesso negado para editar um imóvel desta modalidade." }, { status: 403 });
+    }
 
     const { data, errors } = parsePropertyBody(body, true);
     if (errors.length > 0) {
       return NextResponse.json({ error: errors.join(" "), details: errors }, { status: 400 });
+    }
+    if ("modalidade" in data && !isModalidadeAllowedForRole(data.modalidade, session.role, true)) {
+      return NextResponse.json({ error: getModalityScopeErrorMessage(session.role) }, { status: 403 });
     }
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: "Nenhum campo válido para atualizar." }, { status: 400 });
@@ -111,6 +122,9 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     });
     if (!property) {
       return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
+    }
+    if (!isPropertyVisibleToRole(property.modalidade, session.role)) {
+      return NextResponse.json({ error: "Acesso negado para excluir um imóvel desta modalidade." }, { status: 403 });
     }
 
     const isPermanent =

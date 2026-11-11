@@ -14,6 +14,7 @@ import { PropertyProductCard, PropertyCardData } from "./PropertyProductCard";
 import { EmptyState } from "@/components/crm/primitives/EmptyState";
 import { useCrm } from "@/components/crm/CrmContext";
 import { useDebounce } from "@/hooks/useDebounce";
+import { resolveRoleModalityGroup } from "@/lib/domain/properties/modalityScope";
 
 interface PropertyListSectionProps {
   properties: PropertyCardData[];
@@ -42,8 +43,9 @@ export function PropertyListSection({
   onPermanentDeleteProperty,
 }: PropertyListSectionProps) {
   const { user } = useCrm();
-  const isVendaOnly = user?.role === "FINANCEIRO_VENDA" || user?.role === "CORRETOR_VENDA";
-  const isAluguelOnly = user?.role === "FINANCEIRO_ALUGUEL" || user?.role === "CORRETOR_ALUGUEL";
+  const modalityGroup = resolveRoleModalityGroup(user?.role);
+  const isVendaOnly = modalityGroup === "VENDA";
+  const isAluguelOnly = modalityGroup === "ALUGUEL";
 
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 250);

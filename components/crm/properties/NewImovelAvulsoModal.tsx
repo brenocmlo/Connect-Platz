@@ -2,8 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import { Home, Globe, Loader2 } from "lucide-react";
+import { useCrm } from "@/components/crm/CrmContext";
+import {
+  getAllowedPropertyModalities,
+  getDefaultPropertyModalidade,
+  isModalidadeAllowedForRole,
+  PropertyModalidadeOption,
+} from "@/lib/domain/properties/modalityScope";
 import { ImageUploadZone } from "./ImageUploadZone";
-import { PropertyModalShell, fieldInput, fieldLabel } from "./PropertyModalShell";
+import { PropertyModalShell, fieldInput, fieldLabel, fieldTextarea } from "./PropertyModalShell";
 import {
   EMPTY_LOCATION,
   EMPTY_TIPOLOGIA,
@@ -22,8 +29,12 @@ interface NewImovelAvulsoModalProps {
 const DIFERENCIAIS = ["Piscina Privativa", "Vista Mar", "Mobiliado", "Varanda Gourmet", "Pé na Areia", "Churrasqueira", "Portaria 24h"];
 
 export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAvulsoModalProps) {
+  const { user } = useCrm();
+  const allowedModalities = getAllowedPropertyModalities(user?.role, false);
+  const defaultModalidade = getDefaultPropertyModalidade(user?.role);
+
   const [nome, setNome] = useState("");
-  const [modalidade, setModalidade] = useState<"VENDA" | "VERANEIO_TEMPORADA" | "LOCACAO_ANUAL" | "REPASSE">("VENDA");
+  const [modalidade, setModalidade] = useState<PropertyModalidadeOption>(defaultModalidade);
   const [valorVenda, setValorVenda] = useState("");
   const [valorDiaria, setValorDiaria] = useState("");
   const [taxaLimpeza, setTaxaLimpeza] = useState("");
@@ -52,7 +63,7 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
   useEffect(() => {
     if (!isOpen) return;
     setNome("");
-    setModalidade("VENDA");
+    setModalidade(getDefaultPropertyModalidade(user?.role));
     setValorVenda("");
     setValorDiaria("");
     setTaxaLimpeza("");
@@ -70,6 +81,14 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
     setSelectedTags([]);
     setError(null);
   }, [isOpen]);
+
+  // Ajusta apenas a modalidade caso o perfil carregue após a abertura do modal
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!isModalidadeAllowedForRole(modalidade, user?.role, false)) {
+      setModalidade(defaultModalidade);
+    }
+  }, [isOpen, user?.role, modalidade, defaultModalidade]);
 
   const toggleTag = (tag: string) =>
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
@@ -128,7 +147,7 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
   };
 
   const modalidadeBtn = (active: boolean) =>
-    `rounded-lg border p-2.5 text-center text-xs font-bold transition-all ${
+    `flex h-10 items-center justify-center rounded-lg border px-3 text-center text-xs font-bold transition-all ${
       active ? "border-connect-blue bg-connect-blue text-white shadow-md shadow-connect-blue/20" : "border-border bg-background text-muted-foreground hover:border-connect-blue/40 hover:text-foreground"
     }`;
 
@@ -167,19 +186,17 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
       )}
 
       <form id="novo-avulso-form" onSubmit={handleSubmit} className="space-y-4 text-xs">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <button type="button" onClick={() => setModalidade("VENDA")} className={modalidadeBtn(modalidade === "VENDA")}>
-            🏢 Venda
-          </button>
-          <button type="button" onClick={() => setModalidade("LOCACAO_ANUAL")} className={modalidadeBtn(modalidade === "LOCACAO_ANUAL")}>
-            🔑 Locação Comum
-          </button>
-          <button type="button" onClick={() => setModalidade("VERANEIO_TEMPORADA")} className={modalidadeBtn(modalidade === "VERANEIO_TEMPORADA")}>
-            🏖️ Temporada
-          </button>
-          <button type="button" onClick={() => setModalidade("REPASSE")} className={modalidadeBtn(modalidade === "REPASSE")}>
-            🔄 Repasse
-          </button>
+        <div className={`grid gap-2 ${allowedModalities.length <= 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"}`}>
+          {allowedModalities.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setModalidade(opt.value)}
+              className={modalidadeBtn(modalidade === opt.value)}
+            >
+              {opt.shortLabel}
+            </button>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -196,7 +213,7 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
           )}
 
           {modalidade === "LOCACAO_ANUAL" && (
-            <>
+            <div className="sm:col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <label htmlFor="av-aluguel" className={fieldLabel}>Aluguel Mensal (R$) *</label>
                 <input id="av-aluguel" type="number" min="0" required value={valorAluguel} onChange={(e) => setValorAluguel(e.target.value)} placeholder="Ex.: 3200" className={fieldInput} />
@@ -209,7 +226,7 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
                 <label htmlFor="av-iptu" className={fieldLabel}>IPTU Mensal/Anual (R$)</label>
                 <input id="av-iptu" type="number" min="0" value={valorIptu} onChange={(e) => setValorIptu(e.target.value)} placeholder="Ex.: 150" className={fieldInput} />
               </div>
-            </>
+            </div>
           )}
 
           {modalidade === "VERANEIO_TEMPORADA" && (
@@ -257,7 +274,7 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="av-clausula" className={fieldLabel}>Cláusula Contratual de Repasse (Editável)</label>
-                <textarea id="av-clausula" rows={2} value={clausulaRepasse} onChange={(e) => setClausulaRepasse(e.target.value)} className={fieldInput} />
+                <textarea id="av-clausula" rows={2} value={clausulaRepasse} onChange={(e) => setClausulaRepasse(e.target.value)} className={fieldTextarea} />
               </div>
             </>
           )}
@@ -266,7 +283,7 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
         <PropertyLocationFields idPrefix="av" value={location} onChange={setLocation} />
 
         <div className="rounded-xl border border-border bg-muted/40 p-3">
-          <PropertyTipologiaFields value={tipologia} onChange={setTipologia} />
+          <PropertyTipologiaFields idPrefix="av" value={tipologia} onChange={setTipologia} />
         </div>
 
         <div>
@@ -296,7 +313,7 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
 
         <div>
           <label htmlFor="av-descricao" className={fieldLabel}>Descrição</label>
-          <textarea id="av-descricao" rows={3} value={descricao} onChange={(e) => setDescricao(e.target.value)} className={fieldInput} />
+          <textarea id="av-descricao" rows={3} value={descricao} onChange={(e) => setDescricao(e.target.value)} className={fieldTextarea} />
         </div>
 
         <label htmlFor="av-landing" className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-muted/30 p-3 transition-colors hover:border-connect-blue/40">

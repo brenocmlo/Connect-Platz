@@ -209,22 +209,36 @@ const TIPOLOGIA_FIELDS: { key: keyof TipologiaValue; label: string }[] = [
   { key: "vagas", label: "Vagas" },
 ];
 
-export function PropertyTipologiaFields({ value, onChange }: { value: TipologiaValue; onChange: (v: TipologiaValue) => void }) {
+export function PropertyTipologiaFields({
+  value,
+  onChange,
+  idPrefix = "prop",
+}: {
+  value: TipologiaValue;
+  onChange: (v: TipologiaValue) => void;
+  idPrefix?: string;
+}) {
   return (
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-      {TIPOLOGIA_FIELDS.map(({ key, label }) => (
-        <div key={key}>
-          <label className="mb-1 block text-[11px] text-muted-foreground">{label}</label>
-          <input
-            type="number"
-            min="0"
-            step={key === "area_m2" ? "0.01" : "1"}
-            value={value[key]}
-            onChange={(e) => onChange({ ...value, [key]: e.target.value })}
-            className={fieldInput}
-          />
-        </div>
-      ))}
+      {TIPOLOGIA_FIELDS.map(({ key, label }) => {
+        const inputId = `${idPrefix}-${key}`;
+        return (
+          <div key={key}>
+            <label htmlFor={inputId} className="mb-1 block truncate text-[11px] font-medium text-muted-foreground">
+              {label}
+            </label>
+            <input
+              id={inputId}
+              type="number"
+              min="0"
+              step={key === "area_m2" ? "0.01" : "1"}
+              value={value[key]}
+              onChange={(e) => onChange({ ...value, [key]: e.target.value })}
+              className={fieldInput}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }

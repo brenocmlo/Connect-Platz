@@ -2,8 +2,22 @@
 
 import React, { useEffect, useState } from "react";
 import { Building2, Sparkles, Globe, Loader2 } from "lucide-react";
+import { useCrm } from "@/components/crm/CrmContext";
+import {
+  getAllowedPropertyModalities,
+  getDefaultPropertyModalidade,
+  isModalidadeAllowedForRole,
+  PropertyModalidadeOption,
+} from "@/lib/domain/properties/modalityScope";
 import { ImageUploadZone } from "./ImageUploadZone";
-import { PropertyModalShell, fieldInput, fieldLabel } from "./PropertyModalShell";
+import {
+  PropertyModalShell,
+  SelectWithChevron,
+  fieldInput,
+  fieldLabel,
+  fieldSelect,
+  fieldTextarea,
+} from "./PropertyModalShell";
 import {
   EMPTY_LOCATION,
   EMPTY_TIPOLOGIA,
@@ -19,12 +33,14 @@ interface NewEmpreendimentoModalProps {
   onSuccess: () => void;
 }
 
-type Modalidade = "VENDA" | "VERANEIO_TEMPORADA" | "LOCACAO_ANUAL" | "AMBOS" | "REPASSE";
-
 export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpreendimentoModalProps) {
+  const { user } = useCrm();
+  const allowedModalities = getAllowedPropertyModalities(user?.role, true);
+  const defaultModalidade = getDefaultPropertyModalidade(user?.role);
+
   const [nome, setNome] = useState("");
   const [construtora, setConstrutora] = useState("");
-  const [modalidade, setModalidade] = useState<Modalidade>("VENDA");
+  const [modalidade, setModalidade] = useState<PropertyModalidadeOption>(defaultModalidade);
   const [estagioObra, setEstagioObra] = useState("Lançamento");
   const [valorAPartir, setValorAPartir] = useState("");
   const [valorDiaria, setValorDiaria] = useState("");
@@ -39,12 +55,12 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Formulário limpo a cada abertura
+  // Formulário limpo a cada abertura com modalidade padrão da vertical do usuário
   useEffect(() => {
     if (!isOpen) return;
     setNome("");
     setConstrutora("");
-    setModalidade("VENDA");
+    setModalidade(getDefaultPropertyModalidade(user?.role));
     setEstagioObra("Lançamento");
     setValorAPartir("");
     setValorDiaria("");
@@ -58,6 +74,14 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
     setExibirNaLandingPage(true);
     setError(null);
   }, [isOpen]);
+
+  // Ajusta apenas a modalidade caso o perfil carregue após a abertura do modal
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!isModalidadeAllowedForRole(modalidade, user?.role, true)) {
+      setModalidade(defaultModalidade);
+    }
+  }, [isOpen, user?.role, modalidade, defaultModalidade]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,24 +175,33 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className={`grid grid-cols-1 gap-3 ${modalidade === "AMBOS" || modalidade === "REPASSE" ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
           <div>
             <label htmlFor="emp-modalidade" className={fieldLabel}>Modalidade</label>
-            <select id="emp-modalidade" value={modalidade} onChange={(e) => setModalidade(e.target.value as Modalidade)} className={fieldInput}>
-              <option value="VENDA">🏢 Venda Tradicional</option>
-              <option value="LOCACAO_ANUAL">🔑 Locação Comum</option>
-              <option value="VERANEIO_TEMPORADA">🏖️ Temporada / Veraneio</option>
-              <option value="REPASSE">🔄 Repasse de Imóvel</option>
-              <option value="AMBOS">✨ Ambos (Venda & Temporada)</option>
-            </select>
+            <SelectWithChevron>
+              <select
+                id="emp-modalidade"
+                value={modalidade}
+                onChange={(e) => setModalidade(e.target.value as PropertyModalidadeOption)}
+                className={fieldSelect}
+              >
+                {allowedModalities.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </SelectWithChevron>
           </div>
           <div>
             <label htmlFor="emp-estagio" className={fieldLabel}>Estágio da Obra</label>
-            <select id="emp-estagio" value={estagioObra} onChange={(e) => setEstagioObra(e.target.value)} className={fieldInput}>
-              <option value="Lançamento">Lançamento</option>
-              <option value="Em Obras">Em Obras</option>
-              <option value="Pronto para Morar">Pronto para Morar</option>
-            </select>
+            <SelectWithChevron>
+              <select id="emp-estagio" value={estagioObra} onChange={(e) => setEstagioObra(e.target.value)} className={fieldSelect}>
+                <option value="Lançamento">Lançamento</option>
+                <option value="Em Obras">Em Obras</option>
+                <option value="Pronto para Morar">Pronto para Morar</option>
+              </select>
+            </SelectWithChevron>
           </div>
           {modalidade === "VENDA" && (
             <div>
@@ -219,7 +252,7 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
             <Sparkles className="h-3.5 w-3.5 text-platz-gold" />
             Tipologia Comercial Padrão
           </span>
-          <PropertyTipologiaFields value={tipologia} onChange={setTipologia} />
+          <PropertyTipologiaFields idPrefix="emp" value={tipologia} onChange={setTipologia} />
         </div>
 
         <PropertyLocationFields idPrefix="emp" value={location} onChange={setLocation} />
@@ -228,7 +261,7 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
 
         <div>
           <label htmlFor="emp-descricao" className={fieldLabel}>Descrição Comercial</label>
-          <textarea id="emp-descricao" rows={3} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Destaques, proximidades e infraestrutura do condomínio..." className={fieldInput} />
+          <textarea id="emp-descricao" rows={3} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Destaques, proximidades e infraestrutura do condomínio..." className={fieldTextarea} />
         </div>
 
         <label htmlFor="emp-landing" className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-muted/30 p-3 transition-colors hover:border-connect-blue/40">

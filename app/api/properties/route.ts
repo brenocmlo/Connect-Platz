@@ -5,6 +5,11 @@ import { PropertyModality, UnitStatus } from "@prisma/client";
 import { getRequestSession, requireSession, ADMIN_ROLES, getUserModality } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import {
+  getDefaultPropertyModalidade,
+  getModalityScopeErrorMessage,
+  isModalidadeAllowedForRole,
+} from "@/lib/domain/properties/modalityScope";
+import {
   auditSnapshot,
   fillCoordinates,
   generateSlug,
@@ -131,6 +136,15 @@ export async function POST(req: NextRequest) {
   const { data, errors } = parsePropertyBody(body, false);
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join(" "), details: errors }, { status: 400 });
+  }
+
+  // Sem modalidade explícita, assume a vertical padrão do perfil (ex.: Temporada para Admin Aluguel)
+  const hasExplicitModalidade =
+    body && body.modalidade !== undefined && body.modalidade !== null && String(body.modalidade).trim() !== "";
+  if (!hasExplicitModalidade) {
+    data.modalidade = getDefaultPropertyModalidade(session.role);
+  } else if (!isModalidadeAllowedForRole(data.modalidade, session.role, true)) {
+    return NextResponse.json({ error: getModalityScopeErrorMessage(session.role) }, { status: 403 });
   }
 
   try {
