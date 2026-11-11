@@ -7,7 +7,7 @@ import { join, resolve, sep } from "path";
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB por arquivo
 export const MAX_FILES_PER_REQUEST = 20;
 
-export const UPLOAD_FOLDERS = ["materials", "properties", "site", "leads", "avatars"] as const;
+export const UPLOAD_FOLDERS = ["materials", "properties", "site", "leads", "avatars", "logos"] as const;
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number];
 
 export const UPLOAD_ROOT = join(process.cwd(), "public", "uploads");

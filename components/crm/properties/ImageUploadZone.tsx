@@ -117,7 +117,7 @@ export function ImageUploadZone({
                 Clique para anexar imagens ou arraste para cá
               </p>
               <p className="text-[11px] text-muted-foreground">
-                Suporta PNG, JPG, JPEG e WebP (até 10MB por foto)
+                PNG, JPG, JPEG ou WebP — conversão e otimização automática para WebP (até 25 MB)
               </p>
             </>
           )}

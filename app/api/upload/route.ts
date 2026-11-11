@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { requireSession } from "@/lib/auth/session";
 import { isR2Configured, uploadToR2 } from "@/lib/storage/r2Client";
+import { optimizeImageToWebp, replaceFileExtension } from "./imageOptimizer";
 import {
   MAX_FILES_PER_REQUEST,
   MAX_UPLOAD_BYTES,
@@ -60,8 +61,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 1. Valida todos antes de gravar qualquer um
-  const prepared: { file: File; buffer: Buffer; ext: string; mime: string; category: string }[] = [];
+  // 1. Valida e otimiza todos os arquivos antes de gravar qualquer um
+  const prepared: {
+    file: File;
+    buffer: Buffer;
+    ext: string;
+    mime: string;
+    category: string;
+    originalSize: number;
+    optimized: boolean;
+  }[] = [];
+
   for (const file of files) {
     if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
@@ -69,12 +79,39 @@ export async function POST(req: NextRequest) {
         { status: 413 }
       );
     }
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const check = validateUpload(file, buffer);
+    const rawBuffer = Buffer.from(await file.arrayBuffer());
+    const check = validateUpload(file, rawBuffer);
     if (!check.ok) {
       return NextResponse.json({ error: check.error }, { status: check.status });
     }
-    prepared.push({ file, buffer, ext: check.kind.ext, mime: check.kind.mime, category: check.kind.category });
+
+    if (check.kind.category === "image") {
+      const opt = await optimizeImageToWebp({
+        buffer: rawBuffer,
+        mime: check.kind.mime,
+        ext: check.kind.ext,
+        folder,
+      });
+      prepared.push({
+        file,
+        buffer: opt.buffer,
+        ext: opt.ext,
+        mime: opt.mime,
+        category: check.kind.category,
+        originalSize: opt.originalSize,
+        optimized: opt.converted,
+      });
+    } else {
+      prepared.push({
+        file,
+        buffer: rawBuffer,
+        ext: check.kind.ext,
+        mime: check.kind.mime,
+        category: check.kind.category,
+        originalSize: rawBuffer.length,
+        optimized: false,
+      });
+    }
   }
 
   try {
@@ -100,13 +137,19 @@ export async function POST(req: NextRequest) {
         await writeFile(join(uploadDir, filename), item.buffer);
       }
 
+      const displayName = item.optimized
+        ? replaceFileExtension(item.file.name, item.ext)
+        : item.file.name;
+
       savedFiles.push({
         url,
-        name: item.file.name,
+        name: displayName,
         size: item.buffer.length,
+        originalSize: item.originalSize,
         formattedSize: formatFileSize(item.buffer.length),
         mime: item.mime,
         type: item.category === "pdf" ? "pdf" : item.category === "image" ? "image" : "doc",
+        optimized: item.optimized,
       });
     }
 

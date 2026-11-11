@@ -73,7 +73,7 @@ export function usePropertyMaterials(propertyId: string | null) {
       categoria,
       url: uploaded.url,
       tipo: uploaded.type || "pdf",
-      tamanho: uploaded.size || formatBytes(file.size),
+      tamanho: uploaded.formattedSize || formatBytes(uploaded.size || file.size),
     });
   };
 

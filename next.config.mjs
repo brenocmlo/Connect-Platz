@@ -1,10 +1,27 @@
+const r2RemotePatterns = [];
+if (process.env.R2_PUBLIC_URL) {
+  try {
+    const parsedR2 = new URL(process.env.R2_PUBLIC_URL);
+    r2RemotePatterns.push({
+      protocol: parsedR2.protocol.replace(":", ""),
+      hostname: parsedR2.hostname,
+    });
+  } catch {
+    // URL do R2 inválida ignorada
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  experimental: {
+    serverComponentsExternalPackages: ["sharp"],
+  },
   transpilePackages: ["framer-motion", "motion-dom", "motion-utils"],
   reactStrictMode: false,
   images: {
     formats: ["image/avif", "image/webp"],
+    remotePatterns: r2RemotePatterns,
   },
   async headers() {
     return [

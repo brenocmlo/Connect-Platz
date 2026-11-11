@@ -1,9 +1,12 @@
+import { unlink } from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireSession } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { refreshLeadScore } from "@/lib/services/lead-score";
+import { resolveUploadPath } from "@/app/api/upload/uploadStorage";
+import { deleteFromR2, extractR2KeyFromUrl } from "@/lib/storage/r2Client";
 import { canViewLead, canModifyLead, findOrgLead, badRequest, forbidden, isUuid } from "../../_lib/leadAccess";
 import { zodMessage } from "../../_lib/leadPayload";
 
@@ -14,8 +17,15 @@ type Params = { params: { id: string } };
 const DocumentSchema = z.object({
   tipo: z.string().trim().max(60).default("anexo"),
   nomeArquivo: z.string().trim().min(1).max(255),
-  // Somente arquivos enviados por /api/upload (armazenamento local da aplicação)
-  fileUrl: z.string().regex(/^\/uploads\/[\w\-/.]+$/, "URL de arquivo inválida."),
+  // Somente arquivos enviados por /api/upload (disco local /uploads/leads ou CDN Cloudflare R2)
+  fileUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine(
+      (v) => Boolean(resolveUploadPath(v, "leads") || extractR2KeyFromUrl(v, "leads")),
+      "URL de arquivo inválida."
+    ),
   fileSize: z.number().int().nonnegative().optional(),
   mimeType: z.string().max(120).optional(),
 });
@@ -103,6 +113,16 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     if (!document) return NextResponse.json({ error: "Documento não encontrado." }, { status: 404 });
 
     await prisma.leadDocument.delete({ where: { id: document.id } });
+
+    const r2Key = extractR2KeyFromUrl(document.fileUrl, "leads");
+    const filePath = resolveUploadPath(document.fileUrl, "leads");
+    if (r2Key || filePath) {
+      const emUso = await prisma.leadDocument.count({ where: { fileUrl: document.fileUrl } });
+      if (emUso === 0) {
+        if (r2Key) await deleteFromR2(r2Key);
+        else if (filePath) await unlink(filePath).catch(() => undefined);
+      }
+    }
     await prisma.leadTimeline.create({
       data: { leadId: lead.id, userId: session.userId, tipo: "documento", conteudo: `Documento removido: ${document.nomeArquivo}.` },
     });

@@ -50,7 +50,7 @@ export function LeadAttachmentsSection({ lead }: LeadAttachmentsSectionProps) {
         ref={fileInputRef}
         onChange={handleFileUpload}
         multiple
-        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+        accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx"
         className="hidden"
       />
 

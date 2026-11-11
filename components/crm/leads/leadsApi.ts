@@ -144,10 +144,10 @@ export async function uploadLeadDocument(leadId: string, file: File, tipo: strin
     method: "POST",
     body: JSON.stringify({
       tipo,
-      nomeArquivo: file.name,
+      nomeArquivo: saved?.name || file.name,
       fileUrl: saved?.url || uploaded.firstUrl,
-      fileSize: file.size,
-      mimeType: file.type || undefined,
+      fileSize: typeof saved?.size === "number" ? saved.size : file.size,
+      mimeType: saved?.mime || file.type || undefined,
     }),
   });
   return data.document;

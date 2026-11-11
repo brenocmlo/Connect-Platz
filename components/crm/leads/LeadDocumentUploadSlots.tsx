@@ -53,7 +53,7 @@ export function LeadDocumentUploadSlots({ leadId }: { leadId: string }) {
         type="file"
         ref={fileInputRef}
         onChange={handleFileSelected}
-        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+        accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx"
         className="hidden"
       />
 

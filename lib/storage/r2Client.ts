@@ -36,13 +36,19 @@ export interface UploadR2Params {
   mimeType: string;
 }
 
+export function getR2PublicBaseUrl(): string {
+  const raw = (process.env.R2_PUBLIC_URL || "").trim().replace(/\/+$/, "");
+  if (!raw) return "";
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
 /**
  * Realiza o upload do buffer diretamente para o Cloudflare R2 e retorna a URL pública da CDN.
  */
 export async function uploadToR2({ key, buffer, mimeType }: UploadR2Params): Promise<string> {
   const client = getS3Client();
   const bucket = process.env.R2_BUCKET_NAME || "";
-  const publicBaseUrl = (process.env.R2_PUBLIC_URL || "").replace(/\/+$/, "");
+  const publicBaseUrl = getR2PublicBaseUrl();
 
   const command = new PutObjectCommand({
     Bucket: bucket,
@@ -67,7 +73,7 @@ export async function uploadToR2({ key, buffer, mimeType }: UploadR2Params): Pro
  * Retorna null caso a URL não pertença ao R2_PUBLIC_URL configurado ou à pasta esperada.
  */
 export function extractR2KeyFromUrl(url: string, expectedFolder?: string): string | null {
-  const publicBaseUrl = (process.env.R2_PUBLIC_URL || "").replace(/\/+$/, "");
+  const publicBaseUrl = getR2PublicBaseUrl();
   if (!publicBaseUrl || !url || !url.startsWith(`${publicBaseUrl}/`)) {
     return null;
   }
