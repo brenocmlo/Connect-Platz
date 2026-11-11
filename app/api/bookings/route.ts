@@ -149,8 +149,21 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, booking }, { status: 201 });
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message || "Dados da reserva inválidos." },
+        { status: 400 }
+      );
+    }
+    const message = String(error?.message || "");
+    if (/overbooking|choque de disponibilidade/i.test(message)) {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+    if (/check-out|check-in|posterior|inval/i.test(message)) {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
     return NextResponse.json(
-      { error: error?.message || "Erro ao registrar reserva de veraneio." },
+      { error: message || "Erro ao registrar reserva de veraneio." },
       { status: 500 }
     );
   }

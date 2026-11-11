@@ -135,7 +135,7 @@ export function NewRentalContractModal({
         dataInicio,
         dataFim: data.contract.dataFim ? data.contract.dataFim.slice(0, 10) : "",
         tipoGarantia,
-        status: "ATIVO",
+        status: data.contract?.status || "ATIVO",
       };
 
       onCreated(contractItem);

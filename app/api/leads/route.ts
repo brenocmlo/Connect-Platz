@@ -88,15 +88,20 @@ export async function GET(req: NextRequest) {
 
     if (searchParam && searchParam.trim().length >= 2) {
       const cleanQ = searchParam.trim();
+      const cleanDigits = cleanQ.replace(/\D/g, "");
+      const searchOr: Array<Record<string, unknown>> = [
+        { nome: { contains: cleanQ, mode: "insensitive" } },
+        { email: { contains: cleanQ, mode: "insensitive" } },
+      ];
+      if (cleanDigits.length >= 2) {
+        searchOr.push({ telefone: { contains: cleanDigits } });
+      }
       const rawMatches = await prisma.lead.findMany({
         where: {
           ...buildLeadRLSWhere(ctx),
           funnelId: { not: funnel.id },
           isClosed: false,
-          OR: [
-            { nome: { contains: cleanQ, mode: "insensitive" } },
-            { telefone: { contains: cleanQ.replace(/\D/g, "") } },
-          ],
+          OR: searchOr,
         },
         select: {
           id: true,

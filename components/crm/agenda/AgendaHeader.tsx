@@ -122,11 +122,13 @@ export function AgendaHeader({
 
           {/* CTA + Novo */}
           <button
+            type="button"
             onClick={onNewAppointment}
+            aria-label="Novo Compromisso"
             className="bg-connect-blue hover:bg-connect-deep-blue text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-connect-blue/20 transition-all hover:scale-[1.02] shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden xs:inline">Novo</span>
+            <span>Novo</span>
           </button>
         </div>
       </div>

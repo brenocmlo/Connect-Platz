@@ -6,6 +6,7 @@ import { BookingItem } from "./types";
 import { useCrmLookups } from "@/components/crm/agenda/useCrmLookups";
 import { NumericInput } from "@/components/crm/primitives/NumericInput";
 import { LeadDetail } from "@/components/crm/LeadDrawer";
+import { submitNewBooking } from "./bookingApi";
 
 interface NewBookingModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export function NewBookingModal({ isOpen, onClose, onSubmit, preselectedLead }: 
   const [imovelCustomNome, setImovelCustomNome] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState("");
   const [locatarioNome, setLocatarioNome] = useState("");
+  const [locatarioTelefone, setLocatarioTelefone] = useState("");
   const [checkIn, setCheckIn] = useState("2026-11-01");
   const [checkOut, setCheckOut] = useState("2026-11-05");
   const [valorDiaria, setValorDiaria] = useState(1200);
@@ -47,6 +49,7 @@ export function NewBookingModal({ isOpen, onClose, onSubmit, preselectedLead }: 
   useEffect(() => {
     if (isOpen) {
       setErrorMessage(null);
+      setLocatarioTelefone("");
       if (preselectedLead) {
         setSelectedLeadId(preselectedLead.id);
         setLocatarioNome(preselectedLead.nome);
@@ -85,13 +88,16 @@ export function NewBookingModal({ isOpen, onClose, onSubmit, preselectedLead }: 
   // Ao selecionar lead do Kanban no dropdown
   const handleLeadChange = (leadId: string) => {
     setSelectedLeadId(leadId);
+    setErrorMessage(null);
     if (leadId === "MANUAL") {
       setLocatarioNome("");
+      setLocatarioTelefone("");
       return;
     }
     const lead = leads.find((l) => l.id === leadId);
     if (lead) {
       setLocatarioNome(lead.nome);
+      setLocatarioTelefone(lead.telefone || "");
       // Se o lead tiver empreendimento de interesse compatível, selecionar imóvel
       if (lead.empreendimentoInteresse) {
         const matched = rentalProperties.find((p) =>
@@ -104,56 +110,60 @@ export function NewBookingModal({ isOpen, onClose, onSubmit, preselectedLead }: 
     }
   };
 
-  const diffTime = Math.abs(new Date(checkOut).getTime() - new Date(checkIn).getTime());
-  const calculatedNights = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 1);
+  const checkInMs = new Date(checkIn).getTime();
+  const checkOutMs = new Date(checkOut).getTime();
+  const validDateRange = !isNaN(checkInMs) && !isNaN(checkOutMs) && checkOutMs > checkInMs;
+  const calculatedNights = validDateRange
+    ? Math.max(Math.ceil((checkOutMs - checkInMs) / (1000 * 60 * 60 * 24)), 1)
+    : 1;
   const totalCalculado = calculatedNights * valorDiaria + taxaLimpeza;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     setErrorMessage(null);
 
-    const finalImovelNome =
-      rentalProperties.find((p) => p.id === selectedPropertyId)?.nome ||
-      imovelCustomNome ||
-      "Imóvel de Temporada";
+    if (!selectedPropertyId) {
+      setErrorMessage("Selecione o imóvel disponível para locação.");
+      return;
+    }
+    if (!selectedLeadId) {
+      setErrorMessage("Selecione um lead do Kanban ou escolha Inserir Hóspede Avulso.");
+      return;
+    }
+    if (!validDateRange) {
+      setErrorMessage("A data de check-out deve ser posterior à data de check-in.");
+      return;
+    }
 
-    const newBooking: BookingItem = {
-      id: `bk-${Date.now()}`,
-      imovelNome: finalImovelNome,
-      locatarioNome: locatarioNome.trim() || "Hóspede Cadastrado",
-      checkIn,
-      checkOut,
-      diarias: calculatedNights,
-      valorDiaria,
-      taxaLimpeza,
-      valorTotal: totalCalculado,
-      meioPagamento,
-      status: "CONFIRMADA",
-    };
-
+    setSubmitting(true);
     try {
-      if (selectedPropertyId && selectedLeadId && selectedLeadId !== "MANUAL") {
-        await fetch("/api/bookings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            propertyId: selectedPropertyId,
-            leadId: selectedLeadId,
-            checkInDate: checkIn,
-            checkOutDate: checkOut,
-            valorDiarias: valorDiaria * calculatedNights,
-            taxaLimpeza,
-            meioPagamento,
-            observacoes: "Reserva de temporada confirmada pelo Corretor de Aluguel.",
-          }),
-        });
+      const selectedLead = leads.find((l) => l.id === selectedLeadId);
+      const selectedProp = rentalProperties.find((p) => p.id === selectedPropertyId);
+      const result = await submitNewBooking({
+        selectedPropertyId,
+        imovelFallbackNome: selectedProp?.nome || imovelCustomNome,
+        selectedLeadId,
+        locatarioNome,
+        locatarioTelefone,
+        leadDefaultTelefone: selectedLead?.telefone,
+        checkIn,
+        checkOut,
+        calculatedNights,
+        valorDiaria,
+        taxaLimpeza,
+        totalCalculado,
+        meioPagamento,
+      });
+
+      if (result.error || !result.booking) {
+        setErrorMessage(result.error || "Não foi possível confirmar a reserva.");
+        return;
       }
-      onSubmit(newBooking);
+
+      onSubmit(result.booking);
       onClose();
     } catch {
-      onSubmit(newBooking);
-      onClose();
+      setErrorMessage("Falha de conexão ao registrar reserva de veraneio.");
     } finally {
       setSubmitting(false);
     }
@@ -163,19 +173,31 @@ export function NewBookingModal({ isOpen, onClose, onSubmit, preselectedLead }: 
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between pb-2 border-b border-border">
           <div>
             <h3 className="text-base font-bold text-foreground">Nova Reserva com Bloqueio de Calendário</h3>
             <p className="text-xs text-muted-foreground">Vincule um lead do Kanban e bloqueie o calendário sem conflitos.</p>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Fechar"
             className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {errorMessage && (
+          <div
+            role="alert"
+            className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center gap-2"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           {/* 1. SELETOR DE IMÓVEL DE LOCAÇÃO COM SETA */}
@@ -226,14 +248,26 @@ export function NewBookingModal({ isOpen, onClose, onSubmit, preselectedLead }: 
             </div>
 
             {/* Nome do Hóspede (confirmado ou editável) */}
-            <input
-              type="text"
-              required
-              placeholder="Nome completo do hóspede..."
-              value={locatarioNome}
-              onChange={(e) => setLocatarioNome(e.target.value)}
-              className="w-full bg-muted/40 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-            />
+            <div className="space-y-2">
+              <input
+                type="text"
+                required
+                placeholder="Nome completo do hóspede..."
+                value={locatarioNome}
+                onChange={(e) => setLocatarioNome(e.target.value)}
+                className="w-full bg-muted/40 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
+              />
+              {selectedLeadId === "MANUAL" && (
+                <input
+                  type="tel"
+                  required
+                  placeholder="WhatsApp / Telefone com DDD (ex: 85999887766)..."
+                  value={locatarioTelefone}
+                  onChange={(e) => setLocatarioTelefone(e.target.value)}
+                  className="w-full bg-muted/40 border border-border rounded-xl p-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
+                />
+              )}
+            </div>
           </div>
 
           {/* 3. DATAS CHECK-IN E CHECK-OUT */}

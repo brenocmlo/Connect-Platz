@@ -102,7 +102,9 @@ export function ForgotPasswordModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
       <div className="bg-[#111827] border border-[#1F2937] w-full max-w-md rounded-2xl p-6 shadow-2xl relative text-white">
         <button
+          type="button"
           onClick={onClose}
+          aria-label="Fechar"
           className="absolute right-4 top-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
         >
           <X className="w-5 h-5" />
