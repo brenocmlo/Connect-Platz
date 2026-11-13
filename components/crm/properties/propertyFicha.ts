@@ -95,3 +95,41 @@ export async function copyText(text: string): Promise<boolean> {
     return ok;
   }
 }
+
+export function getStageBadgeClass(status: string): string {
+  const s = status.toLowerCase();
+  if (s.includes("lançamento")) return "bg-emerald-600 text-white border-emerald-500/40";
+  if (s.includes("obra") || s.includes("construção")) return "bg-amber-600 text-white border-amber-500/40";
+  if (s.includes("pronto")) return "bg-sky-600 text-white border-sky-500/40";
+  if (s.includes("vendido")) return "bg-orange-600 text-white border-orange-500/40";
+  return "bg-connect-blue text-white border-connect-blue/40";
+}
+
+export function getModalityBadgeMeta(modalidade?: string | null): { label: string; className: string } {
+  if (modalidade === "REPASSE") return { label: "🔄 Repasse", className: "bg-violet-600 text-white" };
+  if (modalidade === "LOCACAO_ANUAL") return { label: "🔑 Locação", className: "bg-emerald-600 text-white" };
+  if (modalidade === "VERANEIO_TEMPORADA" || modalidade === "VERANEIO") {
+    return { label: "🏖️ Temporada", className: "bg-amber-500/90 text-white" };
+  }
+  if (modalidade === "AMBOS") return { label: "Venda & Temporada", className: "bg-indigo-600 text-white" };
+  return { label: "Venda", className: "bg-connect-blue text-white" };
+}
+
+export function formatCardPriceLabel(property: PropertyCardData): string {
+  const isEmpreendimento = property.tipoCadastro !== "AVULSO";
+  const isTemporada = property.modalidade === "VERANEIO_TEMPORADA" || property.modalidade === "VERANEIO";
+  if (property.modalidade === "REPASSE" && property.valorRepasse) {
+    return `Repasse R$ ${Number(property.valorRepasse).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  }
+  if (property.modalidade === "LOCACAO_ANUAL" && property.valorAluguel) {
+    return `R$ ${Number(property.valorAluguel).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} / mês`;
+  }
+  if (isTemporada && property.valorDiaria) {
+    return `R$ ${Number(property.valorDiaria).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} / diária`;
+  }
+  if (property.valorVenda) {
+    const prefix = isEmpreendimento ? "A partir de " : "";
+    return `${prefix}R$ ${Number(property.valorVenda).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  }
+  return "A consultar";
+}

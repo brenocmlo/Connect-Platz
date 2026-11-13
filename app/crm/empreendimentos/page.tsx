@@ -14,6 +14,8 @@ import { PropertyMaterialsModal } from "@/components/crm/properties/PropertyMate
 import { NewEmpreendimentoModal } from "@/components/crm/properties/NewEmpreendimentoModal";
 import { NewImovelAvulsoModal } from "@/components/crm/properties/NewImovelAvulsoModal";
 import { EditPropertyImageModal } from "@/components/crm/properties/EditPropertyImageModal";
+import { DeletePropertyModal } from "@/components/crm/properties/DeletePropertyModal";
+import { canDeletePropertyForRole } from "@/lib/domain/properties/modalityScope";
 
 export default function EmpreendimentosPage() {
   const { user, setActionMessage } = useCrm();
@@ -33,6 +35,8 @@ export default function EmpreendimentosPage() {
   const [editImageProperty, setEditImageProperty] = useState<PropertyCardData | null>(null);
   const [isNewEmpModalOpen, setIsNewEmpModalOpen] = useState(false);
   const [isNewAvulsoModalOpen, setIsNewAvulsoModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ property: PropertyCardData; permanent: boolean } | null>(null);
+  const [deletingProperty, setDeletingProperty] = useState(false);
 
   const notify = (msg: string, ms = 3500) => {
     setActionMessage(msg);
@@ -84,21 +88,32 @@ export default function EmpreendimentosPage() {
     }
   };
 
-  const handleDeleteProperty = async (id: string, permanent = false) => {
+  const requestDeleteProperty = (id: string, permanent = false) => {
     if (!canManage) return notify("Apenas administradores podem excluir imóveis.");
-    const confirmMsg = permanent
-      ? "ATENÇÃO: Deseja realmente APAGAR DEFINITIVAMENTE este imóvel do sistema? Todo o histórico vinculado a este imóvel será desvinculado e esta ação não poderá ser desfeita."
-      : "Deseja realmente remover este imóvel do catálogo?";
-    if (!confirm(confirmMsg)) return;
+    const prop = properties.find((p) => p.id === id);
+    if (!prop) return;
+    if (!canDeletePropertyForRole(prop.modalidade, user?.role)) {
+      return notify("Seu perfil não permite excluir imóveis desta modalidade.");
+    }
+    setDeleteTarget({ property: prop, permanent });
+  };
+
+  const handleConfirmDeleteProperty = async (permanent: boolean) => {
+    if (!deleteTarget) return;
+    const { property } = deleteTarget;
+    setDeletingProperty(true);
     try {
-      const url = permanent ? `/api/properties/${id}?permanent=true` : `/api/properties/${id}`;
+      const url = permanent ? `/api/properties/${property.id}?permanent=true` : `/api/properties/${property.id}`;
       const res = await fetch(url, { method: "DELETE" });
       if (!res.ok) throw new Error(await readError(res, "Não foi possível excluir o imóvel."));
       const data = await res.json();
-      setProperties((prev) => prev.filter((p) => p.id !== id));
+      setProperties((prev) => prev.filter((p) => p.id !== property.id));
+      setDeleteTarget(null);
       notify(data.message || (permanent ? "Imóvel apagado definitivamente!" : "Imóvel excluído com sucesso!"), 4000);
     } catch (err: any) {
       notify(err.message || "Não foi possível excluir o imóvel.");
+    } finally {
+      setDeletingProperty(false);
     }
   };
 
@@ -212,8 +227,8 @@ export default function EmpreendimentosPage() {
           onOpenNewEmpModal={canManage ? () => setIsNewEmpModalOpen(true) : undefined}
           onOpenNewAvulsoModal={canManage ? () => setIsNewAvulsoModalOpen(true) : undefined}
           onToggleLandingPage={handleToggleLandingPage}
-          onDeleteProperty={canManage ? (id) => handleDeleteProperty(id, false) : undefined}
-          onPermanentDeleteProperty={canManage ? (id) => handleDeleteProperty(id, true) : undefined}
+          onDeleteProperty={canManage ? (id) => requestDeleteProperty(id, false) : undefined}
+          onPermanentDeleteProperty={canManage ? (id) => requestDeleteProperty(id, true) : undefined}
         />
       ) : (
         <SiteSettingsTab
@@ -258,6 +273,19 @@ export default function EmpreendimentosPage() {
         property={selectedDetailsProperty}
         onClose={() => setSelectedDetailsProperty(null)}
         onOpenMaterials={(prop) => setMaterialsProperty(prop)}
+        onRequestDelete={
+          selectedDetailsProperty && canDeletePropertyForRole(selectedDetailsProperty.modalidade, user?.role)
+            ? (prop) => requestDeleteProperty(prop.id, false)
+            : undefined
+        }
+      />
+
+      <DeletePropertyModal
+        property={deleteTarget?.property || null}
+        defaultPermanent={Boolean(deleteTarget?.permanent)}
+        deleting={deletingProperty}
+        onClose={() => !deletingProperty && setDeleteTarget(null)}
+        onConfirm={handleConfirmDeleteProperty}
       />
 
       <PublishLandingModal

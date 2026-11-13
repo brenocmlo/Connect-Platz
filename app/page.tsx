@@ -120,7 +120,12 @@ export default function LandingPage() {
       <main>
         <PortalHero onSearch={showResults} />
 
-        <PortalCategories onPick={showResults} />
+        <PortalCategories
+          properties={portal.properties}
+          loading={portal.loading}
+          onSelectProperty={setSelectedProperty}
+          onPick={showResults}
+        />
 
         <PortalListings
           properties={portal.filtered}

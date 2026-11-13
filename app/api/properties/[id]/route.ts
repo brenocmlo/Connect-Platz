@@ -8,9 +8,10 @@ import { resolveUploadPath } from "@/app/api/upload/uploadStorage";
 import { deleteFromR2, extractR2KeyFromUrl } from "@/lib/storage/r2Client";
 import { auditSnapshot, fillCoordinates, parsePropertyBody } from "../propertyPayload";
 import {
+  canDeletePropertyForRole,
+  canEditPropertyForRole,
   getModalityScopeErrorMessage,
   isModalidadeAllowedForRole,
-  isPropertyVisibleToRole,
 } from "@/lib/domain/properties/modalityScope";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (!current) {
       return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
     }
-    if (!isPropertyVisibleToRole(current.modalidade, session.role)) {
+    if (!canEditPropertyForRole(current.modalidade, session.role)) {
       return NextResponse.json({ error: "Acesso negado para editar um imóvel desta modalidade." }, { status: 403 });
     }
 
@@ -123,7 +124,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     if (!property) {
       return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
     }
-    if (!isPropertyVisibleToRole(property.modalidade, session.role)) {
+    if (!canDeletePropertyForRole(property.modalidade, session.role)) {
       return NextResponse.json({ error: "Acesso negado para excluir um imóvel desta modalidade." }, { status: 403 });
     }
 
@@ -155,6 +156,12 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         tipoAcao: "STATUS_CHANGE",
         descricao: `${session.nome} tentou excluir "${property.nome}"; o imóvel foi desativado por possuir ${motivo}.`,
       });
+      try {
+        revalidatePath("/");
+        revalidatePath("/crm/empreendimentos");
+      } catch (revalErr) {
+        console.warn("Falha ao revalidar cache após desativação:", revalErr);
+      }
       return NextResponse.json(
         {
           success: true,

@@ -14,7 +14,7 @@ import { PropertyProductCard, PropertyCardData } from "./PropertyProductCard";
 import { EmptyState } from "@/components/crm/primitives/EmptyState";
 import { useCrm } from "@/components/crm/CrmContext";
 import { useDebounce } from "@/hooks/useDebounce";
-import { resolveRoleModalityGroup } from "@/lib/domain/properties/modalityScope";
+import { resolveRoleModalityGroup, canDeletePropertyForRole } from "@/lib/domain/properties/modalityScope";
 
 interface PropertyListSectionProps {
   properties: PropertyCardData[];
@@ -26,8 +26,8 @@ interface PropertyListSectionProps {
   onOpenNewEmpModal?: () => void;
   onOpenNewAvulsoModal?: () => void;
   onToggleLandingPage: (id: string, current: boolean) => Promise<void>;
-  onDeleteProperty?: (id: string) => Promise<void>;
-  onPermanentDeleteProperty?: (id: string) => Promise<void>;
+  onDeleteProperty?: (id: string) => Promise<void> | void;
+  onPermanentDeleteProperty?: (id: string) => Promise<void> | void;
 }
 
 export function PropertyListSection({
@@ -280,19 +280,22 @@ export function PropertyListSection({
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProperties.map((property) => (
-            <PropertyProductCard
-              key={property.id}
-              property={property}
-              onOpenDetails={onOpenDetails}
-              onOpenPublishModal={onOpenPublishModal}
-              onOpenMaterials={onOpenMaterials}
-              onOpenEditImage={onOpenEditImage}
-              onToggleLandingPage={onToggleLandingPage}
-              onDelete={onDeleteProperty}
-              onPermanentDelete={onPermanentDeleteProperty}
-            />
-          ))}
+          {filteredProperties.map((property) => {
+            const allowDelete = canDeletePropertyForRole(property.modalidade, user?.role);
+            return (
+              <PropertyProductCard
+                key={property.id}
+                property={property}
+                onOpenDetails={onOpenDetails}
+                onOpenPublishModal={onOpenPublishModal}
+                onOpenMaterials={onOpenMaterials}
+                onOpenEditImage={onOpenEditImage}
+                onToggleLandingPage={onToggleLandingPage}
+                onDelete={allowDelete ? onDeleteProperty : undefined}
+                onPermanentDelete={allowDelete ? onPermanentDeleteProperty : undefined}
+              />
+            );
+          })}
         </div>
       )}
     </div>

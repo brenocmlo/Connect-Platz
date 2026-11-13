@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getRequestSession, requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { resolvePublicOrganizationId } from "@/app/api/properties/propertyPayload";
+import { DEFAULT_VITRINE_SUBTITULO, DEFAULT_VITRINE_TITULO } from "@/lib/domain/portal/vitrineShowcase";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,24 @@ const urlOrPath = z
   .trim()
   .max(1000)
   .refine((v) => v === "" || v.startsWith("/uploads/") || /^https:\/\//i.test(v), "Imagem deve ser um upload ou URL https.");
+
+const VitrineCardSchema = z.object({
+  id: text(80),
+  propertyId: z
+    .string()
+    .trim()
+    .max(64)
+    .refine((v) => v === "" || /^[0-9a-f-]{36}$/i.test(v), "ID de imóvel inválido.")
+    .optional()
+    .default(""),
+  tag: text(40),
+  eyebrow: text(40),
+  titulo: text(80),
+  foto: urlOrPath.optional().default(""),
+  modalidade: z.enum(["", "VENDA", "ALUGUEL", "VERANEIO", "REPASSE"]).optional().default(""),
+  tipoImovel: text(40).optional().default("TODOS"),
+  quartosMin: z.enum(["", "2", "3", "4"]).optional().default(""),
+});
 
 const SiteSettingsSchema = z
   .object({
@@ -52,6 +72,10 @@ const SiteSettingsSchema = z
     sobreEstatistica4Rotulo: text(100).optional(),
     // Tipos customizados de imóveis (Item 29)
     customPropertyTypes: z.array(z.string().trim().max(60)).max(20).optional(),
+    // Vitrine de Capítulos / Categorias editável com imóveis reais
+    vitrineSubtitulo: text(160).optional(),
+    vitrineTitulo: text(200).optional(),
+    vitrineCards: z.array(VitrineCardSchema).max(12).optional(),
   })
   .partial()
   .strict(); // chaves fora da lista são rejeitadas
@@ -91,6 +115,9 @@ const DEFAULT_SITE_SETTINGS: Required<SiteSettingsData> = {
   sobreEstatistica4Valor: "7 dias",
   sobreEstatistica4Rotulo: "atendimento por semana",
   customPropertyTypes: ["Apartamento", "Casa", "Cobertura", "Casa de praia", "Chácara"],
+  vitrineSubtitulo: DEFAULT_VITRINE_SUBTITULO,
+  vitrineTitulo: DEFAULT_VITRINE_TITULO,
+  vitrineCards: [],
 };
 
 async function readSettings(organizationId: string) {
@@ -111,7 +138,7 @@ export async function GET(req: NextRequest) {
     const { site } = await readSettings(orgId);
     return NextResponse.json(
       { success: true, settings: site },
-      { status: 200, headers: { "Cache-Control": session ? "private, no-store" : "public, s-maxage=60, stale-while-revalidate=300" } }
+      { status: 200, headers: { "Cache-Control": session ? "private, no-store" : "public, s-maxage=5, stale-while-revalidate=30" } }
     );
   } catch (error) {
     console.error("Erro ao ler configurações do site:", error);
@@ -146,7 +173,9 @@ export async function POST(req: NextRequest) {
       data: { settings: { ...all, site: merged } as any },
     });
 
-    const changed = Object.keys(patch).filter((k) => (before as any)[k] !== (merged as any)[k]);
+    const changed = Object.keys(patch).filter(
+      (k) => JSON.stringify((before as any)[k]) !== JSON.stringify((merged as any)[k])
+    );
     await recordAudit({
       req,
       organizationId: session.organizationId,
@@ -161,6 +190,12 @@ export async function POST(req: NextRequest) {
       dadosAntes: Object.fromEntries(changed.map((k) => [k, (before as any)[k]])),
       dadosDepois: Object.fromEntries(changed.map((k) => [k, (merged as any)[k]])),
     });
+
+    try {
+      revalidatePath("/");
+    } catch (revalErr) {
+      console.warn("Falha ao revalidar cache do site:", revalErr);
+    }
 
     return NextResponse.json({ success: true, settings: merged }, { status: 200 });
   } catch (error) {

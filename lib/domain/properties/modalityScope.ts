@@ -106,6 +106,28 @@ export function isPropertyVisibleToRole(
   );
 }
 
+/** Verifica se um administrador pode editar um imóvel de determinada modalidade. */
+export function canEditPropertyForRole(
+  modalidade: string | null | undefined,
+  role?: string | null
+): boolean {
+  if (role !== "ADMINISTRADOR" && role !== "ADMINISTRADOR_VENDA" && role !== "ADMINISTRADOR_ALUGUEL") {
+    return false;
+  }
+  return isPropertyVisibleToRole(modalidade, role);
+}
+
+/** Verifica se um administrador pode apagar/desativar um imóvel relacionado aos seus tipos. */
+export function canDeletePropertyForRole(
+  modalidade: string | null | undefined,
+  role?: string | null
+): boolean {
+  if (role !== "ADMINISTRADOR" && role !== "ADMINISTRADOR_VENDA" && role !== "ADMINISTRADOR_ALUGUEL") {
+    return false;
+  }
+  return isPropertyVisibleToRole(modalidade, role);
+}
+
 /** Mensagem de erro padronizada ao tentar cadastrar/alterar fora do escopo do perfil. */
 export function getModalityScopeErrorMessage(role?: string | null): string {
   const group = resolveRoleModalityGroup(role);

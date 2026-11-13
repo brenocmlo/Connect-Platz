@@ -6,6 +6,7 @@ import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { formatFileSize, resolveUploadPath } from "@/app/api/upload/uploadStorage";
 import { extractR2KeyFromUrl } from "@/lib/storage/r2Client";
+import { canEditPropertyForRole, isPropertyVisibleToRole } from "@/lib/domain/properties/modalityScope";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ const MaterialSchema = z.object({
 
 async function findProperty(id: string, organizationId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  return prisma.property.findFirst({ where: { id, organizationId }, select: { id: true, nome: true } });
+  return prisma.property.findFirst({ where: { id, organizationId }, select: { id: true, nome: true, modalidade: true } });
 }
 
 /** GET /api/properties/[id]/materials — qualquer usuário logado da organização. */
@@ -35,6 +36,9 @@ export async function GET(req: NextRequest, { params }: Params) {
   try {
     const property = await findProperty(params.id, session.organizationId);
     if (!property) return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
+    if (!isPropertyVisibleToRole(property.modalidade, session.role)) {
+      return NextResponse.json({ error: "Acesso negado aos materiais deste imóvel." }, { status: 403 });
+    }
 
     const materials = await prisma.propertyMaterial.findMany({
       where: { propertyId: property.id },
@@ -77,6 +81,9 @@ export async function POST(req: NextRequest, { params }: Params) {
   try {
     const property = await findProperty(params.id, session.organizationId);
     if (!property) return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
+    if (!canEditPropertyForRole(property.modalidade, session.role)) {
+      return NextResponse.json({ error: "Acesso negado para gerenciar materiais deste imóvel." }, { status: 403 });
+    }
 
     const info = filePath ? await stat(filePath).catch(() => null) : null;
     if (!isLink && !r2Key && (!info || !info.isFile())) {

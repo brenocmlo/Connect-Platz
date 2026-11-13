@@ -18,6 +18,7 @@ import {
   Sparkles,
   Globe,
   ImageOff,
+  Trash2,
 } from "lucide-react";
 import { PropertyCardData } from "./PropertyProductCard";
 import { PropertyModalShell } from "./PropertyModalShell";
@@ -36,11 +37,17 @@ interface PropertyDetailsModalProps {
   property: PropertyCardData | null;
   onClose: () => void;
   onOpenMaterials?: (property: PropertyCardData) => void;
+  onRequestDelete?: (property: PropertyCardData) => void;
 }
 
 const SPEC_ICONS: Record<string, React.ElementType> = { area_m2: Ruler, quartos: BedDouble, suites: Bath, vagas: Car };
 
-export function PropertyDetailsModal({ property, onClose, onOpenMaterials }: PropertyDetailsModalProps) {
+export function PropertyDetailsModal({
+  property,
+  onClose,
+  onOpenMaterials,
+  onRequestDelete,
+}: PropertyDetailsModalProps) {
   const [copied, setCopied] = useState<"ok" | "erro" | null>(null);
 
   const p = property;
@@ -211,15 +218,30 @@ export function PropertyDetailsModal({ property, onClose, onOpenMaterials }: Pro
 
           {/* 7. Ações comerciais */}
           <div className="flex flex-col items-center justify-between gap-3 border-t border-border pt-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={handleCopyFicha}
-              title={propertyPublicUrl(p, "") ? "Copia os dados e o link público do imóvel" : "Imóvel fora da vitrine: a ficha é copiada sem link público"}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted sm:w-auto"
-            >
-              {copied === "ok" ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4 text-connect-blue" />}
-              <span>{copied === "ok" ? "Ficha copiada!" : copied === "erro" ? "Não foi possível copiar" : "Copiar Ficha"}</span>
-            </button>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <button
+                type="button"
+                onClick={handleCopyFicha}
+                title={propertyPublicUrl(p, "") ? "Copia os dados e o link público do imóvel" : "Imóvel fora da vitrine: a ficha é copiada sem link público"}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted sm:flex-none"
+              >
+                {copied === "ok" ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4 text-connect-blue" />}
+                <span>{copied === "ok" ? "Ficha copiada!" : copied === "erro" ? "Não foi possível copiar" : "Copiar Ficha"}</span>
+              </button>
+              {onRequestDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onRequestDelete(p);
+                  }}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/5 px-3.5 py-2.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-600 hover:text-white dark:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Excluir</span>
+                </button>
+              )}
+            </div>
 
             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
               {p.tipoCadastro !== "AVULSO" && (

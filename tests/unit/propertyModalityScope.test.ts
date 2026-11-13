@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
+  canDeletePropertyForRole,
+  canEditPropertyForRole,
   getAllowedPropertyModalities,
   getDefaultPropertyModalidade,
   getModalityScopeErrorMessage,
@@ -71,5 +73,37 @@ describe("Escopo de modalidades de imóveis por perfil (modalityScope)", () => {
     expect(isPropertyVisibleToRole("REPASSE", "ADMINISTRADOR_VENDA")).toBe(true);
     expect(isPropertyVisibleToRole("AMBOS", "ADMINISTRADOR_VENDA")).toBe(true);
     expect(isPropertyVisibleToRole("LOCACAO_ANUAL", "ADMINISTRADOR_VENDA")).toBe(false);
+  });
+
+  it("permite que Admin Venda e Admin Aluguel editem e apaguem imóveis relacionados aos seus tipos e bloqueia outros perfis", () => {
+    // Admin Venda -> VENDA, REPASSE e AMBOS permitidos; Aluguel/Temporada negados
+    expect(canEditPropertyForRole("VENDA", "ADMINISTRADOR_VENDA")).toBe(true);
+    expect(canDeletePropertyForRole("VENDA", "ADMINISTRADOR_VENDA")).toBe(true);
+    expect(canDeletePropertyForRole("REPASSE", "ADMINISTRADOR_VENDA")).toBe(true);
+    expect(canDeletePropertyForRole("AMBOS", "ADMINISTRADOR_VENDA")).toBe(true);
+    expect(canEditPropertyForRole("VERANEIO_TEMPORADA", "ADMINISTRADOR_VENDA")).toBe(false);
+    expect(canDeletePropertyForRole("VERANEIO_TEMPORADA", "ADMINISTRADOR_VENDA")).toBe(false);
+    expect(canDeletePropertyForRole("LOCACAO_ANUAL", "ADMINISTRADOR_VENDA")).toBe(false);
+
+    // Admin Aluguel -> VERANEIO_TEMPORADA, VERANEIO, LOCACAO_ANUAL e AMBOS permitidos; Venda/Repasse negados
+    expect(canEditPropertyForRole("VERANEIO_TEMPORADA", "ADMINISTRADOR_ALUGUEL")).toBe(true);
+    expect(canDeletePropertyForRole("VERANEIO_TEMPORADA", "ADMINISTRADOR_ALUGUEL")).toBe(true);
+    expect(canDeletePropertyForRole("VERANEIO", "ADMINISTRADOR_ALUGUEL")).toBe(true);
+    expect(canDeletePropertyForRole("LOCACAO_ANUAL", "ADMINISTRADOR_ALUGUEL")).toBe(true);
+    expect(canDeletePropertyForRole("AMBOS", "ADMINISTRADOR_ALUGUEL")).toBe(true);
+    expect(canEditPropertyForRole("VENDA", "ADMINISTRADOR_ALUGUEL")).toBe(false);
+    expect(canDeletePropertyForRole("VENDA", "ADMINISTRADOR_ALUGUEL")).toBe(false);
+    expect(canDeletePropertyForRole("REPASSE", "ADMINISTRADOR_ALUGUEL")).toBe(false);
+
+    // Admin Geral -> todas
+    expect(canDeletePropertyForRole("VENDA", "ADMINISTRADOR")).toBe(true);
+    expect(canDeletePropertyForRole("VERANEIO_TEMPORADA", "ADMINISTRADOR")).toBe(true);
+
+    // Financeiro / Corretores nunca podem editar ou apagar catálogo
+    for (const nonAdmin of ["CORRETOR_VENDA", "CORRETOR_ALUGUEL", "FINANCEIRO_VENDA", "FINANCEIRO_ALUGUEL", null]) {
+      expect(canEditPropertyForRole("VENDA", nonAdmin)).toBe(false);
+      expect(canDeletePropertyForRole("VENDA", nonAdmin)).toBe(false);
+      expect(canDeletePropertyForRole("VERANEIO_TEMPORADA", nonAdmin)).toBe(false);
+    }
   });
 });

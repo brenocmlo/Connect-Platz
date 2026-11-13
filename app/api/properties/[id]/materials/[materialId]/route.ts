@@ -5,6 +5,7 @@ import { requireSession, ADMIN_ROLES } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/services/audit-server";
 import { resolveUploadPath } from "@/app/api/upload/uploadStorage";
 import { deleteFromR2, extractR2KeyFromUrl } from "@/lib/storage/r2Client";
+import { canEditPropertyForRole } from "@/lib/domain/properties/modalityScope";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,13 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         propertyId: params.id,
         property: { organizationId: session.organizationId },
       },
-      include: { property: { select: { nome: true } } },
+      include: { property: { select: { nome: true, modalidade: true } } },
     });
     if (!material) {
       return NextResponse.json({ error: "Material não encontrado." }, { status: 404 });
+    }
+    if (!canEditPropertyForRole(material.property.modalidade, session.role)) {
+      return NextResponse.json({ error: "Acesso negado para excluir material deste imóvel." }, { status: 403 });
     }
 
     await prisma.propertyMaterial.delete({ where: { id: material.id } });

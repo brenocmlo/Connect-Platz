@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { buildWhatsAppUrl, normalizeBrPhone } from "@/lib/utils/phone";
+import type { VitrineCardConfig } from "@/lib/domain/portal/vitrineShowcase";
 
 // Contatos públicos configurados em Empreendimentos > Configurações Site (/api/site-settings).
 export interface PortalPublicSettings {
@@ -25,6 +26,9 @@ export interface PortalPublicSettings {
   sobreEstatistica4Valor?: string;
   sobreEstatistica4Rotulo?: string;
   customPropertyTypes?: string[];
+  vitrineSubtitulo?: string;
+  vitrineTitulo?: string;
+  vitrineCards?: VitrineCardConfig[];
 }
 
 const EMPTY: PortalPublicSettings = {
@@ -75,6 +79,9 @@ export function PortalSettingsProvider({ children }: { children: React.ReactNode
           sobreEstatistica4Valor: s.sobreEstatistica4Valor || undefined,
           sobreEstatistica4Rotulo: s.sobreEstatistica4Rotulo || undefined,
           customPropertyTypes: s.customPropertyTypes || undefined,
+          vitrineSubtitulo: s.vitrineSubtitulo || undefined,
+          vitrineTitulo: s.vitrineTitulo || undefined,
+          vitrineCards: Array.isArray(s.vitrineCards) ? s.vitrineCards : undefined,
         });
       })
       .catch(() => undefined)
@@ -90,6 +97,10 @@ export function PortalSettingsProvider({ children }: { children: React.ReactNode
 
 export function usePortalSettings() {
   return useContext(PortalSettingsContext).settings;
+}
+
+export function usePortalSettingsState() {
+  return useContext(PortalSettingsContext);
 }
 
 /**
