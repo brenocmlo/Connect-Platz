@@ -1,10 +1,23 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { Link2, Copy, Check, Sparkles } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link2, Copy, Check, Building2, CheckCircle2 } from "lucide-react";
+
+interface PropertyOption {
+  id: string;
+  nome: string;
+  slug: string;
+  bairro?: string | null;
+  cidade?: string | null;
+  modalidade?: string;
+}
 
 export function UtmGeneratorCard() {
   const defaultBaseUrl = typeof window !== "undefined" ? window.location.origin : "https://connectplatz.com.br";
+
+  const [properties, setProperties] = useState<PropertyOption[]>([]);
+  const [loadingProps, setLoadingProps] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
 
   const [baseUrl, setBaseUrl] = useState(defaultBaseUrl);
   const [utmSource, setUtmSource] = useState("meta_ads");
@@ -14,12 +27,61 @@ export function UtmGeneratorCard() {
   const [utmTerm, setUtmTerm] = useState("");
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    setLoadingProps(true);
+    fetch("/api/properties", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return;
+        if (Array.isArray(data?.properties)) {
+          setProperties(
+            data.properties.map((p: any) => ({
+              id: p.id,
+              nome: p.nome,
+              slug: p.slug,
+              bairro: p.bairro,
+              cidade: p.cidade,
+              modalidade: p.modalidade,
+            }))
+          );
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingProps(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const selectedProperty = useMemo(
+    () => properties.find((p) => p.id === selectedPropertyId) || null,
+    [properties, selectedPropertyId]
+  );
+
+  const handleSelectProperty = (propId: string) => {
+    setSelectedPropertyId(propId);
+    const prop = properties.find((p) => p.id === propId);
+    if (prop) {
+      setBaseUrl(`${defaultBaseUrl}/imoveis/${prop.slug}`);
+      const cleanSlug = prop.slug.replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+      setUtmCampaign(`imovel_${cleanSlug}`);
+    } else {
+      setBaseUrl(defaultBaseUrl);
+    }
+  };
+
   // Computa a URL final em tempo real
   const finalUrl = useMemo(() => {
     try {
       const cleanBase = baseUrl.trim() || "https://connectplatz.com.br";
       const url = new URL(cleanBase.startsWith("http") ? cleanBase : `https://${cleanBase}`);
 
+      if (selectedProperty) {
+        url.searchParams.set("propertyId", selectedProperty.id);
+      }
       if (utmSource.trim()) url.searchParams.set("utm_source", utmSource.trim().toLowerCase());
       if (utmMedium.trim()) url.searchParams.set("utm_medium", utmMedium.trim().toLowerCase());
       if (utmCampaign.trim()) url.searchParams.set("utm_campaign", utmCampaign.trim().toLowerCase());
@@ -30,7 +92,7 @@ export function UtmGeneratorCard() {
     } catch {
       return baseUrl;
     }
-  }, [baseUrl, utmSource, utmMedium, utmCampaign, utmContent, utmTerm]);
+  }, [baseUrl, selectedProperty, utmSource, utmMedium, utmCampaign, utmContent, utmTerm]);
 
   const handleCopy = async () => {
     try {
@@ -41,6 +103,10 @@ export function UtmGeneratorCard() {
       // fallback
     }
   };
+
+  const isAluguelModality =
+    selectedProperty?.modalidade === "VERANEIO_TEMPORADA" ||
+    selectedProperty?.modalidade === "LOCACAO_ANUAL";
 
   return (
     <div className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-connect-blue/40 transition-colors animate-fade-in-up space-y-4">
@@ -57,11 +123,58 @@ export function UtmGeneratorCard() {
           Gerador de URL com Parâmetros UTM
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Monte links padronizados para seus anúncios no Gerenciador da Meta Ads e Google Ads. Todo lead gerado será separado automaticamente por UTM no CRM.
+          Monte links padronizados para seus anúncios no Gerenciador da Meta Ads e Google Ads. Todo lead gerado será separado automaticamente por UTM e imóvel no CRM.
         </p>
       </div>
 
       <div className="space-y-3">
+        {/* Seletor de Imóvel Cadastrado na Base */}
+        <div>
+          <label
+            htmlFor="utm-property-select"
+            className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-1"
+          >
+            <Building2 className="w-3.5 h-3.5 text-connect-blue" />
+            Imóvel / Empreendimento Relacionado (Da Base)
+          </label>
+          <select
+            id="utm-property-select"
+            value={selectedPropertyId}
+            onChange={(e) => handleSelectProperty(e.target.value)}
+            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue transition-all"
+          >
+            <option value="">
+              {loadingProps
+                ? "Carregando imóveis cadastrados..."
+                : "🌐 Catálogo Geral (Vitrine Principal / URL Livre)"}
+            </option>
+            {properties.map((p) => {
+              const local = [p.bairro, p.cidade].filter(Boolean).join(", ");
+              const modLabel =
+                p.modalidade === "VERANEIO_TEMPORADA" || p.modalidade === "LOCACAO_ANUAL"
+                  ? "Aluguel/Temporada"
+                  : p.modalidade === "REPASSE"
+                  ? "Repasse"
+                  : "Venda";
+              return (
+                <option key={p.id} value={p.id}>
+                  🏢 {p.nome} {local ? `— ${local}` : ""} ({modLabel})
+                </option>
+              );
+            })}
+          </select>
+
+          {selectedProperty && (
+            <div className="mt-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+              <span>
+                Imóvel vinculado: <strong>{selectedProperty.nome}</strong>. Os leads captados por este link cairão automaticamente na roleta de{" "}
+                <strong>{isAluguelModality ? "Aluguel / Temporada" : "Vendas"}</strong> já com este imóvel associado ao card.
+              </span>
+            </div>
+          )}
+        </div>
+
         {/* URL de Destino */}
         <div>
           <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">

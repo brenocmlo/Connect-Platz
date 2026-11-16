@@ -48,15 +48,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Se o cliente selecionou um imóvel específico, detecta a modalidade (Venda vs Aluguel)
+    // Se o cliente selecionou um imóvel específico (via página do imóvel ou UTM), detecta dados e modalidade (Venda vs Aluguel)
     let targetModality: "VENDA" | "ALUGUEL" = "VENDA";
-    if (data.propertyId && /^[0-9a-f-]{36}$/i.test(data.propertyId)) {
+    let resolvedPropertyNome = data.propertyNome?.trim() || "";
+    let resolvedBairros: string[] = [];
+
+    if (data.propertyId || resolvedPropertyNome) {
+      const isUuid = Boolean(data.propertyId && /^[0-9a-f-]{36}$/i.test(data.propertyId));
       const prop = await prisma.property.findFirst({
-        where: { id: data.propertyId, organizationId: org.id },
-        select: { modalidade: true },
+        where: {
+          organizationId: org.id,
+          ...(isUuid
+            ? { id: data.propertyId }
+            : data.propertyId
+            ? { OR: [{ slug: data.propertyId }, { nome: { equals: data.propertyId, mode: "insensitive" } }] }
+            : { nome: { equals: resolvedPropertyNome, mode: "insensitive" } }),
+        },
+        select: { nome: true, modalidade: true, bairro: true, cidade: true },
       });
-      if (prop?.modalidade === "VERANEIO_TEMPORADA") {
-        targetModality = "ALUGUEL";
+      if (prop) {
+        resolvedPropertyNome = prop.nome;
+        if (prop.modalidade === "VERANEIO_TEMPORADA" || prop.modalidade === "LOCACAO_ANUAL") {
+          targetModality = "ALUGUEL";
+        }
+        resolvedBairros = [prop.bairro, prop.cidade].filter(Boolean) as string[];
       }
     }
 
@@ -80,8 +95,10 @@ export async function POST(req: NextRequest) {
       telefone: data.telefone,
       email: data.email,
       source: LeadSource.CATALOGO_SITE,
-      campaignName: data.utmCampaign || (data.propertyNome ? `Interesse: ${data.propertyNome}` : "Formulário Landing Page"),
-      adName: data.utmContent || "Portal Connect Platz Oficial",
+      campaignName: data.utmCampaign || (resolvedPropertyNome ? `Interesse: ${resolvedPropertyNome}` : "Formulário Landing Page"),
+      adName: resolvedPropertyNome
+        ? `Interesse: ${resolvedPropertyNome}`
+        : data.utmContent || "Portal Connect Platz Oficial",
       utmSource: data.utmSource || "site_direto",
       utmMedium: data.utmMedium || "landing_page",
       utmCampaign: data.utmCampaign,
@@ -90,7 +107,8 @@ export async function POST(req: NextRequest) {
       fbp: data.fbp,
       fbc: data.fbc,
       eventId: data.eventId,
-      mensagem: [data.mensagem, data.propertyNome ? `Imóvel de interesse: ${data.propertyNome}` : null]
+      bairrosInteresse: resolvedBairros.length > 0 ? resolvedBairros : undefined,
+      mensagem: [data.mensagem, resolvedPropertyNome ? `Imóvel de interesse: ${resolvedPropertyNome}` : null]
         .filter(Boolean)
         .join(" — ") || undefined,
     });
