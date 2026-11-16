@@ -279,6 +279,7 @@ interface PropertySidebarProps {
   wazeUrl: string;
   waUrl: string;
   pois?: Array<{ label: string; iconType?: string }>;
+  ctaSlot?: React.ReactNode;
 }
 
 export function PropertySidebar({
@@ -287,6 +288,7 @@ export function PropertySidebar({
   wazeUrl,
   waUrl,
   pois,
+  ctaSlot,
 }: PropertySidebarProps) {
   return (
     <div className="space-y-6">
@@ -337,15 +339,17 @@ export function PropertySidebar({
         </div>
 
         <div className="pt-4 border-t border-border">
-          <a
-            href={waUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md transition-all hover:scale-[1.02]"
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span>Tenho Interesse neste Imóvel</span>
-          </a>
+          {ctaSlot || (
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md transition-all hover:scale-[1.02]"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>Tenho Interesse neste Imóvel</span>
+            </a>
+          )}
           <span className="text-[11px] text-muted-foreground text-center block mt-2">
             Atendimento direto com corretor credenciado CRECI 023456-J
           </span>

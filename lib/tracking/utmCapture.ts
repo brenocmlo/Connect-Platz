@@ -9,6 +9,8 @@ export interface CapturedUtmData {
   utmCampaign?: string;
   utmContent?: string;
   utmTerm?: string;
+  propertyId?: string;
+  propertyNome?: string;
   fbp?: string;
   fbc?: string;
 }
@@ -41,6 +43,8 @@ export function initUtmCapture(): CapturedUtmData {
   const rawCampaign = q.get("utm_campaign");
   const rawContent = q.get("utm_content");
   const rawTerm = q.get("utm_term");
+  const rawPropertyId = q.get("propertyId") || q.get("property_id") || q.get("imovelId");
+  const rawPropertyNome = q.get("propertyNome") || q.get("property_name") || q.get("imovel");
   const fbclid = q.get("fbclid");
 
   // Gerenciamento do cookie _fbp (Facebook Browser ID)
@@ -70,6 +74,8 @@ export function initUtmCapture(): CapturedUtmData {
     utmCampaign: rawCampaign || stored.utmCampaign || undefined,
     utmContent: rawContent || stored.utmContent || undefined,
     utmTerm: rawTerm || stored.utmTerm || undefined,
+    propertyId: rawPropertyId || stored.propertyId || undefined,
+    propertyNome: rawPropertyNome || stored.propertyNome || undefined,
     fbp: fbp || stored.fbp || undefined,
     fbc: fbc || stored.fbc || undefined,
   };

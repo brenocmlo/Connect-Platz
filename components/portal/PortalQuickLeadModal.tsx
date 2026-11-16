@@ -11,6 +11,7 @@ interface PortalQuickLeadModalProps {
   subtitle?: string;
   defaultMessage?: string;
   contextSource?: string;
+  propertyId?: string;
   propertyNome?: string;
 }
 
@@ -21,6 +22,7 @@ export function PortalQuickLeadModal({
   subtitle = "Receba atendimento personalizado pelo corretor especialista de plantão.",
   defaultMessage = "Olá! Gostaria de mais informações sobre os imóveis da Connect Platz.",
   contextSource = "site_whatsapp_flutuante",
+  propertyId,
   propertyNome,
 }: PortalQuickLeadModalProps) {
   const [nome, setNome] = useState("");
@@ -58,13 +60,14 @@ export function PortalQuickLeadModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...utmData,
           nome: nome.trim(),
           telefone: telefone.trim(),
-          propertyNome,
+          propertyId: propertyId || utmData.propertyId,
+          propertyNome: propertyNome || utmData.propertyNome,
           mensagem: defaultMessage,
           eventId,
           utmSource: utmData.utmSource || contextSource,
-          ...utmData,
         }),
       });
 

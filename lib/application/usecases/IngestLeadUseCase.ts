@@ -27,6 +27,7 @@ export interface IngestLeadDto {
   fbp?: string;
   fbc?: string;
   eventId?: string;
+  bairrosInteresse?: string[];
   slaMinutes?: number;
   mensagem?: string; // mensagem livre enviada pelo cliente (registrada na timeline)
   allowMissingContact?: boolean; // ex.: Meta sem acesso à Graph API — lead entra como "contato pendente"
@@ -114,6 +115,7 @@ export class IngestLeadUseCase {
       fbp: dto.fbp,
       fbc: dto.fbc,
       eventId: dto.eventId,
+      bairrosInteresse: dto.bairrosInteresse,
       isNightQueue: roletaResult.isNightQueue,
       isBolsao: !assignedCorretor && !roletaResult.isNightQueue,
       bolsaoEnteredAt: !assignedCorretor && !roletaResult.isNightQueue ? new Date() : null,
