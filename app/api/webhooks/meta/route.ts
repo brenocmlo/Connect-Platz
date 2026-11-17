@@ -51,18 +51,16 @@ export async function POST(req: NextRequest) {
       include: {
         funnels: {
           where: { isActive: true },
-          include: { stages: { orderBy: { posicao: "asc" }, take: 1 } },
-          take: 1,
+          include: { stages: { orderBy: { posicao: "asc" } } },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
         },
       },
     });
 
-    if (!org || !org.funnels[0] || !org.funnels[0].stages[0]) {
+    if (!org || org.funnels.length === 0) {
       return NextResponse.json({ error: "Configurações de funil da Connect Platz não encontradas." }, { status: 500 });
     }
 
-    const funnel = org.funnels[0];
-    const stage = funnel.stages[0];
     const leadIds: string[] = [];
 
     for (const entry of parsed.data.entry) {
@@ -72,11 +70,31 @@ export async function POST(req: NextRequest) {
         const data = await MetaWebhookService.fetchLeadData(leadgen.leadgen_id);
         const pending = !data || (!data.telefone && !data.email);
 
+        // Identificação de modalidade (Venda vs Aluguel)
+        const isAluguel =
+          data?.modalidade === "ALUGUEL" ||
+          leadgen.form_id === "1426894502491423"; // Form Oficial Aluguel e Temporada
+
+        const targetModality = isAluguel ? "ALUGUEL" : "VENDA";
+        const funnel =
+          org.funnels.find((f) => f.modalidade === targetModality) ||
+          org.funnels.find((f) => f.isDefault) ||
+          org.funnels[0];
+
+        const stage = funnel.stages[0];
+        if (!stage) continue;
+
+        // Composição de mensagem e observações do formulário
+        let mensagemTimeline = data?.resumoRespostas;
+        if (pending) {
+          mensagemTimeline = `Dados de contato não obtidos da Graph API (leadgen_id ${leadgen.leadgen_id}). Verifique META_PAGE_ACCESS_TOKEN ou baixe o lead na Central de Leads da Meta.`;
+        }
+
         const result = await container.ingestLeadUseCase.execute({
           organizationId: org.id,
           funnelId: funnel.id,
           stageId: stage.id,
-          modalidade: funnel.modalidade === "ALUGUEL" ? "ALUGUEL" : "VENDA",
+          modalidade: targetModality,
           operatingStart: org.operatingStart,
           operatingEnd: org.operatingEnd,
           slaMinutes: stage.slaMinutes || 20,
@@ -86,15 +104,15 @@ export async function POST(req: NextRequest) {
           source: LeadSource.META_ADS,
           adId: leadgen.ad_id,
           formId: leadgen.form_id,
-          campaignName: data?.campaignName || "Meta Ads Lead Form",
+          campaignName: data?.campaignName || (isAluguel ? "Meta Ads Aluguel" : "Meta Ads Vendas"),
           adName: data?.adName || (leadgen.ad_id ? `Anúncio ${leadgen.ad_id}` : undefined),
           utmSource: "facebook",
           utmMedium: "paid",
           utmContent: leadgen.leadgen_id,
+          faixaRenda: data?.faixaRenda,
+          bairrosInteresse: data?.bairro ? [data.bairro] : undefined,
           allowMissingContact: true,
-          mensagem: pending
-            ? `Dados de contato não obtidos da Graph API (leadgen_id ${leadgen.leadgen_id}). Verifique META_PAGE_ACCESS_TOKEN ou baixe o lead na Central de Leads da Meta.`
-            : undefined,
+          mensagem: mensagemTimeline,
         });
         leadIds.push(result.lead.id);
 
@@ -102,13 +120,13 @@ export async function POST(req: NextRequest) {
           organizationId: org.id,
           userId: null,
           ator: "Integração: meta-ads",
-          acao: "Entrada de Lead (meta-ads)",
+          acao: `Entrada de Lead (${targetModality.toLowerCase()})`,
           tipoAcao: "CREATE",
           modulo: "INTEGRACOES",
           entidade: "Lead",
           entidadeId: result.lead.id,
           entidadeNome: result.lead.nome,
-          descricao: `Lead Meta (leadgen ${leadgen.leadgen_id}) recebido${pending ? " com contato pendente" : ""}. ${result.message}`,
+          descricao: `Lead Meta (${targetModality}) [leadgen ${leadgen.leadgen_id}] recebido${pending ? " com contato pendente" : ""}. ${result.message}`,
         });
       }
     }
