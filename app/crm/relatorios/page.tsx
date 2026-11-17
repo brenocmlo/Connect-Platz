@@ -5,6 +5,7 @@ import { AlertTriangle, Download, FileText, RefreshCw } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
+import { getUserModality } from "@/lib/auth/session";
 import { generateBiExecutivePdf } from "@/lib/services/bi-pdf";
 import type { BiMetricType, BiGranularityType } from "@/components/crm/relatorios/types";
 import { useBiReport } from "@/components/crm/relatorios/useBiReport";
@@ -22,7 +23,14 @@ const headerButton =
 
 export default function RelatoriosBiPage() {
   const { selectedPeriod, setActionMessage, user } = useCrm();
-  const { data, loading, error, reload } = useBiReport(selectedPeriod);
+  const isAdminGeral = user?.role === "ADMINISTRADOR";
+  const userModality = getUserModality(user?.role || "");
+
+  const [selectedModality, setSelectedModality] = useState<"TODOS" | "VENDA" | "ALUGUEL">(
+    isAdminGeral ? "TODOS" : userModality === "ALUGUEL" ? "ALUGUEL" : "VENDA"
+  );
+
+  const { data, loading, error, reload } = useBiReport(selectedPeriod, selectedModality);
   const [activeMetric, setActiveMetric] = useState<BiMetricType>("vgv");
   const [granularity, setGranularity] = useState<BiGranularityType>("mensal");
 
@@ -63,6 +71,51 @@ export default function RelatoriosBiPage() {
         showExportButton={Boolean(data)}
         onExportClick={data ? handleExportFullReport : undefined}
       >
+        {isAdminGeral ? (
+          <div className="flex items-center p-1 bg-muted rounded-xl border border-border/80 text-xs">
+            <button
+              type="button"
+              onClick={() => setSelectedModality("TODOS")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                selectedModality === "TODOS"
+                  ? "bg-card text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Geral
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedModality("VENDA")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                selectedModality === "VENDA"
+                  ? "bg-card text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Vendas
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedModality("ALUGUEL")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                selectedModality === "ALUGUEL"
+                  ? "bg-card text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Aluguel
+            </button>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-xs font-semibold text-muted-foreground border border-border/60">
+            <span>Modalidade:</span>
+            <span className="font-bold text-foreground">
+              {userModality === "ALUGUEL" ? "Aluguel & Temporada" : "Vendas"}
+            </span>
+          </div>
+        )}
+
         <button onClick={handleExportPdf} disabled={!data} className={headerButton}>
           <FileText className="w-3.5 h-3.5 text-connect-blue" />
           <span>PDF Executivo</span>

@@ -4,6 +4,9 @@ import React, { useState } from "react";
 import { X, User, Phone, Mail, Building, DollarSign, Tag, MapPin, Loader2 } from "lucide-react";
 import { CepInput, CpfInput } from "@/components/crm/primitives";
 import { LocationData } from "@/lib/services/location";
+import { useCrm } from "@/components/crm/CrmContext";
+import { getUserModality } from "@/lib/auth/session";
+import { PropertyInterestSelector } from "./PropertyInterestSelector";
 
 export interface NewLeadFormData {
   nome: string;
@@ -19,6 +22,7 @@ export interface NewLeadFormData {
   rendaDeclarada?: number;
   stageId?: string;
   funil?: string;
+  modalidade?: "VENDA" | "ALUGUEL";
   observacoes?: string;
 }
 
@@ -36,6 +40,13 @@ export function NewLeadModal({
   onSubmit,
   availableStages = [],
 }: NewLeadModalProps) {
+  const { user } = useCrm();
+  const isAdminGeral = user?.role === "ADMINISTRADOR";
+  const userModality = getUserModality(user?.role || "");
+
+  const [modalidade, setModalidade] = useState<"VENDA" | "ALUGUEL">(
+    userModality === "ALUGUEL" ? "ALUGUEL" : "VENDA"
+  );
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
@@ -49,6 +60,13 @@ export function NewLeadModal({
   const [stageId, setStageId] = useState(availableStages[0]?.id || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [observacoes, setObservacoes] = useState("");
+
+  // Sincroniza a modalidade padrão quando o modal é aberto
+  React.useEffect(() => {
+    if (isOpen) {
+      setModalidade(userModality === "ALUGUEL" ? "ALUGUEL" : "VENDA");
+    }
+  }, [isOpen, userModality]);
 
   // Etapas chegam da API depois da montagem: garante uma etapa válida selecionada
   React.useEffect(() => {
@@ -79,6 +97,7 @@ export function NewLeadModal({
       origem,
       rendaDeclarada: renda ? Number(renda.replace(/\D/g, "")) : undefined,
       stageId: stageId || undefined,
+      modalidade,
       observacoes: observacoes.trim() || undefined,
     });
     setIsSubmitting(false);
@@ -125,6 +144,41 @@ export function NewLeadModal({
 
         {/* Formulário com Scroll Interno */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
+          {/* Seletor de Modalidade (apenas para Admin Geral) */}
+          {isAdminGeral && (
+            <div className="p-3 bg-muted/60 border border-border/80 rounded-xl space-y-1.5">
+              <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                Modalidade do Lead <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModalidade("VENDA")}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    modalidade === "VENDA"
+                      ? "bg-connect-blue text-white shadow-sm shadow-connect-blue/30"
+                      : "bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-card"
+                  }`}
+                >
+                  <Building className="w-3.5 h-3.5" />
+                  Venda de Imóveis
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalidade("ALUGUEL")}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    modalidade === "ALUGUEL"
+                      ? "bg-connect-blue text-white shadow-sm shadow-connect-blue/30"
+                      : "bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-card"
+                  }`}
+                >
+                  <Tag className="w-3.5 h-3.5" />
+                  Aluguel & Temporada
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Nome e Telefone */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
@@ -179,19 +233,15 @@ export function NewLeadModal({
             </div>
 
             <div>
-              <label className="block text-foreground font-semibold mb-1">
-                Empreendimento de Interesse
-              </label>
-              <div className="relative">
-                <Building className="absolute left-3 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Ex: Reserva Imperial"
-                  value={empreendimento}
-                  onChange={(e) => setEmpreendimento(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-connect-blue"
-                />
-              </div>
+              <PropertyInterestSelector
+                value={empreendimento}
+                onChange={(val, details) => {
+                  setEmpreendimento(val);
+                  if (details?.bairro && !bairro) setBairro(details.bairro);
+                  if (details?.cidade && !cidade) setCidade(details.cidade);
+                }}
+                modality={modalidade}
+              />
             </div>
           </div>
 

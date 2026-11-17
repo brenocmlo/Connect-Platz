@@ -59,7 +59,7 @@ export async function loadBiDataset(scope: AnalyticsScope, period: PeriodRange):
       ? { beneficiarioTipo: { not: CommissionBeneficiaryType.IMOBILIARIA } }
       : { userId: scope.userId }),
     status: { not: PaymentStatus.CANCELADO },
-    sale: { organizationId: scope.organizationId, ...ACTIVE_SALE_WHERE, dataVenda: saleDate },
+    sale: { organizationId: scope.organizationId, ...ACTIVE_SALE_WHERE, ...scope.sale, dataVenda: saleDate },
   };
 
   const [sales, leads, splits] = await Promise.all([

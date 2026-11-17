@@ -24,11 +24,24 @@ export async function GET(req: NextRequest) {
     const endDate = req.nextUrl.searchParams.get("endDate");
     const period = resolvePeriod(periodParam, new Date(), { start: startDate, end: endDate });
 
-    const modality = getUserModality(session.role);
+    const requestedModality = req.nextUrl.searchParams.get("modalidade")?.toUpperCase();
+    const userModality = getUserModality(session.role);
+
+    // Se for Admin Geral (AMBOS), pode escolher filtrar por VENDA, ALUGUEL ou TODOS (padrão).
+    // Caso contrário, prevalece estritamente a visibilidade única do perfil do usuário.
+    let effectiveModality: "VENDA" | "ALUGUEL" | "TODOS" = "TODOS";
+    if (userModality === "VENDA") {
+      effectiveModality = "VENDA";
+    } else if (userModality === "ALUGUEL") {
+      effectiveModality = "ALUGUEL";
+    } else if (requestedModality === "VENDA" || requestedModality === "ALUGUEL") {
+      effectiveModality = requestedModality;
+    }
+
     const roleFilter =
-      modality === "VENDA"
+      effectiveModality === "VENDA"
         ? Role.CORRETOR_VENDA
-        : modality === "ALUGUEL"
+        : effectiveModality === "ALUGUEL"
         ? Role.CORRETOR_ALUGUEL
         : { in: [Role.CORRETOR_VENDA, Role.CORRETOR_ALUGUEL] };
 

@@ -8,7 +8,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PeriodFilter } from "@/components/crm/CrmContext";
 import type { BiReportData } from "./types";
 
-export function useBiReport(period: PeriodFilter) {
+export function useBiReport(
+  period: PeriodFilter,
+  modality: "TODOS" | "VENDA" | "ALUGUEL" = "TODOS"
+) {
   const [data, setData] = useState<BiReportData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +25,11 @@ export function useBiReport(period: PeriodFilter) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/relatorios?period=${encodeURIComponent(period)}`, {
+      const params = new URLSearchParams({ period });
+      if (modality && modality !== "TODOS") {
+        params.set("modalidade", modality);
+      }
+      const res = await fetch(`/api/relatorios?${params.toString()}`, {
         signal: controller.signal,
         cache: "no-store",
       });
@@ -35,7 +42,7 @@ export function useBiReport(period: PeriodFilter) {
     } finally {
       if (controllerRef.current === controller) setLoading(false);
     }
-  }, [period]);
+  }, [period, modality]);
 
   useEffect(() => {
     load();

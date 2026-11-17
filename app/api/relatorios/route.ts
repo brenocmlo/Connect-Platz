@@ -22,7 +22,16 @@ export async function GET(req: NextRequest) {
 
   try {
     const period = resolvePeriod(parsePeriod(req.nextUrl.searchParams.get("period")));
-    const scope = buildScope(session);
+    const requestedModality = req.nextUrl.searchParams.get("modalidade")?.toUpperCase() as
+      | "TODOS"
+      | "VENDA"
+      | "ALUGUEL"
+      | undefined;
+    const modalityParam =
+      session.role === "ADMINISTRADOR" && (requestedModality === "VENDA" || requestedModality === "ALUGUEL")
+        ? requestedModality
+        : undefined;
+    const scope = buildScope(session, modalityParam);
 
     const [dataset, investment, funnelVelocity, closedLeads] = await Promise.all([
       loadBiDataset(scope, period),
