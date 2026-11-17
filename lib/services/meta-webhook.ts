@@ -29,8 +29,15 @@ export interface MetaLeadData {
   nome?: string;
   telefone?: string;
   email?: string;
+  cidade?: string;
+  bairro?: string;
+  faixaRenda?: string;
+  empreendimentoInteresse?: string;
+  modalidade?: "VENDA" | "ALUGUEL";
   campaignName?: string;
   adName?: string;
+  formId?: string;
+  resumoRespostas?: string;
 }
 
 export class MetaWebhookService {
@@ -64,7 +71,7 @@ export class MetaWebhookService {
     if (!accessToken) return null;
 
     try {
-      const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(leadgenId)}?fields=field_data,campaign_name,ad_name&access_token=${encodeURIComponent(accessToken)}`;
+      const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(leadgenId)}?fields=field_data,campaign_name,ad_name,form_id&access_token=${encodeURIComponent(accessToken)}`;
       const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5000) });
       if (!res.ok) {
         console.error("[Meta Webhook] Graph API respondeu", res.status);
@@ -72,17 +79,70 @@ export class MetaWebhookService {
       }
       const data = await res.json();
       const fields: Record<string, string> = {};
+      const extraAnswers: string[] = [];
+
       for (const f of data.field_data || []) {
-        if (f?.name && Array.isArray(f.values) && f.values[0]) fields[String(f.name).toLowerCase()] = String(f.values[0]);
+        if (f?.name && Array.isArray(f.values) && f.values[0]) {
+          const key = String(f.name).toLowerCase();
+          const val = String(f.values[0]);
+          fields[key] = val;
+          extraAnswers.push(`${f.name}: ${val}`);
+        }
       }
+
       const firstName = fields["first_name"];
       const lastName = fields["last_name"];
+      const nome =
+        fields["full_name"] ||
+        fields["nome_completo"] ||
+        fields["nome"] ||
+        [firstName, lastName].filter(Boolean).join(" ") ||
+        undefined;
+
+      const telefone = fields["phone_number"] || fields["phone"] || fields["telefone"] || fields["whatsapp"] || fields["whatsapp_number"];
+      const email = fields["email"] || fields["work_email"];
+      const cidade = fields["city"] || fields["cidade"];
+      const bairro = fields["bairro_interesse"] || fields["bairro"] || fields["post_code"];
+      const faixaRenda = fields["faixa_renda"] || fields["faixa_valor_aluguel"] || fields["renda"];
+      const empreendimentoInteresse = fields["empreendimento_interesse"] || fields["empreendimento"];
+
+      // Inferência da modalidade
+      let modalidade: "VENDA" | "ALUGUEL" | undefined;
+      const lowerCampaign = (data.campaign_name || "").toLowerCase();
+      const formId = data.form_id;
+
+      if (
+        formId === "1426894502491423" || // Formulário oficial Aluguel e Temporada
+        fields["modalidade_locacao"] ||
+        fields["faixa_valor_aluguel"] ||
+        lowerCampaign.includes("aluguel") ||
+        lowerCampaign.includes("loca") ||
+        lowerCampaign.includes("temporada")
+      ) {
+        modalidade = "ALUGUEL";
+      } else if (
+        formId === "1974750823497447" || // Formulário oficial Venda de Imóveis
+        fields["faixa_renda"] ||
+        lowerCampaign.includes("venda") ||
+        lowerCampaign.includes("comprar") ||
+        lowerCampaign.includes("lancamento")
+      ) {
+        modalidade = "VENDA";
+      }
+
       return {
-        nome: fields["full_name"] || fields["nome_completo"] || fields["nome"] || [firstName, lastName].filter(Boolean).join(" ") || undefined,
-        telefone: fields["phone_number"] || fields["telefone"] || fields["whatsapp"],
-        email: fields["email"],
+        nome,
+        telefone,
+        email,
+        cidade,
+        bairro,
+        faixaRenda,
+        empreendimentoInteresse,
+        modalidade,
         campaignName: data.campaign_name,
         adName: data.ad_name,
+        formId: data.form_id,
+        resumoRespostas: extraAnswers.length > 0 ? extraAnswers.join(" | ") : undefined,
       };
     } catch (err) {
       console.error("[Meta Webhook] Falha ao consultar Graph API:", err);
