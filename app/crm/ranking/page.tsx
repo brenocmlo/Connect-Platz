@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Tv } from "lucide-react";
 import { useCrm } from "@/components/crm/CrmContext";
+import { getUserModality } from "@/lib/auth/session";
 import { PageHeader } from "@/components/crm/PageHeader";
 import { SectionTitle } from "@/components/crm/SectionTitle";
 import { DashboardSkeleton } from "@/components/crm/dashboard/DashboardSkeleton";
@@ -16,9 +17,16 @@ import { RankingTable } from "@/components/crm/ranking/RankingTable";
 import type { GoalInput } from "@/components/crm/ranking/types";
 
 export default function RankingGamificacaoPage() {
-  const { selectedPeriod, customDateRange, setActionMessage } = useCrm();
+  const { selectedPeriod, customDateRange, setActionMessage, user } = useCrm();
+  const isAdminGeral = user?.role === "ADMINISTRADOR";
+  const userModality = getUserModality(user?.role || "");
+
+  const [selectedModality, setSelectedModality] = useState<"TODOS" | "VENDA" | "ALUGUEL">(
+    isAdminGeral ? "TODOS" : userModality === "ALUGUEL" ? "ALUGUEL" : "VENDA"
+  );
+
   const { ranking, goals, canManageGoals, loading, error, reload, createGoal, updateGoal, deleteGoal } =
-    useRankingData(selectedPeriod, customDateRange);
+    useRankingData(selectedPeriod, customDateRange, selectedModality);
   const [selectedBrokerId, setSelectedBrokerId] = useState<string | null>(null);
 
   // "Corretor do Mês" abre sempre no líder real do período carregado
@@ -49,6 +57,51 @@ export default function RankingGamificacaoPage() {
         subtitle="Desempenho da equipe, metas de incentivo e reconhecimento dos campeões de vendas."
         showPeriodSelector={true}
       >
+        {isAdminGeral ? (
+          <div className="flex items-center p-1 bg-muted rounded-xl border border-border/80 text-xs">
+            <button
+              type="button"
+              onClick={() => setSelectedModality("TODOS")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                selectedModality === "TODOS"
+                  ? "bg-card text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Geral
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedModality("VENDA")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                selectedModality === "VENDA"
+                  ? "bg-card text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Vendas
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedModality("ALUGUEL")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                selectedModality === "ALUGUEL"
+                  ? "bg-card text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Aluguel
+            </button>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-xs font-semibold text-muted-foreground border border-border/60">
+            <span>Modalidade:</span>
+            <span className="font-bold text-foreground">
+              {userModality === "ALUGUEL" ? "Aluguel & Temporada" : "Vendas"}
+            </span>
+          </div>
+        )}
+
         <Link
           href="/crm/ranking/tv"
           target="_blank"

@@ -44,6 +44,7 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
   const [estagioObra, setEstagioObra] = useState("Lançamento");
   const [valorAPartir, setValorAPartir] = useState("");
   const [valorDiaria, setValorDiaria] = useState("");
+  const [taxaLimpeza, setTaxaLimpeza] = useState("");
   const [valorAluguel, setValorAluguel] = useState("");
   const [valorRepasse, setValorRepasse] = useState("");
   const [saldoDevedor, setSaldoDevedor] = useState("");
@@ -64,6 +65,7 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
     setEstagioObra("Lançamento");
     setValorAPartir("");
     setValorDiaria("");
+    setTaxaLimpeza("");
     setValorAluguel("");
     setValorRepasse("");
     setSaldoDevedor("");
@@ -104,9 +106,10 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
           tipoCadastro: "EMPREENDIMENTO",
           exibirNaLandingPage,
           modalidade,
-          estagioObra,
+          estagioObra: modalidade === "VERANEIO_TEMPORADA" ? null : estagioObra,
           valorVenda: vVenda,
           valorDiaria: (modalidade === "VERANEIO_TEMPORADA" || modalidade === "AMBOS") && valorDiaria !== "" ? Number(valorDiaria) : null,
+          taxaLimpeza: (modalidade === "VERANEIO_TEMPORADA" || modalidade === "AMBOS") && taxaLimpeza !== "" ? Number(taxaLimpeza) : null,
           valorAluguel: (modalidade === "LOCACAO_ANUAL" || modalidade === "AMBOS") && valorAluguel !== "" ? Number(valorAluguel) : null,
           valorRepasse: modalidade === "REPASSE" && valorRepasse !== "" ? Number(valorRepasse) : null,
           saldoDevedor: modalidade === "REPASSE" && saldoDevedor !== "" ? Number(saldoDevedor) : null,
@@ -193,16 +196,18 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
               </select>
             </SelectWithChevron>
           </div>
-          <div>
-            <label htmlFor="emp-estagio" className={fieldLabel}>Estágio da Obra</label>
-            <SelectWithChevron>
-              <select id="emp-estagio" value={estagioObra} onChange={(e) => setEstagioObra(e.target.value)} className={fieldSelect}>
-                <option value="Lançamento">Lançamento</option>
-                <option value="Em Obras">Em Obras</option>
-                <option value="Pronto para Morar">Pronto para Morar</option>
-              </select>
-            </SelectWithChevron>
-          </div>
+          {modalidade !== "VERANEIO_TEMPORADA" && (
+            <div>
+              <label htmlFor="emp-estagio" className={fieldLabel}>Estágio da Obra</label>
+              <SelectWithChevron>
+                <select id="emp-estagio" value={estagioObra} onChange={(e) => setEstagioObra(e.target.value)} className={fieldSelect}>
+                  <option value="Lançamento">Lançamento</option>
+                  <option value="Em Obras">Em Obras</option>
+                  <option value="Pronto para Morar">Pronto para Morar</option>
+                </select>
+              </SelectWithChevron>
+            </div>
+          )}
           {modalidade === "VENDA" && (
             <div>
               <label htmlFor="emp-valor" className={fieldLabel}>Preço a partir de (R$)</label>
@@ -216,10 +221,16 @@ export function NewEmpreendimentoModal({ isOpen, onClose, onSuccess }: NewEmpree
             </div>
           )}
           {modalidade === "VERANEIO_TEMPORADA" && (
-            <div>
-              <label htmlFor="emp-diaria" className={fieldLabel}>Diária base (R$)</label>
-              <input id="emp-diaria" type="number" min="0" value={valorDiaria} onChange={(e) => setValorDiaria(e.target.value)} placeholder="Ex.: 950" className={fieldInput} />
-            </div>
+            <>
+              <div>
+                <label htmlFor="emp-diaria" className={fieldLabel}>Diária base (R$)</label>
+                <input id="emp-diaria" type="number" min="0" value={valorDiaria} onChange={(e) => setValorDiaria(e.target.value)} placeholder="Ex.: 950" className={fieldInput} />
+              </div>
+              <div>
+                <label htmlFor="emp-limpeza" className={fieldLabel}>Taxa de Limpeza por Estadia (R$)</label>
+                <input id="emp-limpeza" type="number" min="0" value={taxaLimpeza} onChange={(e) => setTaxaLimpeza(e.target.value)} placeholder="Ex.: 200" className={fieldInput} />
+              </div>
+            </>
           )}
           {modalidade === "AMBOS" && (
             <>

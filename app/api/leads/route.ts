@@ -165,9 +165,18 @@ export async function POST(req: NextRequest) {
     const telefone = parsePhone(data.telefone);
     if (!telefone) return badRequest("Telefone inválido. Informe DDD + número (10 ou 11 dígitos).");
 
-    const modality = getUserModality(session.role);
-    const reqModality = modality === "AMBOS" ? undefined : (modality as BusinessModality);
-    const funnel = await findActiveFunnel(session.organizationId, data.funnelId, reqModality);
+    const userModality = getUserModality(session.role);
+    // Se for Admin Geral (AMBOS), aceita data.modalidade informada no cadastro manual;
+    // caso contrário, prevalece estritamente a modalidade do perfil do usuário autenticado.
+    const effectiveModality: BusinessModality | undefined =
+      userModality === "AMBOS"
+        ? (data.modalidade as BusinessModality | undefined)
+        : (userModality as BusinessModality);
+
+    let funnel = await findActiveFunnel(session.organizationId, data.funnelId, effectiveModality);
+    if (!funnel && effectiveModality) {
+      funnel = await findActiveFunnel(session.organizationId, null, effectiveModality);
+    }
     if (!funnel || funnel.stages.length === 0) {
       return NextResponse.json({ error: NO_FUNNEL_MESSAGE, code: "NO_FUNNEL" }, { status: 500 });
     }
@@ -221,7 +230,7 @@ export async function POST(req: NextRequest) {
         funnelId: funnel.id,
         stageId: stage.id,
         corretorId,
-        modalidade: funnel.modalidade || (reqModality ?? "VENDA"),
+        modalidade: funnel.modalidade || (effectiveModality ?? "VENDA"),
         nome: data.nome,
         telefone,
         email: data.email || null,

@@ -14,7 +14,8 @@ async function readError(res: Response, fallback: string): Promise<string> {
 
 export function useRankingData(
   period: PeriodFilter,
-  customRange?: { start: string; end: string }
+  customRange?: { start: string; end: string },
+  modality: "TODOS" | "VENDA" | "ALUGUEL" = "TODOS"
 ) {
   const [ranking, setRanking] = useState<RankingResponse | null>(null);
   const [goals, setGoals] = useState<GoalIncentive[]>([]);
@@ -39,6 +40,9 @@ export function useRankingData(
     setError(null);
     try {
       const params = new URLSearchParams({ period });
+      if (modality && modality !== "TODOS") {
+        params.set("modalidade", modality);
+      }
       if (period === "personalizado" && customRange?.start && customRange?.end) {
         params.set("startDate", customRange.start);
         params.set("endDate", customRange.end);
@@ -55,7 +59,7 @@ export function useRankingData(
     } finally {
       if (controllerRef.current === controller) setLoading(false);
     }
-  }, [period, customRange?.start, customRange?.end, loadGoals]);
+  }, [period, customRange?.start, customRange?.end, modality, loadGoals]);
 
   useEffect(() => {
     load();

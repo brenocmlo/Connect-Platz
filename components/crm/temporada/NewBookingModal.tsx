@@ -337,11 +337,21 @@ export function NewBookingModal({ isOpen, onClose, onSubmit, preselectedLead }: 
           </div>
 
           {/* 5. RESUMO DE CÁLCULO */}
-          <div className="p-3 bg-muted/70 border border-border rounded-xl flex items-center justify-between font-bold">
-            <span className="text-muted-foreground">Total ({calculatedNights} noites + Limpeza):</span>
-            <span className="text-amber-700 dark:text-[#F8DA56] text-sm">
-              {totalCalculado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-            </span>
+          <div className="p-3 bg-muted/70 border border-border rounded-xl space-y-1 text-xs">
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>{calculatedNights} {calculatedNights === 1 ? "noite" : "noites"} × {valorDiaria.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}:</span>
+              <span className="font-semibold text-foreground">{(calculatedNights * valorDiaria).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>Taxa de Limpeza (única):</span>
+              <span className="font-semibold text-foreground">{taxaLimpeza.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+            </div>
+            <div className="pt-1 border-t border-border/60 flex items-center justify-between font-bold text-sm">
+              <span className="text-foreground">Total a Cobrar:</span>
+              <span className="text-amber-700 dark:text-[#F8DA56]">
+                {totalCalculado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </span>
+            </div>
           </div>
 
           {/* 6. BOTÕES DE AÇÃO */}

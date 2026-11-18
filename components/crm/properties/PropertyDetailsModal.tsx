@@ -92,9 +92,14 @@ export function PropertyDetailsModal({
                   ? "Venda e Temporada"
                   : "🏢 Venda"}
               </span>
-              {p.estagioObra && (
+              {p.modalidade !== "VERANEIO_TEMPORADA" && p.estagioObra && (
                 <span className="rounded-full border border-platz-gold/40 bg-platz-gold/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-platz-gold">
                   {p.estagioObra}
+                </span>
+              )}
+              {p.modalidade === "VERANEIO_TEMPORADA" && (
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  🏖️ Disponível para Temporada
                 </span>
               )}
               {p.construtora && (
@@ -128,6 +133,11 @@ export function PropertyDetailsModal({
               <div>
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-white/80">Valor Comercial</span>
                 <p className="text-2xl font-black text-white sm:text-3xl">{formatPropertyPrice(p)}</p>
+                {p.modalidade === "VERANEIO_TEMPORADA" && p.taxaLimpeza && (
+                  <span className="block text-xs font-semibold text-white/90 drop-shadow">
+                    + Taxa de Limpeza: R$ {Number(p.taxaLimpeza).toLocaleString("pt-BR")} (por estadia)
+                  </span>
+                )}
               </div>
               {p.exibirNaLandingPage && (
                 <span className="flex items-center gap-1 rounded-full border border-emerald-400/50 bg-emerald-500/25 px-2.5 py-1 text-[10px] font-bold text-white">

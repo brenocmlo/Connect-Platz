@@ -56,6 +56,7 @@ export const CreateLeadSchema = z.object({
   stageId: z.string().optional().nullable(),
   funnelId: z.string().optional().nullable(),
   corretorId: z.string().optional().nullable(),
+  modalidade: z.enum(["VENDA", "ALUGUEL"]).optional().nullable(),
   ...leadDataFields,
 });
 

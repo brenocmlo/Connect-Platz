@@ -162,9 +162,12 @@ export function useLeadsActions({
         renda: form.rendaDeclarada,
         etapaId: form.stageId,
         funnelId,
+        modalidade: form.modalidade,
         observacoes: form.observacoes,
       });
-      setLeads((prev) => [created, ...prev]);
+      if (!funnelId || created.funnelId === funnelId) {
+        setLeads((prev) => [created, ...prev]);
+      }
       notify("Lead cadastrado com sucesso!");
       return true;
     } catch (err) {

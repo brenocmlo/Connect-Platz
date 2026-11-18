@@ -8,6 +8,7 @@ export interface PropertyItem {
   faixaPreco?: string;
   valorVenda?: number | null;
   valorDiaria?: number | null;
+  taxaLimpeza?: number | null;
   valorAluguel?: number | null;
   valorCondominio?: number | null;
   valorIptu?: number | null;

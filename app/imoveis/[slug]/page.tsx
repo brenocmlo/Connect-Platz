@@ -245,9 +245,14 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
               <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide border ${badgeColorClass}`}>
                 {modalidadeBadge}
               </span>
-              {property.estagioObra && (
+              {!isTemporada && property.estagioObra && (
                 <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground capitalize">
                   {property.estagioObra.replace(/_/g, " ")}
+                </span>
+              )}
+              {isTemporada && (
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                  🏖️ Disponível para Temporada
                 </span>
               )}
             </div>
@@ -267,7 +272,14 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
             <span className="text-2xl sm:text-3xl font-extrabold text-connect-blue">
               {valorFormatado || "Sob Consulta"}
             </span>
-            {isTemporada && <span className="text-xs text-muted-foreground block">Mínimo de diárias sob consulta</span>}
+            {isTemporada && property.taxaLimpeza && (
+              <span className="text-xs font-semibold text-muted-foreground block mt-0.5">
+                + Taxa de limpeza: R$ {Number(property.taxaLimpeza).toLocaleString("pt-BR")} / estadia
+              </span>
+            )}
+            {isTemporada && !property.taxaLimpeza && (
+              <span className="text-xs text-muted-foreground block mt-0.5">Mínimo de diárias sob consulta</span>
+            )}
             {isRepasse && property.saldoDevedor && (
               <span className="text-xs text-muted-foreground block mt-0.5">
                 + Saldo a assumir: R$ {Number(property.saldoDevedor).toLocaleString("pt-BR")}
@@ -285,6 +297,8 @@ export default async function PropertyDetailPage({ params }: PropertyPageProps) 
             <PropertyFinancialInfo
               modalidade={property.modalidade}
               valorVenda={property.valorVenda ? Number(property.valorVenda) : null}
+              valorDiaria={property.valorDiaria ? Number(property.valorDiaria) : null}
+              taxaLimpeza={property.taxaLimpeza ? Number(property.taxaLimpeza) : null}
               valorAluguel={property.valorAluguel ? Number(property.valorAluguel) : null}
               valorCondominio={property.valorCondominio ? Number(property.valorCondominio) : null}
               valorIptu={property.valorIptu ? Number(property.valorIptu) : null}

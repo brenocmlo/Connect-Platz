@@ -63,6 +63,14 @@ export async function GET(req: NextRequest) {
         where.modalidade = {
           in: [PropertyModality.VERANEIO_TEMPORADA, PropertyModality.LOCACAO_ANUAL, PropertyModality.AMBOS],
         };
+      } else if (modalidade) {
+        if (modalidade === "VENDA") {
+          where.modalidade = { in: [PropertyModality.VENDA, PropertyModality.AMBOS, PropertyModality.REPASSE] };
+        } else if (modalidade === "ALUGUEL") {
+          where.modalidade = {
+            in: [PropertyModality.VERANEIO_TEMPORADA, PropertyModality.LOCACAO_ANUAL, PropertyModality.AMBOS],
+          };
+        }
       }
     } else {
       if (modalidade === "VENDA") {
