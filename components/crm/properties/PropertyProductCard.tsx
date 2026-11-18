@@ -27,6 +27,7 @@ export interface PropertyCardData {
   estagioObra?: string | null;
   valorVenda?: number | null;
   valorDiaria?: number | null;
+  taxaLimpeza?: number | null;
   valorAluguel?: number | null;
   valorRepasse?: number | null;
   saldoDevedor?: number | null;
@@ -85,7 +86,10 @@ export function PropertyProductCard({
 
   const construtora = property.construtora || "Platz Incorporadora";
   const refCode = property.codigoRef || `REF-${property.id.slice(0, 6).toUpperCase()}`;
-  const estagio = property.estagioObra || (isEmpreendimento ? "Lançamento" : "Pronto para Morar");
+  const isTemporada = property.modalidade === "VERANEIO_TEMPORADA" || property.modalidade === "VERANEIO";
+  const estagio = isTemporada
+    ? property.estagioObra || "Temporada"
+    : property.estagioObra || (isEmpreendimento ? "Lançamento" : "Pronto para Morar");
   const modalityBadge = getModalityBadgeMeta(property.modalidade);
   const canDeleteCard = Boolean(onDelete || onPermanentDelete);
 

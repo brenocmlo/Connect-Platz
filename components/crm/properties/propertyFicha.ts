@@ -59,7 +59,11 @@ export function buildFichaText(p: PropertyCardData, origin: string): string {
   const address = formatPropertyAddress(p);
   const link = propertyPublicUrl(p, origin);
   const { googleMapsUrl } = propertyNavigation(p);
-  const status = [p.estagioObra, p.modalidade === "VERANEIO_TEMPORADA" ? "Temporada" : p.modalidade === "AMBOS" ? "Venda e Temporada" : "Venda"]
+  const isTemporada = p.modalidade === "VERANEIO_TEMPORADA" || p.modalidade === "VERANEIO";
+  const status = [
+    isTemporada ? (p.estagioObra || "Temporada") : p.estagioObra,
+    p.modalidade === "VERANEIO_TEMPORADA" ? "Temporada" : p.modalidade === "AMBOS" ? "Venda e Temporada" : "Venda",
+  ]
     .filter(Boolean)
     .join(" · ");
 
@@ -68,6 +72,7 @@ export function buildFichaText(p: PropertyCardData, origin: string): string {
     p.construtora ? `Construtora: ${p.construtora}` : null,
     status ? `Status: ${status}` : null,
     `💰 Valor: ${formatPropertyPrice(p)}`,
+    isTemporada && p.taxaLimpeza ? `🧹 Taxa de Limpeza: ${brl(Number(p.taxaLimpeza))} (única por estadia)` : null,
     specs.length ? `📐 ${specs.join(" · ")}` : null,
     address ? `📍 ${address}` : null,
     p.diferenciais?.length ? `✨ Diferenciais: ${p.diferenciais.join(", ")}` : null,

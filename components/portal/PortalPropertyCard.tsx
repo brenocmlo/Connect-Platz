@@ -107,6 +107,11 @@ export function PortalPropertyCard({ property, onSelect, className = "" }: Porta
               + Saldo financiado: R$ {Number(property.saldoDevedor).toLocaleString("pt-BR")}
             </p>
           )}
+          {isTemporada(property) && property.taxaLimpeza && (
+            <p className="text-xs text-portal-slate font-medium">
+              + Limpeza: R$ {Number(property.taxaLimpeza).toLocaleString("pt-BR")}
+            </p>
+          )}
           {isLocacao(property) && (property.valorCondominio || property.valorIptu) && (
             <p className="text-xs text-portal-slate">
               {[

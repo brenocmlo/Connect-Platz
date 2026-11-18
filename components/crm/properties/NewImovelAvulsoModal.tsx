@@ -113,7 +113,7 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
           tipoCadastro: "AVULSO",
           exibirNaLandingPage,
           modalidade,
-          estagioObra: "Pronto para Morar",
+          estagioObra: modalidade === "VERANEIO_TEMPORADA" ? null : "Pronto para Morar",
           valorVenda: vVenda,
           valorDiaria: modalidade === "VERANEIO_TEMPORADA" && valorDiaria !== "" ? Number(valorDiaria) : null,
           taxaLimpeza: modalidade === "VERANEIO_TEMPORADA" && taxaLimpeza !== "" ? Number(taxaLimpeza) : null,
@@ -236,8 +236,8 @@ export function NewImovelAvulsoModal({ isOpen, onClose, onSuccess }: NewImovelAv
                 <input id="av-diaria" type="number" min="0" required value={valorDiaria} onChange={(e) => setValorDiaria(e.target.value)} placeholder="Ex.: 850" className={fieldInput} />
               </div>
               <div>
-                <label htmlFor="av-limpeza" className={fieldLabel}>Taxa de Limpeza (R$)</label>
-                <input id="av-limpeza" type="number" min="0" value={taxaLimpeza} onChange={(e) => setTaxaLimpeza(e.target.value)} className={fieldInput} />
+                <label htmlFor="av-limpeza" className={fieldLabel}>Taxa de Limpeza por Estadia (R$)</label>
+                <input id="av-limpeza" type="number" min="0" value={taxaLimpeza} onChange={(e) => setTaxaLimpeza(e.target.value)} placeholder="Ex.: 200 (Taxa única por reserva)" className={fieldInput} />
               </div>
             </>
           )}
