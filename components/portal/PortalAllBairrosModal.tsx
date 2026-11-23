@@ -87,7 +87,7 @@ export function PortalAllBairrosModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3.5 sm:px-5 sm:py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-connect-blue/20 text-sky-400">
               <Building2 className="h-5 w-5" />
@@ -208,7 +208,7 @@ export function PortalAllBairrosModal({
         </div>
 
         {/* Rodapé */}
-        <div className="flex items-center justify-between border-t border-white/10 px-5 py-3 text-xs text-white/60">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 px-4 py-3 text-xs text-white/60 sm:px-5">
           <span>
             Mostrando <strong>{filteredBairros.length}</strong> de {allBairros.length} bairros
           </span>

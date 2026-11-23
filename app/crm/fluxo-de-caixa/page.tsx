@@ -218,7 +218,7 @@ export default function FluxoCaixaDREPage() {
             <span className="text-xs font-bold text-foreground">Visão Gerencial:</span>
             <span className="text-xs text-muted-foreground">Filtre por unidade de negócio</span>
           </div>
-          <div className="flex bg-muted p-1 rounded-lg gap-1 text-xs font-semibold">
+          <div className="flex bg-muted p-1 rounded-lg gap-1 text-xs font-semibold w-full sm:w-auto max-w-full overflow-x-auto no-scrollbar">
             {(
               [
                 { id: "CONSOLIDADO", label: "Consolidado Geral" },
@@ -229,7 +229,7 @@ export default function FluxoCaixaDREPage() {
               <button
                 key={m.id}
                 onClick={() => setAdminModality(m.id)}
-                className={`px-3 py-1.5 rounded-md transition-all ${
+                className={`px-3 py-1.5 rounded-md whitespace-nowrap shrink-0 transition-all ${
                   adminModality === m.id
                     ? "bg-connect-blue text-white shadow-xs font-bold"
                     : "text-muted-foreground hover:text-foreground"

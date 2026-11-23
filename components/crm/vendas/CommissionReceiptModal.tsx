@@ -86,22 +86,22 @@ export function CommissionReceiptModal({
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:bg-white">
       <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-fade-in print:border-none print:shadow-none print:max-h-none print:w-full">
         {/* Barra superior de ações (oculta na impressão) */}
-        <div className="p-4 border-b border-border flex items-center justify-between bg-muted/40 print:hidden">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-connect-blue/10 text-connect-blue flex items-center justify-center">
+        <div className="p-4 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-muted/40 print:hidden">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-connect-blue/10 text-connect-blue flex items-center justify-center shrink-0">
               <FileText className="w-4 h-4" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="text-sm font-bold text-foreground">
                 Recibo Oficial de Comissão
               </h3>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground truncate">
                 Venda #{sale.codigoVenda} • {sale.imovelNome}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleDownloadPdf}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-connect-blue hover:bg-connect-deep-blue text-white text-xs font-semibold shadow-xs transition-all"
@@ -151,9 +151,9 @@ export function CommissionReceiptModal({
         )}
 
         {/* Folha do Recibo (Formatada e Timbrada) */}
-        <div className="p-8 space-y-6 overflow-y-auto text-xs bg-white text-slate-900 print:p-6 print:text-black">
+        <div className="p-4 sm:p-8 space-y-6 overflow-y-auto text-xs bg-white text-slate-900 print:p-6 print:text-black">
           {/* Cabeçalho Oficial Connect Platz */}
-          <div className="border-b-2 border-slate-900 pb-4 flex items-start justify-between">
+          <div className="border-b-2 border-slate-900 pb-4 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="text-lg font-black tracking-tight text-slate-950 uppercase">
                 Connect Platz Imobiliária
@@ -163,7 +163,7 @@ export function CommissionReceiptModal({
               </p>
             </div>
 
-            <div className="text-right">
+            <div className="sm:text-right">
               <span className="text-xs font-mono font-bold bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-md text-slate-800">
                 RECIBO #{sale.codigoVenda}
               </span>
@@ -174,7 +174,7 @@ export function CommissionReceiptModal({
           </div>
 
           {/* Destaque do Valor Quitado */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
                 Valor Líquido dos Honorários
@@ -183,7 +183,7 @@ export function CommissionReceiptModal({
                 {formatCurrency(currentParticipant.valor)}
               </div>
             </div>
-            <div className="text-right">
+            <div className="sm:text-right">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-300">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Liquidado / Pago
@@ -199,7 +199,7 @@ export function CommissionReceiptModal({
             <h4 className="font-bold text-slate-800 uppercase text-[11px] tracking-wider border-b border-slate-200 pb-1">
               1. Identificação do Beneficiário
             </h4>
-            <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
                 <span className="text-slate-500 block text-[10px]">Nome Completo</span>
                 <span className="font-semibold text-slate-900">{currentParticipant.nome}</span>
@@ -216,7 +216,7 @@ export function CommissionReceiptModal({
             <h4 className="font-bold text-slate-800 uppercase text-[11px] tracking-wider border-b border-slate-200 pb-1">
               2. Negociação Imobiliária de Referência
             </h4>
-            <div className="grid grid-cols-3 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
               <div>
                 <span className="text-slate-500 block text-[10px]">Empreendimento</span>
                 <span className="font-semibold text-slate-900">{sale.imovelNome}</span>
@@ -238,15 +238,15 @@ export function CommissionReceiptModal({
           </div>
 
           {/* Assinaturas */}
-          <div className="pt-8 grid grid-cols-2 gap-8 text-center text-[10px]">
+          <div className="pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 text-center text-[10px]">
             <div>
-              <div className="border-t border-slate-400 pt-1.5 mx-auto w-48 font-semibold text-slate-800">
+              <div className="border-t border-slate-400 pt-1.5 mx-auto w-full max-w-[12rem] font-semibold text-slate-800">
                 {currentParticipant.nome}
               </div>
               <span className="text-slate-500">Assinatura do Beneficiário</span>
             </div>
             <div>
-              <div className="border-t border-slate-400 pt-1.5 mx-auto w-48 font-semibold text-slate-800">
+              <div className="border-t border-slate-400 pt-1.5 mx-auto w-full max-w-[12rem] font-semibold text-slate-800">
                 Administração Financeira
               </div>
               <span className="text-slate-500">Connect Platz Imobiliária</span>

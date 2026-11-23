@@ -78,7 +78,7 @@ export function EditLeadModal({ isOpen, lead, stages, members = [], isAdmin = fa
         </div>
 
         {/* 2. BLOCO DE RESPONSÁVEL & STATUS / ETAPA */}
-        <div className="p-3.5 bg-muted/40 border-b border-border flex items-center justify-between gap-3">
+        <div className="p-3.5 bg-muted/40 border-b border-border flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-connect-blue text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
               {lead.corretor?.nome ? lead.corretor.nome[0] : "—"}
@@ -157,7 +157,7 @@ export function EditLeadModal({ isOpen, lead, stages, members = [], isAdmin = fa
           {activeTab === "info" ? (
             <div className="space-y-3">
               {/* Grid 2 colunas */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
                     Nome Completo *
@@ -250,7 +250,7 @@ export function EditLeadModal({ isOpen, lead, stages, members = [], isAdmin = fa
               </div>
 
               {/* Renda declarada & Origem */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border">
                 <div>
                   <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
                     Renda Declarada (R$)

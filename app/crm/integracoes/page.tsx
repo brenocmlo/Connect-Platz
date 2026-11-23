@@ -45,11 +45,11 @@ export default function IntegracoesPage() {
         </div>
 
         {/* Tab Pills no padrão Habitus CRM */}
-        <div className="flex items-center p-1 bg-muted rounded-xl border border-border/80 self-start sm:self-auto">
+        <div className="flex items-center p-1 bg-muted rounded-xl border border-border/80 self-start sm:self-auto max-w-full overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab("META_PIXEL")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
               activeTab === "META_PIXEL"
                 ? "bg-card text-foreground shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
@@ -61,7 +61,7 @@ export default function IntegracoesPage() {
           <button
             type="button"
             onClick={() => setActiveTab("WEBHOOKS")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
               activeTab === "WEBHOOKS"
                 ? "bg-card text-foreground shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground"

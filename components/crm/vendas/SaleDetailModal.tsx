@@ -175,7 +175,7 @@ export function SaleDetailModal({
 
             {sale.splits.map((split) => (
               <div key={split.id} className="p-3 rounded-xl border border-border bg-card hover:border-connect-blue/40 transition-colors space-y-2">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-foreground">{split.beneficiario}</span>
@@ -193,7 +193,7 @@ export function SaleDetailModal({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLE[split.status] || STATUS_STYLE.CANCELADO}`}>
                       {split.status === "PAGO" ? "Liquidado" : split.status === "PENDENTE" ? "Pendente" : "Cancelado"}
                     </span>

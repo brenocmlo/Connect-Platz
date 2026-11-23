@@ -60,7 +60,7 @@ function PeriodSelector() {
       </button>
 
       {selectedPeriod === "personalizado" && (
-        <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg p-1 text-xs shadow-xs animate-in fade-in-0 duration-200">
+        <div className="flex flex-wrap max-w-full items-center gap-1.5 bg-card border border-border rounded-lg p-1 text-xs shadow-xs animate-in fade-in-0 duration-200">
           <input
             type="date"
             value={customDateRange.start}
@@ -86,7 +86,7 @@ function PeriodSelector() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.15, ease: [0, 0, 0.2, 1] }}
-            className="absolute right-0 md:right-auto md:left-0 z-40 mt-1.5 w-48 origin-top rounded-xl border border-border bg-card p-1 shadow-xl"
+            className="absolute left-0 top-full z-40 mt-1.5 w-48 max-w-[calc(100vw-2rem)] origin-top rounded-xl border border-border bg-card p-1 shadow-xl"
           >
             {PERIOD_OPTIONS.map((option) => {
               const active = option.value === selectedPeriod;

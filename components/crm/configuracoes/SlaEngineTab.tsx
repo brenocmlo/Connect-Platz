@@ -169,7 +169,7 @@ export function SlaEngineTab() {
                   <span className="font-bold text-foreground text-xs">{st.nome}</span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">SLA:</span>
                     <input
@@ -186,12 +186,12 @@ export function SlaEngineTab() {
                     <span className="text-muted-foreground">min</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Ao estourar:</span>
+                  <div className="flex items-center gap-2 w-full sm:w-auto min-w-0">
+                    <span className="text-muted-foreground shrink-0">Ao estourar:</span>
                     <select
                       value={st.actionOnExpire}
                       onChange={(e) => updateStage(st.id, { actionOnExpire: e.target.value })}
-                      className="bg-background border border-border rounded-lg p-1.5 text-foreground text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue"
+                      className="flex-1 sm:flex-initial min-w-0 max-w-full truncate bg-background border border-border rounded-lg p-1.5 text-foreground text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-connect-blue"
                     >
                       {ACTION_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>

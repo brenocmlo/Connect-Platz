@@ -58,8 +58,8 @@ export function SaleParticipantsSection({
     const state = participants[role];
     const isLocked = role === "CORRETOR_1" && Boolean(lockedTitular);
     return (
-      <div key={role} className="grid grid-cols-6 gap-2 items-end">
-        <div className="col-span-4">
+      <div key={role} className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
+        <div className="sm:col-span-4">
           <label className="flex items-center justify-between font-medium text-muted-foreground mb-0.5">
             <span>
               {ROLE_LABEL[role]}
@@ -88,7 +88,7 @@ export function SaleParticipantsSection({
             </select>
           )}
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="block font-medium text-muted-foreground mb-0.5">% da base líquida</label>
           <NumericInput
             min={0}
@@ -114,7 +114,7 @@ export function SaleParticipantsSection({
       {renderRow("CORRETOR_1")}
 
       {/* Desconto e bônus do titular */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label className="block font-medium text-muted-foreground mb-0.5">Desconto Corretor 1 (R$)</label>
           <NumericInput

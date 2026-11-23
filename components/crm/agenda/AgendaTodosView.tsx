@@ -101,7 +101,7 @@ export function AgendaTodosView({
 
         {/* Controles de Data para Modo Personalizado */}
         {isCustomRange && (
-          <div className="flex items-center gap-2 bg-muted/40 border border-border rounded-xl p-1.5 text-xs">
+          <div className="flex flex-wrap items-center gap-2 bg-muted/40 border border-border rounded-xl p-1.5 text-xs w-full md:w-auto">
             <span className="text-[11px] font-semibold text-muted-foreground px-1">Período:</span>
             <input
               type="date"

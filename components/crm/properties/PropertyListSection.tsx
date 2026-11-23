@@ -157,7 +157,7 @@ export function PropertyListSection({
 
         {/* Botões de Ação para Cadastrar (somente administradores) */}
         {onOpenNewEmpModal && onOpenNewAvulsoModal && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={onOpenNewAvulsoModal}

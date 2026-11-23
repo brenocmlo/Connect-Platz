@@ -82,10 +82,10 @@ export function LeadDrawer({
         />
 
         {/* Navegação entre Detalhes e Histórico */}
-        <div className="flex border-b border-border bg-muted/40 px-4 text-xs font-semibold select-none flex-shrink-0">
+        <div className="flex border-b border-border bg-muted/40 px-4 text-xs font-semibold select-none flex-shrink-0 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab("details")}
-            className={`py-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+            className={`py-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === "details"
                 ? "border-connect-blue text-connect-blue font-bold"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -97,7 +97,7 @@ export function LeadDrawer({
 
           <button
             onClick={() => setActiveTab("history")}
-            className={`py-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+            className={`py-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === "history"
                 ? "border-connect-blue text-connect-blue font-bold"
                 : "border-transparent text-muted-foreground hover:text-foreground"
