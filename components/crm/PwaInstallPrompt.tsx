@@ -44,7 +44,7 @@ export function PwaInstallPrompt() {
   return (
     <>
       {/* Banner flutuante no rodapé em mobile / desktop */}
-      <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-96 z-50 animate-fade-in-up">
+      <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-96 z-50 animate-fade-in-up">
         <div className="bg-card border border-border/80 shadow-2xl rounded-2xl p-4 flex items-center justify-between gap-3 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-connect-blue/15 border border-connect-blue/30 flex items-center justify-center flex-shrink-0 text-connect-blue">

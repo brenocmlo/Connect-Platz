@@ -67,8 +67,8 @@ export default function CrmDashboardPage() {
         />
 
         {isAdminUser && (
-          <div className="flex items-center gap-1.5 p-1 bg-muted/60 border border-border rounded-xl w-fit text-xs font-semibold">
-            <span className="text-[11px] font-bold text-muted-foreground px-2">Segmento:</span>
+          <div className="flex items-center gap-1.5 p-1 bg-muted/60 border border-border rounded-xl w-full sm:w-fit max-w-full overflow-x-auto no-scrollbar text-xs font-semibold">
+            <span className="text-[11px] font-bold text-muted-foreground px-2 whitespace-nowrap shrink-0">Segmento:</span>
             {[
               { id: "TODOS", label: "Consolidado" },
               { id: "VENDA", label: "🏢 Vendas" },
@@ -78,7 +78,7 @@ export default function CrmDashboardPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setModality(tab.id as any)}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-all ${
                   modality === tab.id
                     ? "bg-connect-blue text-white shadow-sm font-bold"
                     : "text-muted-foreground hover:text-foreground"

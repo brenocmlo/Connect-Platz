@@ -51,20 +51,20 @@ export function SiteVitrineManagerSection({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>{activeCount} de {properties.length} online</span>
           </div>
 
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Filtrar imóveis..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-background border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-connect-blue"
+              className="w-full sm:w-auto bg-background border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-connect-blue"
             />
           </div>
         </div>

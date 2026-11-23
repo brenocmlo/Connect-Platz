@@ -81,7 +81,7 @@ export function SiteSettingsTab({
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto">
           <div className="flex items-center gap-2.5">
             <span className="text-xs font-semibold text-muted-foreground">Site Online</span>
             <button
@@ -147,7 +147,7 @@ export function SiteSettingsTab({
       </div>
 
       {/* 3. Conteúdo da Sub-aba Ativa */}
-      <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+      <div className="bg-card border border-border rounded-xl p-4 sm:p-6 shadow-sm">
         {activeSubTab === "HERO" && (
           <SiteHeroEditorSection
             heroImage={editor.heroImage}

@@ -26,7 +26,7 @@ export function CashFlowProjection({ entries }: CashFlowProjectionProps) {
     hideValues ? "••••••" : `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
+    <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h3 className="text-base font-bold text-foreground">Projeção de Fluxo de Caixa (90 Dias)</h3>
@@ -35,7 +35,7 @@ export function CashFlowProjection({ entries }: CashFlowProjectionProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] font-semibold">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] font-semibold">
           <span className="flex items-center gap-1.5 text-emerald-500">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
             Receitas Previstas

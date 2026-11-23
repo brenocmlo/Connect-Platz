@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import { NextRequest } from "next/server";
 import { Role } from "@prisma/client";
@@ -12,6 +13,8 @@ import {
 import { canDeletePropertyForRole } from "@/lib/domain/properties/modalityScope";
 import { verifyWebhookKey } from "@/lib/services/webhook-auth";
 import { getR2PublicBaseUrl } from "@/lib/storage/r2Client";
+import { MetaWebhookService } from "@/lib/services/meta-webhook";
+import { middleware } from "@/middleware";
 
 describe("Security Suite — Connect Platz CRM", () => {
   const originalEnv = { ...process.env };
@@ -193,6 +196,103 @@ describe("Security Suite — Connect Platz CRM", () => {
 
       delete process.env.R2_PUBLIC_URL;
       expect(getR2PublicBaseUrl()).toBe("");
+    });
+  });
+
+  describe("6. Assinatura HMAC SHA-256 do Webhook Meta Ads & Inferência", () => {
+    it("bloqueia sem META_APP_SECRET em produção (fail-closed) e valida HMAC SHA-256", () => {
+      vi.stubEnv("NODE_ENV", "production");
+      delete process.env.META_APP_SECRET;
+      expect(MetaWebhookService.verifySignature('{"entry":[]}', null)).toBe(false);
+
+      process.env.META_APP_SECRET = "meta-app-secret-connect-platz-2026";
+      const body = JSON.stringify({ object: "page", entry: [{ id: "1", time: 1700000 }] });
+      const digest = crypto.createHmac("sha256", process.env.META_APP_SECRET).update(body).digest("hex");
+
+      expect(MetaWebhookService.verifySignature(body, `sha256=${digest}`)).toBe(true);
+      expect(MetaWebhookService.verifySignature(body + "tamper", `sha256=${digest}`)).toBe(false);
+      expect(MetaWebhookService.verifySignature(body, `md5=${digest}`)).toBe(false);
+      expect(MetaWebhookService.verifySignature(body, null)).toBe(false);
+    });
+
+    it("infere modalidade ALUGUEL e VENDA pelos form_ids oficiais e campanha na Graph API", async () => {
+      process.env.META_PAGE_ACCESS_TOKEN = "meta-page-token-test";
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            form_id: "1426894502491423",
+            campaign_name: "Campanha Porto das Dunas",
+            field_data: [{ name: "full_name", values: ["Carlos Locatário"] }, { name: "phone_number", values: ["85999990001"] }],
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            form_id: "1974750823497447",
+            campaign_name: "Lançamento Meireles",
+            field_data: [{ name: "full_name", values: ["Beatriz Compradora"] }, { name: "phone_number", values: ["85999990002"] }],
+          }),
+        });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const aluguel = await MetaWebhookService.fetchLeadData("leadgen-aluguel-1");
+      expect(aluguel?.modalidade).toBe("ALUGUEL");
+      expect(aluguel?.nome).toBe("Carlos Locatário");
+
+      const venda = await MetaWebhookService.fetchLeadData("leadgen-venda-1");
+      expect(venda?.modalidade).toBe("VENDA");
+      expect(venda?.nome).toBe("Beatriz Compradora");
+    });
+  });
+
+  describe("7. Proteção Zero-Trust no Edge Middleware (middleware.ts)", () => {
+    const mkReq = (path: string, token?: string) =>
+      new NextRequest(`http://localhost:3000${path}`, {
+        headers: token ? { cookie: `connect_platz_token=${token}` } : undefined,
+      });
+
+    it("redireciona /crm sem sessão ou com token adulterado para /login", async () => {
+      const noToken = await middleware(mkReq("/crm"));
+      expect(noToken.status).toBe(307);
+      expect(noToken.headers.get("location")).toContain("/login?redirect=%2Fcrm");
+
+      const badToken = await middleware(mkReq("/crm/leads", "token.adulterado.aqui"));
+      expect(badToken.status).toBe(307);
+      expect(badToken.headers.get("location")).toContain("/login");
+    });
+
+    it("aplica segregação RBAC entre Corretores, Financeiros e Admins por modalidade", async () => {
+      const cv = signSessionToken({ userId: "u-cv", email: "cv@cp.com", nome: "CV", role: Role.CORRETOR_VENDA, organizationId: "org-1" });
+      for (const p of ["/crm/temporada", "/crm/fluxo-de-caixa", "/crm/equipes", "/crm/integracoes", "/crm/auditoria"]) {
+        const res = await middleware(mkReq(p, cv));
+        expect(res.headers.get("location")).toContain("/crm/leads?denied=true");
+      }
+
+      const ca = signSessionToken({ userId: "u-ca", email: "ca@cp.com", nome: "CA", role: Role.CORRETOR_ALUGUEL, organizationId: "org-1" });
+      expect((await middleware(mkReq("/crm/vendas", ca))).headers.get("location")).toContain("/crm/leads?denied=true");
+
+      const fv = signSessionToken({ userId: "u-fv", email: "fv@cp.com", nome: "FV", role: Role.FINANCEIRO_VENDA, organizationId: "org-1" });
+      expect((await middleware(mkReq("/crm/temporada", fv))).headers.get("location")).toContain("/crm/vendas?denied=true");
+
+      const fa = signSessionToken({ userId: "u-fa", email: "fa@cp.com", nome: "FA", role: Role.FINANCEIRO_ALUGUEL, organizationId: "org-1" });
+      expect((await middleware(mkReq("/crm/vendas", fa))).headers.get("location")).toContain("/crm/temporada?denied=true");
+
+      const av = signSessionToken({ userId: "u-av", email: "av@cp.com", nome: "AV", role: Role.ADMINISTRADOR_VENDA, organizationId: "org-1" });
+      expect((await middleware(mkReq("/crm/temporada", av))).headers.get("location")).toContain("/crm/vendas?denied=true");
+
+      const aa = signSessionToken({ userId: "u-aa", email: "aa@cp.com", nome: "AA", role: Role.ADMINISTRADOR_ALUGUEL, organizationId: "org-1" });
+      expect((await middleware(mkReq("/crm/vendas", aa))).headers.get("location")).toContain("/crm/temporada?denied=true");
+    });
+
+    it("injeta headers de contexto x-user-id, x-user-role e x-organization-id em rota autorizada", async () => {
+      const admin = signSessionToken({ userId: "u-adm", email: "adm@cp.com", nome: "Admin", role: Role.ADMINISTRADOR, organizationId: "org-99" });
+      const res = await middleware(mkReq("/crm/auditoria", admin));
+      expect(res.status).toBe(200);
+      expect(res.headers.get("location")).toBeNull();
+      expect(res.headers.get("x-middleware-request-x-user-id")).toBe("u-adm");
+      expect(res.headers.get("x-middleware-request-x-user-role")).toBe("ADMINISTRADOR");
+      expect(res.headers.get("x-middleware-request-x-organization-id")).toBe("org-99");
     });
   });
 });

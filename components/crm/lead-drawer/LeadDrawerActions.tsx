@@ -41,7 +41,7 @@ export function LeadDrawerActions({
   const currentStage = stages[currentStageIdx];
 
   return (
-    <div className="border-t border-border bg-card/95 backdrop-blur-md p-4 pb-6 sm:pb-4 space-y-2.5 shadow-lg">
+    <div className="border-t border-border bg-card/95 backdrop-blur-md p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-4 space-y-2.5 shadow-lg">
       {/* 1. BOTÃO PRINCIPAL DE AVANÇAR ETAPA + SELETOR RÁPIDO DE ETAPA */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         {nextStage ? (

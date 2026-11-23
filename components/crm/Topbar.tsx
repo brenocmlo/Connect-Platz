@@ -31,10 +31,10 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-20 h-14 bg-card/80 backdrop-blur-md border-b border-border px-4 md:px-6 flex items-center justify-between gap-4">
       {/* 1. LADO ESQUERDO: BOTÃO MOBILE MENU + FEEDBACK DE AÇÃO OU SLA DISCRETO */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="md:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="md:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
           title={isSidebarCollapsed ? "Abrir menu lateral" : "Fechar menu lateral"}
           aria-label="Menu lateral"
         >
@@ -42,9 +42,9 @@ export function Topbar() {
         </button>
 
         {actionMessage && (
-          <div className="text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm animate-fade-in">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>{actionMessage}</span>
+          <div className="min-w-0 max-w-full text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm animate-fade-in">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="truncate">{actionMessage}</span>
           </div>
         )}
 
@@ -97,7 +97,7 @@ export function Topbar() {
 
           {/* Popover de Notificações */}
           {isNotifOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-2xl p-3 z-50 animate-fade-in-up">
+            <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1.5rem))] sm:w-80 bg-card border border-border rounded-xl shadow-2xl p-3 z-50 animate-fade-in-up">
               <div className="flex items-center justify-between pb-2.5 border-b border-border mb-2.5">
                 <span className="text-xs font-bold text-foreground">Notificações Recentes</span>
                 <button

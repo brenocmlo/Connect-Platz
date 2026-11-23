@@ -16,6 +16,8 @@ const JWT_SECRET = readJwtSecret();
 
 const USERS = {
   ADMIN: { id: "usr-admin", nome: "Admin Geral", email: "admin@connectplatz.com.br", role: "ADMINISTRADOR", organizationId: "org-1", ativoRoleta: true, isAtivo: true, checkInHoje: false },
+  ADMIN_ALUGUEL: { id: "usr-aa", nome: "Admin Aluguel", email: "admin.aluguel@connectplatz.com.br", role: "ADMINISTRADOR_ALUGUEL", organizationId: "org-1", ativoRoleta: true, isAtivo: true, checkInHoje: false },
+  FINANCEIRO_VENDA: { id: "usr-fv", nome: "Fin Venda", email: "fin.venda@connectplatz.com.br", role: "FINANCEIRO_VENDA", organizationId: "org-1", ativoRoleta: true, isAtivo: true, checkInHoje: false },
   CORRETOR_VENDA: { id: "usr-cv", nome: "Lucas Santos", email: "corretor.venda@connectplatz.com.br", role: "CORRETOR_VENDA", organizationId: "org-1", ativoRoleta: true, isAtivo: true, checkInHoje: true },
   CORRETOR_ALUGUEL: { id: "usr-ca", nome: "Juliana Paes", email: "corretor.aluguel@connectplatz.com.br", role: "CORRETOR_ALUGUEL", organizationId: "org-1", ativoRoleta: true, isAtivo: true, checkInHoje: true },
 };
@@ -198,5 +200,15 @@ test.describe("E2E Completo — Connect Platz CRM", () => {
     await expect(page.getByText(/Gestão de Aluguel & Temporada/i)).toBeVisible();
     await expect(page.getByText("Camila Vasconcelos")).toBeVisible();
     await expect(page.getByText(/100% Protegido/i)).toBeVisible();
+  });
+
+  test("6. Segregação cruzada por modalidade: Admin Aluguel e Financeiro Venda bloqueados fora do escopo", async ({ page }) => {
+    await mockCrmApis(page, USERS.ADMIN_ALUGUEL);
+    await page.goto("/crm/vendas");
+    await expect(page).toHaveURL(/\/crm\/temporada\?denied=true/);
+
+    await mockCrmApis(page, USERS.FINANCEIRO_VENDA);
+    await page.goto("/crm/temporada");
+    await expect(page).toHaveURL(/\/crm\/vendas\?denied=true/);
   });
 });

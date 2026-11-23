@@ -146,7 +146,7 @@ export default function EquipesPage() {
   }
 
   const tabClass = (active: boolean) =>
-    `flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+    `flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap shrink-0 transition-all ${
       active ? "bg-card text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
     }`;
 
@@ -182,7 +182,7 @@ export default function EquipesPage() {
 
       <TeamStatCards team={team} loading={loading && team.length === 0} />
 
-      <div className="flex bg-muted p-1 rounded-xl gap-1 text-xs font-semibold overflow-x-auto w-fit">
+      <div className="flex bg-muted p-1 rounded-xl gap-1 text-xs font-semibold overflow-x-auto no-scrollbar w-full sm:w-fit max-w-full">
         <button type="button" onClick={() => setActiveTab("membros")} className={tabClass(activeTab === "membros")}>
           <Users2 className="w-4 h-4 text-connect-blue" />
           <span>Quadro de Colaboradores</span>

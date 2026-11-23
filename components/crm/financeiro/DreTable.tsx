@@ -63,7 +63,7 @@ export function DreTable({ entries }: DreTableProps) {
 
   return (
     <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-border">
           <div>
             <h3 className="text-base font-bold text-foreground">Demonstrativo de Resultado do Exercício (DRE)</h3>
@@ -102,7 +102,7 @@ export function DreTable({ entries }: DreTableProps) {
         </div>
 
         {month === "PERSONALIZADO" && (
-          <div className="flex items-center gap-2 bg-muted/40 border border-border rounded-xl p-2.5 text-xs animate-in fade-in-0 duration-200">
+          <div className="flex flex-wrap items-center gap-2 bg-muted/40 border border-border rounded-xl p-2.5 text-xs animate-in fade-in-0 duration-200">
             <span className="text-[11px] font-semibold text-muted-foreground">Período personalizado:</span>
             <input
               type="date"
@@ -120,11 +120,11 @@ export function DreTable({ entries }: DreTableProps) {
           </div>
         )}
 
-        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-3">
+        <div className="flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-3">
           <span>Conta</span>
-          <span className="flex gap-6">
-            <span className="w-14 text-right">AV %</span>
-            <span className="w-28 text-right">Valor</span>
+          <span className="flex gap-2 sm:gap-6 shrink-0">
+            <span className="w-12 sm:w-14 text-right">AV %</span>
+            <span className="w-24 sm:w-28 text-right">Valor</span>
           </span>
         </div>
 
@@ -133,22 +133,22 @@ export function DreTable({ entries }: DreTableProps) {
             <div
               key={l.label}
               title={l.hint}
-              className={`flex items-center justify-between p-3 rounded-xl ${
+              className={`flex items-center justify-between gap-2 p-3 rounded-xl ${
                 l.variant === "deduction"
                   ? "bg-card border border-border/60 text-muted-foreground"
                   : `bg-muted/70 font-bold ${l.accent ? `border-l-4 ${l.accent}` : ""}`
               }`}
             >
-              <span className={`flex items-center gap-1.5 ${l.variant === "deduction" ? "" : "text-foreground"}`}>
-                {l.label}
-                {l.hint && <Info className="w-3 h-3 text-amber-500" />}
+              <span className={`flex items-center gap-1.5 min-w-0 flex-1 ${l.variant === "deduction" ? "" : "text-foreground"}`}>
+                <span className="truncate sm:whitespace-normal">{l.label}</span>
+                {l.hint && <Info className="w-3 h-3 text-amber-500 shrink-0" />}
               </span>
-              <span className="flex items-center gap-6">
-                <span className="w-14 text-right font-mono text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-2 sm:gap-6 shrink-0">
+                <span className="w-12 sm:w-14 text-right font-mono text-[11px] text-muted-foreground">
                   {verticalPct(l.value, r.receitaBruta)}
                 </span>
                 <span
-                  className={`w-28 text-right ${
+                  className={`w-24 sm:w-28 text-right ${
                     l.variant === "deduction"
                       ? "text-red-500 dark:text-red-400"
                       : l.variant === "total"
@@ -164,20 +164,20 @@ export function DreTable({ entries }: DreTableProps) {
           ))}
 
           <div
-            className={`flex items-center justify-between p-4 rounded-xl font-extrabold border text-sm mt-3 ${
+            className={`flex items-center justify-between gap-2 p-4 rounded-xl font-extrabold border text-sm mt-3 ${
               positive
                 ? "bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30"
                 : "bg-red-500/10 dark:bg-red-950/40 border-red-500/30"
             }`}
           >
-            <span className={`uppercase tracking-wider ${positive ? "text-emerald-800 dark:text-emerald-200" : "text-red-700 dark:text-red-300"}`}>
+            <span className={`min-w-0 flex-1 uppercase tracking-wider text-xs sm:text-sm ${positive ? "text-emerald-800 dark:text-emerald-200" : "text-red-700 dark:text-red-300"}`}>
               (=) Resultado Operacional (EBITDA)
             </span>
-            <span className="flex items-center gap-6">
-              <span className="w-14 text-right font-mono text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-2 sm:gap-6 shrink-0">
+              <span className="w-12 sm:w-14 text-right font-mono text-[11px] text-muted-foreground">
                 {r.receitaBruta ? `${r.margemLiquidaPct.toFixed(1)}%` : "—"}
               </span>
-              <span className={`w-28 text-right text-base ${positive ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+              <span className={`w-24 sm:w-28 text-right text-sm sm:text-base ${positive ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                 {fmt(r.resultadoOperacional)}
               </span>
             </span>

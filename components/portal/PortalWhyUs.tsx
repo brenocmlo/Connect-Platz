@@ -115,9 +115,9 @@ export function PortalWhyUs({ totalImoveis, totalCidades, totalTemporada }: Port
         </Reveal>
 
         <div className="mt-12 grid items-center gap-12 lg:mt-16 lg:grid-cols-[1.1fr_0.9fr]">
-          <Reveal className="grid grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-10">
+          <Reveal className="grid grid-cols-2 gap-x-3 gap-y-6 pb-8 sm:gap-x-10 sm:pb-10">
             {stats.map((s, i) => (
-              <div key={s.label} className={i % 2 === 1 ? "translate-y-10" : ""}>
+              <div key={s.label} className={i % 2 === 1 ? "translate-y-6 sm:translate-y-10" : ""}>
                 <StatPin {...s} />
               </div>
             ))}

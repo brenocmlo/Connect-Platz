@@ -152,7 +152,7 @@ export function PortalHero({
         </motion.p>
 
         <motion.form {...enter(0.16)} onSubmit={submit} className="mt-8 w-full max-w-[540px]">
-          <div role="tablist" aria-label="Modalidade" className="inline-flex gap-2 rounded-t-xl bg-portal-surface p-2 pb-0">
+          <div role="tablist" aria-label="Modalidade" className="grid w-full grid-cols-2 gap-1.5 rounded-t-xl bg-portal-surface p-2 pb-0 sm:inline-flex sm:w-auto sm:gap-2">
             {TABS.map(({ id, label, icon: Icon }) => {
               const active = tab === id;
               return (
@@ -162,7 +162,7 @@ export function PortalHero({
                   role="tab"
                   aria-selected={active}
                   onClick={() => changeTab(id)}
-                  className={`flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition-all duration-200 ${
+                  className={`flex h-10 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-all duration-200 sm:justify-start sm:gap-2 sm:px-4 sm:text-sm ${
                     active
                       ? "bg-connect-blue text-white shadow-md shadow-connect-blue/30"
                       : "border border-portal-line text-portal-ink hover:border-connect-blue/40"
@@ -175,7 +175,7 @@ export function PortalHero({
             })}
           </div>
 
-          <div className="rounded-b-xl rounded-tr-xl bg-portal-surface p-3 shadow-2xl shadow-portal-navy-deep/40 sm:p-4">
+          <div className="rounded-b-xl bg-portal-surface p-3 shadow-2xl shadow-portal-navy-deep/40 sm:rounded-tr-xl sm:p-4">
             <label htmlFor="hero-local" className="sr-only">
               Onde você procura?
             </label>

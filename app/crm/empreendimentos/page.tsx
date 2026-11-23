@@ -156,11 +156,11 @@ export default function EmpreendimentosPage() {
 
       {/* 2. Tabs Superiores no Estilo Habitus (Seção 5.6) */}
       <div className="flex items-center justify-between border-b border-border/70 pb-3">
-        <div className="bg-muted/70 p-1 rounded-xl flex items-center gap-1 border border-border/50">
+        <div className="bg-muted/70 p-1 rounded-xl flex items-center gap-1 border border-border/50 w-full sm:w-auto max-w-full overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveMainTab("LISTA")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 whitespace-nowrap shrink-0 transition-all ${
               activeMainTab === "LISTA"
                 ? "bg-card text-foreground shadow-sm border border-border/60"
                 : "text-muted-foreground hover:text-foreground"
@@ -173,7 +173,7 @@ export default function EmpreendimentosPage() {
           <button
             type="button"
             onClick={() => setActiveMainTab("CONFIG_SITE")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 whitespace-nowrap shrink-0 transition-all ${
               activeMainTab === "CONFIG_SITE"
                 ? "bg-card text-foreground shadow-sm border border-border/60"
                 : "text-muted-foreground hover:text-foreground"
