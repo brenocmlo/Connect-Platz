@@ -29,6 +29,7 @@ export const UpdateLeadSchema = z.object({
   etapaId: z.string().optional().nullable(),
   corretorId: z.string().optional().nullable(),
   financialApprovalStatus: z.enum(["PENDENTE", "APROVADO", "REJEITADO"]).optional().nullable(),
+  isNightQueue: z.boolean().optional(),
   nome: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres.").optional(),
   telefone: z.string().optional(),
   canal: z.string().max(40).optional(),
@@ -88,6 +89,7 @@ export async function buildLeadUpdate(
     const slaMinutes = lead.stage.slaMinutes || 20;
     set("corretorId", session.userId);
     set("isBolsao", false);
+    if (lead.isNightQueue) set("isNightQueue", false);
     set("bolsaoEnteredAt", null);
     set("slaBreached", false);
     set("slaDueAt", new Date(Date.now() + slaMinutes * 60 * 1000));
@@ -98,6 +100,7 @@ export async function buildLeadUpdate(
     if (lead.isBolsao) throw new LeadUpdateError("Este lead já está no bolsão.");
     set("isBolsao", true);
     set("corretorId", null);
+    if (lead.isNightQueue) set("isNightQueue", false);
     set("bolsaoEnteredAt", new Date());
     plan.events.push({ tipo: "transbordo", conteudo: `Lead movido para o Bolsão Compartilhado por ${session.nome}.` });
     return plan;
@@ -219,6 +222,34 @@ export async function buildLeadUpdate(
       tipo: "transbordo",
       conteudo: `Lead transferido ${deTexto}para ${target.nome} por ${session.nome}.`,
       metadata: { de: prevName || null, para: target.nome },
+    });
+  }
+
+  // 4.5 Liberação automática da Fila Noturna quando há ação operacional
+  if (input.isNightQueue === false && lead.isNightQueue) {
+    set("isNightQueue", false);
+    if (!plan.data.slaDueAt && lead.stage?.slaMinutes) {
+      set("slaDueAt", new Date(Date.now() + lead.stage.slaMinutes * 60 * 1000));
+    }
+    plan.events.push({
+      tipo: "transbordo",
+      conteudo: `Lead liberado da Fila de Espera Noturna por ${session.nome}.`,
+    });
+  } else if (
+    lead.isNightQueue &&
+    (plan.isStageChange ||
+      input.corretorId !== undefined ||
+      input.action === "REGISTRAR_CONTATO" ||
+      input.action === "MUDAR_ETAPA" ||
+      Boolean(input.stageId || input.etapaId))
+  ) {
+    set("isNightQueue", false);
+    if (!plan.data.slaDueAt && lead.stage?.slaMinutes) {
+      set("slaDueAt", new Date(Date.now() + lead.stage.slaMinutes * 60 * 1000));
+    }
+    plan.events.push({
+      tipo: "transbordo",
+      conteudo: `Lead liberado da Fila de Espera Noturna por ${session.nome}.`,
     });
   }
 
