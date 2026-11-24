@@ -86,7 +86,7 @@ export default function LeadsPage() {
 
   const handleTransferBroker = async (leadId: string, newBrokerId: string, newBrokerName: string) => {
     try {
-      const updated = await patchLead(leadId, { corretorId: newBrokerId });
+      const updated = await patchLead(leadId, { corretorId: newBrokerId, isNightQueue: false });
       replaceLead(updated);
       notify(`Lead transferido com sucesso para ${newBrokerName}!`);
     } catch (err: any) {
@@ -150,7 +150,7 @@ export default function LeadsPage() {
     return Array.from(names).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [leads]);
 
-  const nightQueueCount = leads.filter((l) => l.isNightQueue).length;
+  const nightQueueCount = leads.filter((l) => l.isNightQueue && !l.corretorId && !l.corretor).length;
 
   const handleImportSuccess = (imported: LeadDetail[]) => {
     setLeads((prev) => [...imported, ...prev]);

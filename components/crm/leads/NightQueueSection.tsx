@@ -15,7 +15,7 @@ export function NightQueueSection({
   leads,
   onSelectLead,
 }: NightQueueSectionProps) {
-  const nightLeads = leads.filter((l) => l.isNightQueue);
+  const nightLeads = leads.filter((l) => l.isNightQueue && !l.corretorId && !l.corretor);
 
   return (
     <div className="space-y-4">

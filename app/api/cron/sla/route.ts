@@ -58,6 +58,21 @@ export async function GET(req: NextRequest) {
                 })
               );
               nightQueueReleased++;
+            } else {
+              // Fora da noite e sem corretores aptos: direciona para o Bolsão Compartilhado
+              updates.push(
+                prisma.lead.update({
+                  where: { id: nLead.id },
+                  data: {
+                    isNightQueue: false,
+                    isBolsao: true,
+                    bolsaoEnteredAt: new Date(),
+                    corretorId: null,
+                    slaDueAt: null,
+                  },
+                })
+              );
+              nightQueueReleased++;
             }
           }
           if (updates.length > 0) {

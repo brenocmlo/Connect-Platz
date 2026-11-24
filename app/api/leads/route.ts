@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { buildLeadRLSWhere, maskLeadSensitiveData } from "@/lib/db/rls";
 import { requireSession, isAdmin, getUserModality } from "@/lib/auth/session";
 import { Role, BusinessModality } from "@prisma/client";
+import { RoletaService } from "@/lib/services/roleta";
 import { recordAudit } from "@/lib/services/audit-server";
 import { refreshLeadScore } from "@/lib/services/lead-score";
 import { resolveLeadSource, sourceLabel } from "@/components/crm/leads/leadSource";
@@ -57,6 +58,20 @@ export async function GET(req: NextRequest) {
     const funnel = await findActiveFunnel(session.organizationId, searchParams.get("funnelId"), reqModality);
     if (!funnel || funnel.stages.length === 0) {
       return NextResponse.json({ error: NO_FUNNEL_MESSAGE, code: "NO_FUNNEL" }, { status: 500 });
+    }
+
+    // Auto-cura e liberação da fila noturna em horário comercial (09:00 às 22:00)
+    if (RoletaService.isWithinOperatingHours()) {
+      await Promise.all([
+        prisma.lead.updateMany({
+          where: { organizationId: session.organizationId, isNightQueue: true, corretorId: { not: null } },
+          data: { isNightQueue: false },
+        }),
+        prisma.lead.updateMany({
+          where: { organizationId: session.organizationId, isNightQueue: true, corretorId: null },
+          data: { isNightQueue: false, isBolsao: true, bolsaoEnteredAt: new Date() },
+        }),
+      ]);
     }
 
     const [leads, funnels] = await Promise.all([

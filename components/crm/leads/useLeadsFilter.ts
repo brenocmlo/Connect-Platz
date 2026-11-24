@@ -80,12 +80,13 @@ export function useLeadsFilter({
         originFilter === "TODAS" || lead.source === originFilter || lead.sourceLabel === originFilter;
       const matchesSla = slaFilter === "TODOS" || leadSlaStatus(lead, now.getTime()) === slaFilter;
       const matchesMember = selectedMember === "TODOS" || lead.corretor?.nome === selectedMember;
+      const isNightRetained = Boolean(lead.isNightQueue && !lead.corretorId && !lead.corretor);
       const matchesView =
         viewMode === "bolsao"
           ? Boolean(lead.isBolsao)
           : viewMode === "nightQueue"
-          ? Boolean(lead.isNightQueue)
-          : !lead.isBolsao && !lead.isNightQueue;
+          ? isNightRetained
+          : !lead.isBolsao && !isNightRetained;
 
       return (
         matchesSearch &&
